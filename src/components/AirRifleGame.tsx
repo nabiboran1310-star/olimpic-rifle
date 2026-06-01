@@ -654,34 +654,66 @@ export default function AirRifleGame() {
           )}
         </div>
 
-        {/* Scoreboard */}
+        {/* Scoreboard / Dashboard */}
         <aside className="bg-[var(--navy-mid)] border-l border-border flex flex-col">
           <div className="px-5 py-4 border-b border-border bg-[var(--navy-deep)]">
-            <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-2">SURVIVOR</div>
-            <div className="flex items-center gap-3">
-              <div className="flex-1">
-                <div className="text-[10px] tracking-widest text-muted-foreground">SHOOTER</div>
-                <div className="font-bold text-base">YOU</div>
+            <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-3">LIVE DASHBOARD</div>
+
+            {/* 4-metric grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {/* Perfect 10.9s */}
+              <div className="bg-[var(--navy-mid)]/60 border border-border/40 px-3 py-3">
+                <div className="text-[9px] tracking-widest text-muted-foreground mb-1">PERFECT 10.9s</div>
+                <div className="text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums leading-none">
+                  {perfectCount}
+                </div>
               </div>
-              <div className="px-2 py-1 bg-primary text-primary-foreground text-xs font-black tracking-wider">KAZ</div>
+
+              {/* Total Shots */}
+              <div className="bg-[var(--navy-mid)]/60 border border-border/40 px-3 py-3">
+                <div className="text-[9px] tracking-widest text-muted-foreground mb-1">TOTAL SHOTS</div>
+                <div className="text-3xl font-black text-foreground font-mono tabular-nums leading-none">
+                  {totalShots}
+                </div>
+              </div>
+
+              {/* Last Shot */}
+              <div className="bg-[var(--navy-mid)]/60 border border-border/40 px-3 py-3">
+                <div className="text-[9px] tracking-widest text-muted-foreground mb-1">LAST SHOT</div>
+                <div className={`text-3xl font-black font-mono tabular-nums leading-none ${lastShot === 10.9 ? "text-[var(--gold-bright)]" : lastShot !== null ? "text-foreground" : "text-muted-foreground/40"}`}>
+                  {lastShot !== null ? lastShot.toFixed(1) : "—"}
+                </div>
+              </div>
+
+              {/* Total Score */}
+              <div className="bg-[var(--navy-mid)]/60 border border-border/40 px-3 py-3">
+                <div className="text-[9px] tracking-widest text-muted-foreground mb-1">TOTAL SCORE</div>
+                <div className="text-3xl font-black text-primary font-mono tabular-nums leading-none">
+                  {score.toFixed(1)}
+                </div>
+              </div>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div>
+
+            {/* Mini secondary row */}
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="text-center">
                 <div className="text-[9px] tracking-widest text-muted-foreground">TIME</div>
-                <div className={`text-3xl font-black font-mono tabular-nums ${lowTime ? "text-destructive" : "text-primary"}`}>
+                <div className={`text-xl font-black font-mono tabular-nums ${lowTime ? "text-destructive" : "text-primary"}`}>
                   {timeLeft.toFixed(1)}
                 </div>
               </div>
-              <div className="text-right">
+              <div className="text-center">
                 <div className="text-[9px] tracking-widest text-muted-foreground">COMBO</div>
-                <div className={`text-3xl font-black font-mono tabular-nums ${combo >= 3 ? "text-[var(--gold-bright)]" : "text-foreground"}`}>
+                <div className={`text-xl font-black font-mono tabular-nums ${combo >= 3 ? "text-[var(--gold-bright)]" : "text-foreground"}`}>
                   ×{combo}
                 </div>
               </div>
-            </div>
-            <div className="mt-3">
-              <div className="text-[9px] tracking-widest text-muted-foreground">SCORE</div>
-              <div className="text-4xl font-black text-primary font-mono tabular-nums">{score.toFixed(1)}</div>
+              <div className="text-center">
+                <div className="text-[9px] tracking-widest text-muted-foreground">BEST</div>
+                <div className="text-xl font-black text-[var(--gold-bright)] font-mono tabular-nums">
+                  ×{bestCombo}
+                </div>
+              </div>
             </div>
           </div>
 
