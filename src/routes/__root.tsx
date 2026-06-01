@@ -77,14 +77,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "Olimpic Rifle Simulator" },
+      { name: "description", content: "Olympic Shooting Champion is a 10-meter air rifle simulator web game." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "Olimpic Rifle Simulator" },
+      { property: "og:description", content: "Olympic Shooting Champion is a 10-meter air rifle simulator web game." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Olimpic Rifle Simulator" },
+      { name: "twitter:description", content: "Olympic Shooting Champion is a 10-meter air rifle simulator web game." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c53dfe6f-6e0c-4ef4-ab1c-d9e81ceb2e95/id-preview-6672455e--e88a2807-e6fb-45b1-a59b-56f6aaccf6cc.lovable.app-1780298786233.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/c53dfe6f-6e0c-4ef4-ab1c-d9e81ceb2e95/id-preview-6672455e--e88a2807-e6fb-45b1-a59b-56f6aaccf6cc.lovable.app-1780298786233.png" },
     ],
     links: [
       {
