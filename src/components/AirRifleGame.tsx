@@ -357,6 +357,8 @@ export default function AirRifleGame() {
     const sc = computeDecimalScore(dx, dy);
     setLastHole({ x: hitX, y: hitY, score: sc });
     setShots((s) => [{ score: sc, index: s.length + 1 }, ...s].slice(0, 8));
+    setTotalShots((c) => c + 1);
+    setLastShot(sc);
 
     if (sc >= 9.0) {
       setCombo((c) => {
@@ -373,6 +375,7 @@ export default function AirRifleGame() {
     }
 
     if (sc === 10.9) {
+      setPerfectCount((c) => c + 1);
       playChime();
       setPerfect(true);
       setBulletTime(true);
