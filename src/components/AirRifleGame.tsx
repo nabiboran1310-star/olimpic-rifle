@@ -222,7 +222,21 @@ export default function AirRifleGame() {
 
           <div
             ref={arenaRef}
-            onClick={fire}
+            onMouseDown={(e) => {
+              if (e.button === 0) {
+                fire();
+              } else if (e.button === 2) {
+                setHolding(true);
+                setHoldStart(performance.now());
+              }
+            }}
+            onMouseUp={(e) => {
+              if (e.button === 2) {
+                setHolding(false);
+                setHoldStart(null);
+              }
+            }}
+            onContextMenu={(e) => e.preventDefault()}
             className="relative cursor-none shadow-2xl"
             style={{ width: TARGET_SIZE, height: TARGET_SIZE, background: "#f4f4ef" }}
           >
