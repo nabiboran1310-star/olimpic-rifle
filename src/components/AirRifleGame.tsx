@@ -102,28 +102,17 @@ export default function AirRifleGame() {
     return () => window.removeEventListener("mousemove", onMove);
   }, []);
 
-  // Spacebar breath control
+  // Global mouseup safety net for right-button release outside the arena
   useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !holding) {
-        e.preventDefault();
-        setHolding(true);
-        setHoldStart(performance.now());
-      }
-    };
-    const up = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
+    const up = (e: MouseEvent) => {
+      if (e.button === 2) {
         setHolding(false);
         setHoldStart(null);
       }
     };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
-  }, [holding]);
+    window.addEventListener("mouseup", up);
+    return () => window.removeEventListener("mouseup", up);
+  }, []);
 
   // Physics loop
   useEffect(() => {
