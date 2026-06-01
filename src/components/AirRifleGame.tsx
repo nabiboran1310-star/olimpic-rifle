@@ -34,20 +34,46 @@ function getCtx() {
 }
 function playCrack() {
   const ctx = getCtx();
-  const dur = 0.12;
+  const now = ctx.currentTime;
+  // Sharp pneumatic air burst: very short white-noise transient
+  const dur = 0.09;
   const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3);
+  for (let i = 0; i < data.length; i++) {
+    const env = Math.pow(1 - i / data.length, 4);
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
   const src = ctx.createBufferSource();
   src.buffer = buffer;
-  const filter = ctx.createBiquadFilter();
-  filter.type = "highpass";
-  filter.frequency.value = 1800;
+  const hp = ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 2200;
+  const peak = ctx.createBiquadFilter();
+  peak.type = "peaking";
+  peak.frequency.value = 4800;
+  peak.Q.value = 1.4;
+  peak.gain.value = 8;
   const gain = ctx.createGain();
-  gain.gain.value = 0.55;
-  src.connect(filter).connect(gain).connect(ctx.destination);
-  src.start();
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.65, now + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  src.connect(hp).connect(peak).connect(gain).connect(ctx.destination);
+  src.start(now);
+
+  // Tiny mechanical "tink" of the valve
+  const tink = ctx.createOscillator();
+  const tg = ctx.createGain();
+  tink.type = "triangle";
+  tink.frequency.setValueAtTime(5200, now);
+  tink.frequency.exponentialRampToValueAtTime(2400, now + 0.04);
+  tg.gain.setValueAtTime(0.0001, now);
+  tg.gain.exponentialRampToValueAtTime(0.18, now + 0.003);
+  tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+  tink.connect(tg).connect(ctx.destination);
+  tink.start(now);
+  tink.stop(now + 0.06);
 }
+
 function playHeartbeat(intensity: number) {
   const ctx = getCtx();
   const osc = ctx.createOscillator();
