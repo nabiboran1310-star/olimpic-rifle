@@ -13,13 +13,14 @@ const BULLET_MM = 4.5;
 const BULLET_PX = BULLET_MM * MM_TO_PX;
 
 function computeDecimalScore(dx: number, dy: number): number {
-  // distance from center in mm, accounting for bullet edge (inward scoring)
+  // HARDCORE: strict center-to-center distance (no inward bullet-edge scoring).
+  // 10.9 is achievable ONLY when the sight is mathematically on the absolute
+  // center pixel. Each 0.5mm of offset costs 0.1 points — so a single pixel
+  // away from dead center already drops the score below 10.9.
   const distPx = Math.hypot(dx, dy);
-  const distMm = Math.max(0, distPx / MM_TO_PX - BULLET_MM / 2);
-  // 10.9 if dist=0, then linear down to 1.0 at ring 1 outer (45.5mm)
-  // Each ring is 5mm; decimal sub-ring is 0.5mm = 0.1 score.
+  const distMm = distPx / MM_TO_PX;
   if (distMm >= 45.5) return 0;
-  const score = 10.9 - distMm / 5;
+  const score = 10.9 - distMm * 0.2; // 0.1 per 0.5mm
   return Math.max(0, Math.round(score * 10) / 10);
 }
 
@@ -311,8 +312,9 @@ export default function AirRifleGame() {
                 );
               })}
 
-              {/* The 10 ring (microscopic white dot) */}
-              <circle cx={CENTER} cy={CENTER} r={RING_RADII_MM[0] * MM_TO_PX} fill="#fff" />
+              {/* The absolute center — a microscopic 1px dot.
+                  Hitting it dead-on is the only way to score 10.9. */}
+              <circle cx={CENTER} cy={CENTER} r={0.6} fill="#fff" />
 
               {/* Bullet holes */}
               {shots.map((s) => (
