@@ -301,6 +301,8 @@ export default function AirRifleGame() {
   const [holding, setHolding] = useState(false);
   const [holdStart, setHoldStart] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(true);
+  const [reloading, setReloading] = useState(false);
+
   const [perfect, setPerfect] = useState(false);
 
   const [perfectCount, setPerfectCount] = useState(0);
