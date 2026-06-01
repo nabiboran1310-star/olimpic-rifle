@@ -101,38 +101,86 @@ function playChime() {
     osc.stop(ctx.currentTime + i * 0.08 + 1.5);
   });
 }
-function playReload() {
+// Generic metallic click helper
+function mkMetalClick(startOffset: number, freq: number, dur: number, gainV: number, q = 6) {
   const ctx = getCtx();
   const now = ctx.currentTime;
-  const mkClick = (t: number, freq: number, dur: number, gainV: number) => {
-    const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.value = freq;
-    bp.Q.value = 4;
-    const g = ctx.createGain();
-    g.gain.value = gainV;
-    src.connect(bp).connect(g).connect(ctx.destination);
-    src.start(now + t);
-  };
-  mkClick(0, 1200, 0.08, 0.5);
-  mkClick(0.18, 2400, 0.04, 0.4);
-  mkClick(0.35, 900, 0.1, 0.55);
+  const buf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = freq;
+  bp.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.value = gainV;
+  src.connect(bp).connect(g).connect(ctx.destination);
+  src.start(now + startOffset);
+}
+
+// Stage 1: bolt opens, spring cocks
+function playBoltOpen() {
+  const ctx = getCtx();
+  const now = ctx.currentTime;
+  // crisp metallic click
+  mkMetalClick(0, 2600, 0.05, 0.5, 8);
+  mkMetalClick(0.015, 1400, 0.09, 0.45, 5);
+  // spring tension — descending pitch
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
-  osc.frequency.value = 1800;
-  osc.type = "triangle";
-  g.gain.setValueAtTime(0, now + 0.35);
-  g.gain.linearRampToValueAtTime(0.13, now + 0.36);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
-  osc.connect(g).connect(ctx.destination);
-  osc.start(now + 0.35);
-  osc.stop(now + 0.6);
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(1800, now + 0.04);
+  osc.frequency.exponentialRampToValueAtTime(700, now + 0.22);
+  g.gain.setValueAtTime(0.0001, now + 0.04);
+  g.gain.exponentialRampToValueAtTime(0.08, now + 0.06);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+  const hp = ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 600;
+  osc.connect(hp).connect(g).connect(ctx.destination);
+  osc.start(now + 0.04);
+  osc.stop(now + 0.26);
 }
+
+// Stage 2: bolt closes, chamber seals (thicker, lower thunk)
+function playBoltClose() {
+  const ctx = getCtx();
+  const now = ctx.currentTime;
+  // dense low thunk via filtered noise
+  const dur = 0.13;
+  const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 900;
+  lp.Q.value = 2;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.6, now + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  src.connect(lp).connect(g).connect(ctx.destination);
+  src.start(now);
+  // sharp metallic lock-in tick on top
+  mkMetalClick(0.005, 1700, 0.05, 0.4, 7);
+  // sub thump for seal
+  const sub = ctx.createOscillator();
+  const sg = ctx.createGain();
+  sub.type = "sine";
+  sub.frequency.setValueAtTime(180, now);
+  sub.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+  sg.gain.setValueAtTime(0.0001, now);
+  sg.gain.exponentialRampToValueAtTime(0.35, now + 0.005);
+  sg.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+  sub.connect(sg).connect(ctx.destination);
+  sub.start(now);
+  sub.stop(now + 0.16);
+}
+
 function playEmptyClick() {
   const ctx = getCtx();
   const o = ctx.createOscillator();
