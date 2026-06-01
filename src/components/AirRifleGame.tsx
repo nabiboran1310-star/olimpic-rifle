@@ -312,8 +312,9 @@ export default function AirRifleGame() {
                 );
               })}
 
-              {/* The 10 ring (microscopic white dot) */}
-              <circle cx={CENTER} cy={CENTER} r={RING_RADII_MM[0] * MM_TO_PX} fill="#fff" />
+              {/* The absolute center — a microscopic 1px dot.
+                  Hitting it dead-on is the only way to score 10.9. */}
+              <circle cx={CENTER} cy={CENTER} r={0.6} fill="#fff" />
 
               {/* Bullet holes */}
               {shots.map((s) => (
