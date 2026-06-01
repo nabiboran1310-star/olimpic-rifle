@@ -708,9 +708,10 @@ export default function AirRifleGame() {
           <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between text-xs font-mono pointer-events-none">
             <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-l-2 border-primary">
               <div className="text-[9px] tracking-widest text-muted-foreground">CHAMBER</div>
-              <div className={`font-bold ${loaded ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
-                {loaded ? "● LOADED" : "○ EMPTY · Нажмите [R] для перезарядки"}
+              <div className={`font-bold ${reloading ? "text-[var(--gold-bright)] animate-pulse" : loaded ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
+                {reloading ? "◐ RELOADING…" : loaded ? "● LOADED" : "○ EMPTY · Нажмите [R] для перезарядки"}
               </div>
+
             </div>
             <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-r-2 border-primary text-right">
               <div className="text-[9px] tracking-widest text-muted-foreground">BREATH</div>
