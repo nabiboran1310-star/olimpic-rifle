@@ -477,7 +477,7 @@ export default function AirRifleGame() {
           <div className="border-t border-border p-4 space-y-3 bg-[var(--navy-deep)]">
             <div className="text-[10px] leading-relaxed text-muted-foreground tracking-wide">
               <div className="text-foreground font-bold mb-1 tracking-widest">CONTROLS</div>
-              MOUSE — AIM · CLICK — FIRE · SPACE — HOLD BREATH (3s optimal window)
+              [Удерживайте ПКМ] Задержать дыхание | [ЛКМ] Выстрел
             </div>
             {shots.length >= 10 && (
               <button
