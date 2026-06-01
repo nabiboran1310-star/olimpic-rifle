@@ -348,7 +348,6 @@ export default function AirRifleGame() {
     setTotalShots(0);
     setLastShot(null);
     setLoaded(true);
-    getCtx();
   };
 
   // Shop actions
