@@ -477,7 +477,7 @@ export default function AirRifleGame() {
     }
     setHolding(false);
     setHoldStart(null);
-  }, [loaded, equippedSkin]);
+  }, [loaded, reloading, equippedSkin]);
 
   const startGame = () => {
     setStarted(true);
