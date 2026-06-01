@@ -1,24 +1,129 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from "canvas-confetti";
 
-// ---------- Constants ----------
-const TARGET_SIZE = 520;
-const CENTER = TARGET_SIZE / 2;
-const RING_RADII_MM = [0.5, 5.5, 10.5, 15.5, 20.5, 25.5, 30.5, 35.5, 40.5, 45.5];
-const MM_TO_PX = 230 / 45.5;
-const BULLET_MM = 4.5;
-const BULLET_PX = BULLET_MM * MM_TO_PX;
-const HOLD_WINDOW = 1.5;
+// ============================================================
+// Disciplines
+// ============================================================
+type DisciplineId = "ar10" | "rifle50" | "ap10" | "rfp25";
 
-function computeDecimalScore(dx: number, dy: number): number {
-  const distPx = Math.hypot(dx, dy);
+type Discipline = {
+  id: DisciplineId;
+  name: string;
+  short: string;
+  caption: string;
+  sight: "diopter" | "open";
+  // physics
+  amplitude: number;       // base sway
+  pulseAmp: number;        // heartbeat impulse
+  jitter: number;          // micro jitter
+  wind: number;            // slow random drift speed
+  dampenFocus: number;     // multiplier when holding RMB in window (lower = better)
+  // target geometry
+  targetPx: number;        // total svg size
+  ringMm: number[];        // mm radii of rings 10..1
+  mmToPx: number;          // scale
+  bulletMm: number;        // pellet diameter
+  blackRingFromIdx: number; // ring index (0=10) where black starts
+  shotSound: "air" | "rim";
+};
+
+const DISCIPLINES: Discipline[] = [
+  {
+    id: "ar10",
+    name: "Винтовка 10м",
+    short: "10m AIR RIFLE",
+    caption: "ISSF Air Rifle · диоптр · тяжёлая восьмёрка",
+    sight: "diopter",
+    amplitude: 24,
+    pulseAmp: 12,
+    jitter: 3,
+    wind: 0,
+    dampenFocus: 0.2,
+    targetPx: 520,
+    ringMm: [0.5, 5.5, 10.5, 15.5, 20.5, 25.5, 30.5, 35.5, 40.5, 45.5],
+    mmToPx: 520 / 2 / 45.5,
+    bulletMm: 4.5,
+    blackRingFromIdx: 6, // rings 10..4 inside black? we'll use ring idx >= 4 (i.e. <=6 ring number)
+    shotSound: "air",
+  },
+  {
+    id: "rifle50",
+    name: "Винтовка 50м",
+    short: "50m RIFLE .22LR",
+    caption: "Smallbore .22LR · диоптр · инерция + ветер",
+    sight: "diopter",
+    amplitude: 30,
+    pulseAmp: 14,
+    jitter: 4,
+    wind: 0.6,
+    dampenFocus: 0.25,
+    targetPx: 520,
+    ringMm: [0.5, 8, 16, 24, 32, 40, 48, 56, 64, 72], // approximated
+    mmToPx: 520 / 2 / 72,
+    bulletMm: 5.6,
+    blackRingFromIdx: 6,
+    shotSound: "rim",
+  },
+  {
+    id: "ap10",
+    name: "Пистолет 10м",
+    short: "10m AIR PISTOL",
+    caption: "Air Pistol · открытый прицел · резкий тремор",
+    sight: "open",
+    amplitude: 48,
+    pulseAmp: 18,
+    jitter: 5,
+    wind: 0,
+    dampenFocus: 0.45,
+    targetPx: 520,
+    ringMm: [6, 14.5, 23, 31.5, 40, 48.5, 57, 65.5, 74, 82.5],
+    mmToPx: 520 / 2 / 82.5,
+    bulletMm: 4.5,
+    blackRingFromIdx: 4, // rings 6..1 white/larger black
+    shotSound: "air",
+  },
+  {
+    id: "rfp25",
+    name: "Пистолет 25м",
+    short: "25m RAPID FIRE",
+    caption: "Rapid Fire Pistol · открытый прицел · хаотичные рывки",
+    sight: "open",
+    amplitude: 56,
+    pulseAmp: 22,
+    jitter: 9,
+    wind: 0.4,
+    dampenFocus: 0.5,
+    targetPx: 520,
+    ringMm: [10, 25, 40, 55, 70, 85, 100, 115, 130, 145],
+    mmToPx: 520 / 2 / 145,
+    bulletMm: 5.6,
+    blackRingFromIdx: 4,
+    shotSound: "rim",
+  },
+];
+
+// ============================================================
+// Score
+// ============================================================
+function computeDecimalScore(distPx: number, d: Discipline): number {
   if (distPx <= 1.5) return 10.9;
-  const distMm = distPx / MM_TO_PX;
-  if (distMm >= 45.5) return 0;
-  const score = 10.9 - distMm * 0.2;
+  const distMm = distPx / d.mmToPx;
+  const ringStep = (d.ringMm[1] - d.ringMm[0]); // mm per ring (approx)
+  const maxMm = d.ringMm[9];
+  if (distMm >= maxMm) return 0;
+  // map: distMm=0 -> 10.9; distMm = ring9 = (idx 0)=0.5mm -> 10.x
+  // We compute as: score = 10.9 - (distMm / ringStep) * 1.0 (per ring)
+  const score = 10.9 - (distMm / ringStep);
   return Math.max(0, Math.round(score * 10) / 10);
 }
 
+function timeBonusForShot(s: number): number {
+  if (s === 10.9) return 8;
+  if (s >= 10.0) return 4;
+  if (s >= 9.0) return 2;
+  return 0;
+}
 function creditsForShot(s: number): number {
   if (s === 10.9) return 500;
   if (s >= 10.0) return 100;
@@ -26,14 +131,19 @@ function creditsForShot(s: number): number {
   return 0;
 }
 
-// ---------- Audio (real MP3 files, easy to swap) ----------
+// ============================================================
+// Audio (real MP3 files)
+// ============================================================
 const SOUND_URLS = {
-  shot: "https://assets.mixkit.co/active_storage/sfx/1670/1670-preview.mp3",
+  shotAir: "https://assets.mixkit.co/active_storage/sfx/1670/1670-preview.mp3",
+  shotRim: "https://assets.mixkit.co/active_storage/sfx/1678/1678-preview.mp3",
   boltOpen: "https://assets.mixkit.co/active_storage/sfx/1124/1124-preview.mp3",
   boltClose: "https://assets.mixkit.co/active_storage/sfx/1118/1118-preview.mp3",
   chime: "https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3",
+  crowd: "https://assets.mixkit.co/active_storage/sfx/2017/2017-preview.mp3",
   purchase: "https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3",
   emptyClick: "https://assets.mixkit.co/active_storage/sfx/2778/2778-preview.mp3",
+  gameOver: "https://assets.mixkit.co/active_storage/sfx/2952/2952-preview.mp3",
 } as const;
 
 function makeAudio(url: string, volume = 1) {
@@ -44,12 +154,17 @@ function makeAudio(url: string, volume = 1) {
   return a;
 }
 
-const shotAudio = makeAudio(SOUND_URLS.shot, 0.7);
-const boltOpenAudio = makeAudio(SOUND_URLS.boltOpen, 0.8);
-const boltCloseAudio = makeAudio(SOUND_URLS.boltClose, 0.85);
-const chimeAudio = makeAudio(SOUND_URLS.chime, 0.6);
-const purchaseAudio = makeAudio(SOUND_URLS.purchase, 0.5);
-const emptyClickAudio = makeAudio(SOUND_URLS.emptyClick, 0.5);
+const A = {
+  shotAir: makeAudio(SOUND_URLS.shotAir, 0.7),
+  shotRim: makeAudio(SOUND_URLS.shotRim, 0.75),
+  boltOpen: makeAudio(SOUND_URLS.boltOpen, 0.8),
+  boltClose: makeAudio(SOUND_URLS.boltClose, 0.85),
+  chime: makeAudio(SOUND_URLS.chime, 0.6),
+  crowd: makeAudio(SOUND_URLS.crowd, 0.7),
+  purchase: makeAudio(SOUND_URLS.purchase, 0.5),
+  emptyClick: makeAudio(SOUND_URLS.emptyClick, 0.5),
+  gameOver: makeAudio(SOUND_URLS.gameOver, 0.7),
+};
 
 function playSfx(a: HTMLAudioElement | null) {
   if (!a) return;
@@ -57,83 +172,49 @@ function playSfx(a: HTMLAudioElement | null) {
     const clone = a.cloneNode(true) as HTMLAudioElement;
     clone.volume = a.volume;
     void clone.play().catch(() => {});
-  } catch {
-    /* ignore */
-  }
+  } catch {/* ignore */}
 }
 
-function playCrack() { playSfx(shotAudio); }
-function playBoltOpen() { playSfx(boltOpenAudio); }
-function playBoltClose() { playSfx(boltCloseAudio); }
-function playChime() { playSfx(chimeAudio); }
-function playPurchase() { playSfx(purchaseAudio); }
-function playEmptyClick() { playSfx(emptyClickAudio); }
-function playHeartbeat(_intensity: number) { /* removed synth heartbeat */ }
-
-// ---------- Skins & Upgrades ----------
+// ============================================================
+// Skins & Upgrades
+// ============================================================
 type Skin = {
-  id: string;
-  name: string;
-  price: number;
-  ring: string; // CSS color for the ring
-  dot: string;
-  glow?: string; // optional inner glow
-  goldHalo?: boolean;
+  id: string; name: string; price: number;
+  ring: string; dot: string; glow?: string; goldHalo?: boolean;
 };
 const SKINS: Skin[] = [
-  { id: "default", name: "Стандартный спорт", price: 0, ring: "rgba(10,10,10,0.85)", dot: "rgba(0,0,0,0.9)" },
-  {
-    id: "carbon",
-    name: "Спортивный Карбон",
-    price: 1500,
-    ring: "#3a3f47",
-    dot: "#1a1d22",
-    glow: "inset 0 0 0 1px rgba(120,130,140,0.4)",
-  },
-  {
-    id: "chrome",
-    name: "Олимпийский Хром",
-    price: 3500,
-    ring: "#e8edf2",
-    dot: "#9aa3ad",
-    glow: "0 0 6px rgba(220,230,240,0.7), inset 0 0 0 1px rgba(255,255,255,0.9)",
-  },
-  {
-    id: "gold",
-    name: "Золото Чемпиона",
-    price: 7000,
-    ring: "#f0c14a",
-    dot: "#8a6a18",
-    glow: "0 0 8px rgba(240,200,80,0.85), inset 0 0 0 1px rgba(255,230,140,0.9)",
-    goldHalo: true,
-  },
+  { id: "default", name: "Стандартный спорт", price: 0, ring: "rgba(10,10,10,0.9)", dot: "rgba(0,0,0,0.95)" },
+  { id: "carbon", name: "Спортивный Карбон", price: 1500, ring: "#3a3f47", dot: "#1a1d22",
+    glow: "inset 0 0 0 1px rgba(120,130,140,0.4)" },
+  { id: "chrome", name: "Олимпийский Хром", price: 3500, ring: "#e8edf2", dot: "#9aa3ad",
+    glow: "0 0 6px rgba(220,230,240,0.7), inset 0 0 0 1px rgba(255,255,255,0.9)" },
+  { id: "gold", name: "Золото Чемпиона", price: 7000, ring: "#f0c14a", dot: "#8a6a18",
+    glow: "0 0 8px rgba(240,200,80,0.85), inset 0 0 0 1px rgba(255,230,140,0.9)", goldHalo: true },
 ];
 
-type Upgrade = {
-  id: string;
-  name: string;
-  desc: string;
-  price: number;
-};
+type Upgrade = { id: string; name: string; desc: string; price: number };
 const UPGRADES: Upgrade[] = [
-  { id: "rifle", name: "Сбалансированная винтовка", desc: "Снижает базовое дрожание мушки на 15%.", price: 2500 },
-  { id: "jacket", name: "Спортивная куртка стрелка", desc: "Уменьшает рывки от сердцебиения на 20%.", price: 4000 },
-  { id: "diopter", name: "Элитный диоптр", desc: "Тоньше кольцо мушки + точка-ориентир в центре.", price: 6000 },
+  { id: "jacket", name: "Спортивный костюм", desc: "Снижает амплитуду дрожания прицела на 20% во всех дисциплинах.", price: 2500 },
+  { id: "glove",  name: "Перчатка стрелка", desc: "Уменьшает резкие рывки от сердцебиения на 30%.", price: 4000 },
+  { id: "premium",name: "Премиум Оптика / Анатом. рукоятка", desc: "Эффективная задержка дыхания 3 → 5 секунд.", price: 6000 },
 ];
 
-// ---------- Persistence ----------
-const LS_KEY = "air-rifle-progress-v1";
+// ============================================================
+// Persistence
+// ============================================================
+const LS_KEY = "air-rifle-progress-v2";
 type Progress = {
   credits: number;
-  owned: string[]; // skin ids owned
-  upgrades: string[]; // upgrade ids owned
+  owned: string[];
+  upgrades: string[];
   equipped: string;
 };
 function loadProgress(): Progress {
-  if (typeof window === "undefined") return { credits: 0, owned: ["default"], upgrades: [], equipped: "default" };
+  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default" };
+  if (typeof window === "undefined") return def;
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (!raw) throw 0;
+    if (!raw) return def;
     const p = JSON.parse(raw);
     return {
       credits: Number(p.credits) || 0,
@@ -141,97 +222,102 @@ function loadProgress(): Progress {
       upgrades: Array.isArray(p.upgrades) ? p.upgrades : [],
       equipped: typeof p.equipped === "string" ? p.equipped : "default",
     };
-  } catch {
-    return { credits: 0, owned: ["default"], upgrades: [], equipped: "default" };
-  }
+  } catch { return def; }
 }
 function saveProgress(p: Progress) {
-  try {
-    localStorage.setItem(LS_KEY, JSON.stringify(p));
-  } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(p)); } catch {}
 }
 
-// ---------- Component ----------
+// ============================================================
+// Component
+// ============================================================
+const START_TIME = 30;
+
+type Phase = "menu" | "playing" | "gameover";
+type ShotRecord = { n: number; score: number; discipline: string; id: number };
+type Hole = { x: number; y: number; score: number; id: number; gold: boolean };
+
 export default function AirRifleGame() {
   const arenaRef = useRef<HTMLDivElement>(null);
-  const [mouse, setMouse] = useState({ x: CENTER, y: CENTER });
-  const [sight, setSight] = useState({ x: CENTER, y: CENTER });
-  const sightRef = useRef({ x: CENTER, y: CENTER });
-  const [holes, setHoles] = useState<{ x: number; y: number; score: number; id: number; gold: boolean }[]>([]);
+
+  const [phase, setPhase] = useState<Phase>("menu");
+  const [discipline, setDiscipline] = useState<Discipline>(DISCIPLINES[0]);
+
+  const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [sight, setSight] = useState({ x: 0, y: 0 });
+  const sightRef = useRef({ x: 0, y: 0 });
+
+  const [holes, setHoles] = useState<Hole[]>([]);
+  const [shotHistory, setShotHistory] = useState<ShotRecord[]>([]);
+
   const [holding, setHolding] = useState(false);
   const [holdStart, setHoldStart] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(true);
   const [reloading, setReloading] = useState(false);
 
   const [perfect, setPerfect] = useState(false);
-
   const [perfectCount, setPerfectCount] = useState(0);
   const [totalShots, setTotalShots] = useState(0);
   const [lastShot, setLastShot] = useState<number | null>(null);
   const [score, setScore] = useState(0);
 
+  const [timeLeft, setTimeLeft] = useState(START_TIME);
+
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
-  const [started, setStarted] = useState(false);
   const [shopOpen, setShopOpen] = useState(false);
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
 
-  const lastHeartbeat = useRef(0);
   const tRef = useRef(0);
   const holeIdRef = useRef(0);
+  const historyListRef = useRef<HTMLDivElement>(null);
 
   const equippedSkin = useMemo(
     () => SKINS.find((s) => s.id === progress.equipped) ?? SKINS[0],
     [progress.equipped],
   );
   const hasUpgrade = (id: string) => progress.upgrades.includes(id);
+  const holdWindow = hasUpgrade("premium") ? 5 : 3;
 
-  // Persist progress
-  useEffect(() => {
-    saveProgress(progress);
-  }, [progress]);
+  // Persist
+  useEffect(() => { saveProgress(progress); }, [progress]);
 
-  // Mouse tracking (raw cursor)
+  // Mouse tracking
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const rect = arenaRef.current?.getBoundingClientRect();
       if (!rect) return;
+      const size = discipline.targetPx;
       setMouse({
-        x: Math.max(0, Math.min(TARGET_SIZE, e.clientX - rect.left)),
-        y: Math.max(0, Math.min(TARGET_SIZE, e.clientY - rect.top)),
+        x: Math.max(0, Math.min(size, e.clientX - rect.left)),
+        y: Math.max(0, Math.min(size, e.clientY - rect.top)),
       });
     };
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
-  }, []);
+  }, [discipline]);
 
-  // Global RMB up safety
+  // RMB safety
   useEffect(() => {
     const up = (e: MouseEvent) => {
-      if (e.button === 2) {
-        setHolding(false);
-        setHoldStart(null);
-      }
+      if (e.button === 2) { setHolding(false); setHoldStart(null); }
     };
     window.addEventListener("mouseup", up);
     return () => window.removeEventListener("mouseup", up);
   }, []);
 
-  // Reload via R
+  // Reload
   const reload = useCallback(() => {
-    if (loaded || reloading) return;
+    if (loaded || reloading || phase !== "playing") return;
     setReloading(true);
-    // Stage 1: bolt open + spring cock
-    playBoltOpen();
-    // Pause 350ms (loading the pellet), then stage 2: bolt close
+    playSfx(A.boltOpen);
     setTimeout(() => {
-      playBoltClose();
-      // Chamber sealed after the close finishes (~180ms)
+      playSfx(A.boltClose);
       setTimeout(() => {
         setLoaded(true);
         setReloading(false);
       }, 180);
-    }, 350);
-  }, [loaded, reloading]);
+    }, 300);
+  }, [loaded, reloading, phase]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -241,125 +327,219 @@ export default function AirRifleGame() {
     return () => window.removeEventListener("keydown", onKey);
   }, [reload]);
 
-  // Physics — STATIC target, shaky sight following mouse
+  // Auto-scroll history to bottom on new shot
   useEffect(() => {
-    if (!started) return;
+    if (historyListRef.current) {
+      historyListRef.current.scrollTop = historyListRef.current.scrollHeight;
+    }
+  }, [shotHistory.length]);
+
+  // Game timer
+  useEffect(() => {
+    if (phase !== "playing") return;
+    const t = setInterval(() => {
+      setTimeLeft((tl) => {
+        if (tl <= 0.1) {
+          clearInterval(t);
+          return 0;
+        }
+        return +(tl - 0.1).toFixed(2);
+      });
+    }, 100);
+    return () => clearInterval(t);
+  }, [phase]);
+
+  // Game over trigger
+  useEffect(() => {
+    if (phase === "playing" && timeLeft <= 0) {
+      setPhase("gameover");
+      playSfx(A.gameOver);
+    }
+  }, [timeLeft, phase]);
+
+  // Physics
+  useEffect(() => {
+    if (phase !== "playing") return;
     let raf = 0;
     let last = performance.now();
+    let windX = 0, windY = 0;
+    let windTimer = 0;
+    let windTargetX = 0, windTargetY = 0;
+
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
       tRef.current += dt;
       const t = tRef.current;
+      const d = discipline;
 
       let dampen = 1;
       if (holding && holdStart) {
         const heldFor = (now - holdStart) / 1000;
-        if (heldFor < HOLD_WINDOW) dampen = 0.2;
-        else dampen = 1.6;
+        if (heldFor < holdWindow) dampen = d.dampenFocus;
+        else dampen = 1.7; // overheld fatigue
       }
 
-      // upgrades
-      const rifleMul = hasUpgrade("rifle") ? 0.85 : 1;
       const jacketMul = hasUpgrade("jacket") ? 0.8 : 1;
+      const gloveMul  = hasUpgrade("glove")  ? 0.7 : 1;
 
-      // figure-8 sway
-      const baseAmp = 26 * rifleMul;
-      const swayX = Math.sin(t * 1.8) * baseAmp + Math.sin(t * 4.2) * baseAmp * 0.35;
-      const swayY = Math.sin(t * 3.6) * baseAmp * 0.55 + Math.cos(t * 2.1) * baseAmp * 0.4;
+      const baseAmp = d.amplitude * jacketMul;
+      // figure-8 sway (rifle) or sharper chaotic sway (pistol)
+      let swayX: number, swayY: number;
+      if (d.sight === "diopter") {
+        swayX = Math.sin(t * 1.8) * baseAmp + Math.sin(t * 4.2) * baseAmp * 0.35;
+        swayY = Math.sin(t * 3.6) * baseAmp * 0.55 + Math.cos(t * 2.1) * baseAmp * 0.4;
+      } else {
+        // pistol: bigger faster, less coherent
+        swayX = Math.sin(t * 2.4) * baseAmp * 0.9 + Math.sin(t * 5.7) * baseAmp * 0.5;
+        swayY = Math.cos(t * 2.9) * baseAmp * 0.9 + Math.sin(t * 6.3) * baseAmp * 0.4;
+      }
 
-      // heartbeat micro-jerk: sharp impulse every ~0.7s
+      // 25m rapid: hard kicks
+      if (d.id === "rfp25" && Math.random() < 0.04) {
+        swayX += (Math.random() - 0.5) * baseAmp * 1.2;
+        swayY += (Math.random() - 0.5) * baseAmp * 1.2;
+      }
+
+      // heartbeat micro-jerk
       const beatPhase = (t % 0.75) / 0.75;
-      const pulse = Math.exp(-Math.pow((beatPhase - 0.1) * 9, 2)) * 12 * jacketMul;
+      const pulse = Math.exp(-Math.pow((beatPhase - 0.1) * 9, 2)) * d.pulseAmp * gloveMul;
       const pulseX = pulse * Math.sin(t * 13);
       const pulseY = pulse * Math.cos(t * 11);
 
-      const jitter = 3 * rifleMul;
+      const jitter = d.jitter;
       const jx = (Math.random() - 0.5) * jitter;
       const jy = (Math.random() - 0.5) * jitter;
 
-      const ox = (swayX + pulseX + jx) * dampen;
-      const oy = (swayY + pulseY + jy) * dampen;
+      // Wind drift (50m / 25m)
+      if (d.wind > 0) {
+        windTimer -= dt;
+        if (windTimer <= 0) {
+          windTimer = 1.5 + Math.random() * 2;
+          const ang = Math.random() * Math.PI * 2;
+          windTargetX = Math.cos(ang) * d.wind * 14;
+          windTargetY = Math.sin(ang) * d.wind * 14;
+        }
+        windX += (windTargetX - windX) * dt * 1.2;
+        windY += (windTargetY - windY) * dt * 1.2;
+      }
 
+      const ox = (swayX + pulseX + jx) * dampen + windX;
+      const oy = (swayY + pulseY + jy) * dampen + windY;
+
+      const size = d.targetPx;
       const next = {
-        x: Math.max(0, Math.min(TARGET_SIZE, mouse.x + ox)),
-        y: Math.max(0, Math.min(TARGET_SIZE, mouse.y + oy)),
+        x: Math.max(0, Math.min(size, mouse.x + ox)),
+        y: Math.max(0, Math.min(size, mouse.y + oy)),
       };
       sightRef.current = next;
       setSight(next);
-
-      // heartbeat sound
-      const beatInterval = 0.75;
-      if (now - lastHeartbeat.current > beatInterval * 1000) {
-        lastHeartbeat.current = now;
-        playHeartbeat(0.4);
-      }
 
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [started, holding, holdStart, mouse, progress.upgrades]);
+  }, [phase, holding, holdStart, mouse, discipline, progress.upgrades, holdWindow]);
 
+  // Fire
   const fire = useCallback(() => {
+    if (phase !== "playing") return;
     if (!loaded || reloading) {
-      playEmptyClick();
+      playSfx(A.emptyClick);
       return;
     }
-
-    playCrack();
+    const d = discipline;
+    playSfx(d.shotSound === "air" ? A.shotAir : A.shotRim);
     setLoaded(false);
+    const center = d.targetPx / 2;
     const hitX = sightRef.current.x;
     const hitY = sightRef.current.y;
-    const dx = hitX - CENTER;
-    const dy = hitY - CENTER;
-    const sc = computeDecimalScore(dx, dy);
+    const dx = hitX - center;
+    const dy = hitY - center;
+    const distPx = Math.hypot(dx, dy);
+    const sc = computeDecimalScore(distPx, d);
     const id = ++holeIdRef.current;
     const gold = !!equippedSkin.goldHalo;
-    setHoles((h) => [...h.slice(-30), { x: hitX, y: hitY, score: sc, id, gold }]);
+    setHoles((h) => [...h, { x: hitX, y: hitY, score: sc, id, gold }]);
     if (gold) {
       setTimeout(() => {
         setHoles((h) => h.map((hh) => (hh.id === id ? { ...hh, gold: false } : hh)));
       }, 1000);
     }
-    setTotalShots((c) => c + 1);
+
+    const shotNum = totalShots + 1;
+    setTotalShots(shotNum);
     setLastShot(sc);
     setScore((s) => +(s + sc).toFixed(1));
+    setShotHistory((h) => [...h, { n: shotNum, score: sc, discipline: d.short, id }]);
+
+    const bonus = timeBonusForShot(sc);
+    if (bonus > 0) setTimeLeft((t) => Math.min(120, +(t + bonus).toFixed(2)));
 
     const earned = creditsForShot(sc);
     if (earned > 0) setProgress((p) => ({ ...p, credits: p.credits + earned }));
 
     if (sc === 10.9) {
       setPerfectCount((c) => c + 1);
-      playChime();
+      playSfx(A.chime);
+      playSfx(A.crowd);
       setPerfect(true);
       setTimeout(() => setPerfect(false), 1800);
+      // Confetti burst
+      const rect = arenaRef.current?.getBoundingClientRect();
+      if (rect) {
+        const cx = (rect.left + hitX) / window.innerWidth;
+        const cy = (rect.top + hitY) / window.innerHeight;
+        confetti({
+          particleCount: 140,
+          spread: 110,
+          startVelocity: 55,
+          origin: { x: cx, y: cy },
+          colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"],
+          ticks: 220,
+        });
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          startVelocity: 35,
+          origin: { x: cx, y: cy },
+          colors: ["#f0c14a", "#ffffff"],
+        });
+      }
     }
     setHolding(false);
     setHoldStart(null);
-  }, [loaded, reloading, equippedSkin]);
+  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots]);
 
-  const startGame = () => {
-    setStarted(true);
-    setShopOpen(false);
+  // ----- actions -----
+  const startMatch = (d: Discipline) => {
+    setDiscipline(d);
+    setPhase("playing");
     setHoles([]);
+    setShotHistory([]);
     setScore(0);
     setPerfectCount(0);
     setTotalShots(0);
     setLastShot(null);
+    setTimeLeft(START_TIME);
     setLoaded(true);
+    setReloading(false);
+    setShopOpen(false);
   };
 
-  // Shop actions
+  const backToMenu = () => {
+    setPhase("menu");
+    setHoles([]);
+  };
+
+  const resetTarget = () => {
+    setHoles([]);
+  };
+
   const buySkin = (s: Skin) => {
     if (progress.owned.includes(s.id) || progress.credits < s.price) return;
-    playPurchase();
-    setProgress((p) => ({
-      ...p,
-      credits: p.credits - s.price,
-      owned: [...p.owned, s.id],
-      equipped: s.id,
-    }));
+    playSfx(A.purchase);
+    setProgress((p) => ({ ...p, credits: p.credits - s.price, owned: [...p.owned, s.id], equipped: s.id }));
   };
   const equipSkin = (s: Skin) => {
     if (!progress.owned.includes(s.id)) return;
@@ -367,28 +547,33 @@ export default function AirRifleGame() {
   };
   const buyUpgrade = (u: Upgrade) => {
     if (progress.upgrades.includes(u.id) || progress.credits < u.price) return;
-    playPurchase();
+    playSfx(A.purchase);
     setProgress((p) => ({ ...p, credits: p.credits - u.price, upgrades: [...p.upgrades, u.id] }));
   };
 
   const holdTime = holding && holdStart ? (performance.now() - holdStart) / 1000 : 0;
-  const inFocus = holding && holdTime < HOLD_WINDOW;
-  const overHold = holding && holdTime >= HOLD_WINDOW;
-  const sightRingSize = hasUpgrade("diopter") ? 32 : 38;
-  const sightBorderW = hasUpgrade("diopter") ? 1.5 : 2.5;
+  const inFocus = holding && holdTime < holdWindow;
+  const overHold = holding && holdTime >= holdWindow;
+  const timeCritical = timeLeft <= 10;
 
   return (
     <div className="min-h-screen bg-background text-foreground select-none overflow-hidden">
-      {/* Top broadcast bar */}
+      {/* Top bar */}
       <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-6 py-3">
         <div className="flex items-center gap-3">
           <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
           <span className="text-xs font-bold tracking-[0.3em] text-muted-foreground">LIVE</span>
           <span className="text-xs font-semibold tracking-widest text-foreground">
-            10m AIR RIFLE · OLYMPIC RANGE
+            {phase === "menu" ? "ОЛИМПИЙСКИЙ ТИР · ВЫБОР ДИСЦИПЛИНЫ" : discipline.short + " · OLYMPIC RANGE"}
           </span>
         </div>
         <div className="flex items-center gap-4 text-xs font-mono">
+          {phase === "playing" && (
+            <div className={`px-2 py-0.5 border ${timeCritical ? "border-destructive text-destructive animate-pulse" : "border-primary text-primary"}`}>
+              <span className="text-muted-foreground mr-2">ВРЕМЯ</span>
+              <span className="font-bold tabular-nums">{timeLeft.toFixed(1)}s</span>
+            </div>
+          )}
           <div>
             <span className="text-muted-foreground mr-2">SCORE</span>
             <span className="font-bold text-primary tabular-nums">{score.toFixed(1)}</span>
@@ -397,6 +582,14 @@ export default function AirRifleGame() {
             <span className="text-muted-foreground mr-2">CR</span>
             <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits}</span>
           </div>
+          {phase === "playing" && (
+            <button
+              onClick={backToMenu}
+              className="border border-border px-3 py-1.5 hover:bg-secondary transition-colors tracking-widest"
+            >
+              МЕНЮ
+            </button>
+          )}
           <button
             onClick={() => setShopOpen(true)}
             className="bg-primary text-primary-foreground font-bold tracking-widest px-3 py-1.5 hover:bg-[var(--gold-bright)] transition-colors"
@@ -406,308 +599,222 @@ export default function AirRifleGame() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-0">
-        {/* Range */}
-        <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-8 min-h-[calc(100vh-52px)] overflow-hidden">
-          <div
-            ref={arenaRef}
-            onMouseDown={(e) => {
-              if (!started) return;
-              if (e.button === 0) fire();
-              else if (e.button === 2) {
-                setHolding(true);
-                setHoldStart(performance.now());
-              }
-            }}
-            onMouseUp={(e) => {
-              if (e.button === 2) {
-                setHolding(false);
-                setHoldStart(null);
-              }
-            }}
-            onContextMenu={(e) => e.preventDefault()}
-            className="relative cursor-none shadow-2xl"
-            style={{ width: TARGET_SIZE, height: TARGET_SIZE, background: "#f4f4ef" }}
-          >
-            {/* Target — STATIC */}
-            <svg width={TARGET_SIZE} height={TARGET_SIZE} className="absolute inset-0">
-              {[9, 8, 7].map((idx) => {
-                const r = RING_RADII_MM[idx] * MM_TO_PX;
-                return (
-                  <circle key={idx} cx={CENTER} cy={CENTER} r={r} fill="none" stroke="#222" strokeWidth={1} />
-                );
-              })}
-              {[9, 8, 7, 6].map((idx, i) => {
-                const r = (RING_RADII_MM[idx] - 2.5) * MM_TO_PX;
-                return (
-                  <text
-                    key={`n${idx}`}
-                    x={CENTER}
-                    y={CENTER + r + 4}
-                    textAnchor="middle"
-                    fontSize="10"
-                    fontWeight="bold"
-                    fill="#222"
-                  >
-                    {i + 1}
-                  </text>
-                );
-              })}
-              <circle cx={CENTER} cy={CENTER} r={RING_RADII_MM[6] * MM_TO_PX} fill="#0a0a0a" />
-              {[5, 4, 3, 2].map((idx, i) => {
-                const r = (RING_RADII_MM[idx] - 2.5) * MM_TO_PX;
-                return (
-                  <text
-                    key={`w${idx}`}
-                    x={CENTER}
-                    y={CENTER + r + 4}
-                    textAnchor="middle"
-                    fontSize="9"
-                    fontWeight="bold"
-                    fill="#fff"
-                  >
-                    {i + 5}
-                  </text>
-                );
-              })}
-              {[5, 4, 3, 2, 1].map((idx) => {
-                const r = RING_RADII_MM[idx] * MM_TO_PX;
-                return (
-                  <circle
-                    key={`l${idx}`}
-                    cx={CENTER}
-                    cy={CENTER}
-                    r={r}
-                    fill="none"
-                    stroke="#fff"
-                    strokeWidth={0.5}
-                    opacity={0.4}
-                  />
-                );
-              })}
-              <circle cx={CENTER} cy={CENTER} r={0.6} fill="#fff" />
+      {/* MENU */}
+      {phase === "menu" && (
+        <DisciplineMenu
+          onPick={startMatch}
+          credits={progress.credits}
+        />
+      )}
 
-              {/* Bullet holes */}
-              {holes.map((h) => (
-                <g key={h.id}>
-                  {h.gold && (
-                    <circle
-                      cx={h.x}
-                      cy={h.y}
-                      r={BULLET_PX / 2 + 6}
-                      fill="none"
-                      stroke="#f0c14a"
-                      strokeWidth={3}
-                      opacity={0.85}
-                    >
-                      <animate attributeName="opacity" from="1" to="0" dur="1s" fill="freeze" />
-                      <animate attributeName="r" from={BULLET_PX / 2 + 2} to={BULLET_PX / 2 + 14} dur="1s" fill="freeze" />
-                    </circle>
-                  )}
-                  <circle cx={h.x} cy={h.y} r={BULLET_PX / 2} fill="#fff" stroke="#000" strokeWidth={0.8} />
-                  <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 - 1.2} fill="#1a1a1a" />
-                </g>
-              ))}
-            </svg>
+      {/* GAMEPLAY */}
+      {phase !== "menu" && (
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
+          {/* Range */}
+          <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-8 min-h-[calc(100vh-52px)] overflow-hidden">
+            <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-xs font-mono pointer-events-auto z-10">
+              <div className="bg-[var(--navy-deep)]/90 px-3 py-1.5 text-foreground border-l-2 border-primary">
+                <span className="text-[9px] tracking-widest text-muted-foreground mr-2">ДИСЦИПЛИНА</span>
+                <span className="font-bold">{discipline.short}</span>
+              </div>
+              <button
+                onClick={resetTarget}
+                title="Сбросить пробоины (счет и время сохраняются)"
+                className="bg-[var(--navy-deep)]/90 hover:bg-[var(--navy-mid)] px-3 py-1.5 border-r-2 border-primary text-foreground font-bold tracking-widest text-[11px] flex items-center gap-2"
+              >
+                <span>👁</span> СБРОСИТЬ МИШЕНЬ
+              </button>
+            </div>
 
-            {/* Diopter sight — follows shaky position */}
             <div
-              className="absolute pointer-events-none"
-              style={{ left: sight.x, top: sight.y, transform: "translate(-50%, -50%)" }}
+              ref={arenaRef}
+              onMouseDown={(e) => {
+                if (phase !== "playing") return;
+                if (e.button === 0) fire();
+                else if (e.button === 2) {
+                  setHolding(true);
+                  setHoldStart(performance.now());
+                }
+              }}
+              onMouseUp={(e) => {
+                if (e.button === 2) { setHolding(false); setHoldStart(null); }
+              }}
+              onContextMenu={(e) => e.preventDefault()}
+              className="relative cursor-none shadow-2xl"
+              style={{ width: discipline.targetPx, height: discipline.targetPx, background: "#f4f4ef" }}
             >
-              <div
-                className="rounded-full"
-                style={{
-                  width: sightRingSize,
-                  height: sightRingSize,
-                  borderStyle: "solid",
-                  borderWidth: sightBorderW,
-                  borderColor: inFocus ? "var(--gold)" : overHold ? "oklch(0.6 0.24 27)" : equippedSkin.ring,
-                  boxShadow: inFocus
-                    ? "0 0 0 6px rgba(220,180,60,0.25), inset 0 0 0 1px rgba(255,255,255,0.4)"
-                    : equippedSkin.glow ?? "0 0 0 2px rgba(255,255,255,0.4)",
-                  background: "transparent",
-                }}
-              />
-              {hasUpgrade("diopter") && (
-                <div
-                  className="absolute top-1/2 left-1/2 rounded-full"
-                  style={{
-                    width: 2,
-                    height: 2,
-                    background: inFocus ? "var(--gold)" : equippedSkin.dot,
-                    transform: "translate(-50%,-50%)",
-                  }}
-                />
+              <TargetSvg discipline={discipline} holes={holes} />
+
+              {/* Sight */}
+              {phase === "playing" && (
+                discipline.sight === "diopter" ? (
+                  <DiopterSight
+                    x={sight.x} y={sight.y}
+                    inFocus={inFocus} overHold={overHold}
+                    skin={equippedSkin}
+                  />
+                ) : (
+                  <OpenSight
+                    x={sight.x} y={sight.y}
+                    inFocus={inFocus} overHold={overHold}
+                    skin={equippedSkin}
+                  />
+                )
               )}
             </div>
-          </div>
 
-          {/* PERFECT overlay */}
-          <AnimatePresence>
-            {perfect && (
-              <motion.div
-                initial={{ scale: 0.6, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ opacity: 0, scale: 1.2 }}
-                transition={{ type: "spring", stiffness: 220, damping: 18 }}
-                className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
-              >
-                <div className="bg-[var(--navy-deep)]/90 backdrop-blur-sm border-y-4 border-primary px-16 py-8">
-                  <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-2 text-center">
-                    INNER TEN · +500 CR
+            {/* PERFECT overlay */}
+            <AnimatePresence>
+              {perfect && (
+                <motion.div
+                  initial={{ scale: 0.6, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ opacity: 0, scale: 1.2 }}
+                  transition={{ type: "spring", stiffness: 220, damping: 18 }}
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
+                >
+                  <div className="bg-[var(--navy-deep)]/90 backdrop-blur-sm border-y-4 border-primary px-16 py-8">
+                    <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-2 text-center">
+                      INNER TEN · +500 CR · +8s
+                    </div>
+                    <div className="text-7xl font-black tracking-tight text-primary">PERFECT 10.9</div>
                   </div>
-                  <div className="text-7xl font-black tracking-tight text-primary">PERFECT 10.9</div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* HUD bottom */}
+            <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between text-xs font-mono pointer-events-none">
+              <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-l-2 border-primary">
+                <div className="text-[9px] tracking-widest text-muted-foreground">CHAMBER</div>
+                <div className={`font-bold ${reloading ? "text-[var(--gold-bright)] animate-pulse" : loaded ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
+                  {reloading ? "◐ RELOADING…" : loaded ? "● LOADED" : "○ EMPTY · [R]"}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* HUD bottom */}
-          <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between text-xs font-mono pointer-events-none">
-            <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-l-2 border-primary">
-              <div className="text-[9px] tracking-widest text-muted-foreground">CHAMBER</div>
-              <div className={`font-bold ${reloading ? "text-[var(--gold-bright)] animate-pulse" : loaded ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
-                {reloading ? "◐ RELOADING…" : loaded ? "● LOADED" : "○ EMPTY · Нажмите [R] для перезарядки"}
               </div>
-
-            </div>
-            <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-r-2 border-primary text-right">
-              <div className="text-[9px] tracking-widest text-muted-foreground">BREATH</div>
-              <div
-                className={`font-bold ${inFocus ? "text-[var(--gold-bright)]" : overHold ? "text-destructive" : ""}`}
-              >
-                {holding ? (inFocus ? `ФОКУС · ${(HOLD_WINDOW - holdTime).toFixed(2)}s` : "ПЕРЕДЕРЖАНО!") : "ДЫХАНИЕ"}
-              </div>
-            </div>
-          </div>
-
-          {/* Start overlay */}
-          {!started && !shopOpen && (
-            <div className="absolute inset-0 flex items-center justify-center bg-[var(--navy-deep)]/90 backdrop-blur-sm z-40">
-              <div className="text-center space-y-6 px-8 max-w-lg">
-                <div className="text-[10px] tracking-[0.5em] text-primary font-bold">OLYMPIC TRAINING</div>
-                <div className="text-5xl font-black tracking-tight">10m AIR RIFLE</div>
-                <div className="text-sm text-muted-foreground leading-relaxed">
-                  Бесконечная тренировка концентрации.
-                  <br />
-                  <span className="text-foreground font-mono">[Удерживайте ПКМ]</span> Фокус/Дыхание ·{" "}
-                  <span className="text-foreground font-mono">[ЛКМ]</span> Выстрел ·{" "}
-                  <span className="text-foreground font-mono">[R]</span> Перезарядка
-                </div>
-                <div className="flex gap-3 justify-center pt-2">
-                  <button
-                    onClick={startGame}
-                    className="bg-primary text-primary-foreground font-bold tracking-widest px-10 py-3 hover:bg-[var(--gold-bright)] transition-colors"
-                  >
-                    НАЧАТЬ
-                  </button>
-                  <button
-                    onClick={() => setShopOpen(true)}
-                    className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
-                  >
-                    МАГАЗИН · {progress.credits} CR
-                  </button>
+              <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-r-2 border-primary text-right">
+                <div className="text-[9px] tracking-widest text-muted-foreground">BREATH ({holdWindow}s)</div>
+                <div className={`font-bold ${inFocus ? "text-[var(--gold-bright)]" : overHold ? "text-destructive" : ""}`}>
+                  {holding ? (inFocus ? `ФОКУС · ${(holdWindow - holdTime).toFixed(2)}s` : "ПЕРЕДЕРЖАНО!") : "ДЫХАНИЕ"}
                 </div>
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Dashboard */}
-        <aside className="bg-[var(--navy-mid)] border-l border-border flex flex-col">
-          <div className="px-5 py-4 border-b border-border bg-[var(--navy-deep)]">
-            <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-3">LIVE DASHBOARD</div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Metric label="PERFECT 10.9s" value={perfectCount} color="text-[var(--gold-bright)]" />
-              <Metric label="TOTAL SHOTS" value={totalShots} color="text-foreground" />
-              <Metric
-                label="LAST SHOT"
-                value={lastShot !== null ? lastShot.toFixed(1) : "—"}
-                color={lastShot === 10.9 ? "text-[var(--gold-bright)]" : "text-foreground"}
-              />
-              <Metric label="TOTAL SCORE" value={score.toFixed(1)} color="text-primary" />
-            </div>
-
-            <div className="mt-3 bg-[var(--navy-mid)]/60 border border-border/40 px-3 py-3">
-              <div className="text-[9px] tracking-widest text-muted-foreground mb-1">CREDITS</div>
-              <div className="text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums leading-none">
-                {progress.credits} <span className="text-sm text-muted-foreground">CR</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-auto">
-            <div className="px-4 py-3 text-[10px] tracking-widest text-muted-foreground border-b border-border/40">
-              RECENT SHOTS
-            </div>
-            <table className="w-full text-sm font-mono">
-              <tbody>
-                {holes.length === 0 && (
-                  <tr>
-                    <td className="px-4 py-4 text-muted-foreground/60 text-xs italic">— нет выстрелов —</td>
-                  </tr>
-                )}
-                {[...holes]
-                  .slice(-8)
-                  .reverse()
-                  .map((h, i) => (
-                    <tr
-                      key={h.id}
-                      className={`border-b border-border/40 ${h.score === 10.9 ? "bg-primary/10" : "bg-[var(--navy-mid)]"}`}
+            {/* GAME OVER */}
+            {phase === "gameover" && (
+              <div className="absolute inset-0 flex items-center justify-center bg-[var(--navy-deep)]/95 backdrop-blur-sm z-40">
+                <div className="text-center space-y-6 px-8 max-w-lg">
+                  <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">TIME UP</div>
+                  <div className="text-6xl font-black tracking-tight">GAME OVER</div>
+                  <div className="grid grid-cols-3 gap-4 text-sm font-mono">
+                    <Stat label="SCORE" value={score.toFixed(1)} />
+                    <Stat label="SHOTS" value={totalShots} />
+                    <Stat label="10.9s" value={perfectCount} />
+                  </div>
+                  <div className="flex gap-3 justify-center pt-2">
+                    <button
+                      onClick={() => startMatch(discipline)}
+                      className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
                     >
-                      <td className="px-4 py-2 text-muted-foreground">#{totalShots - i}</td>
-                      <td className="px-2 py-2 font-bold text-primary">KAZ</td>
-                      <td
-                        className={`px-4 py-2 text-right tabular-nums font-bold ${
-                          h.score === 10.9
-                            ? "text-primary"
-                            : h.score >= 9
-                              ? "text-foreground"
-                              : "text-muted-foreground"
-                        }`}
-                      >
-                        {h.score.toFixed(1)}
-                        {creditsForShot(h.score) > 0 && (
-                          <span className="ml-2 text-[10px] text-[var(--gold-bright)]">
-                            +{creditsForShot(h.score)}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
+                      ПОВТОРИТЬ
+                    </button>
+                    <button
+                      onClick={backToMenu}
+                      className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
+                    >
+                      ДИСЦИПЛИНЫ
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="border-t border-border p-4 space-y-2 bg-[var(--navy-deep)]">
-            <div className="text-[10px] leading-relaxed text-muted-foreground tracking-wide">
-              <div className="text-foreground font-bold mb-1 tracking-widest">CONTROLS</div>
-              [ПКМ] Фокус/Дыхание (окно 1.5с)
-              <br />
-              [ЛКМ] Выстрел · [R] Перезарядка
+          {/* Dashboard */}
+          <aside className="bg-[var(--navy-mid)] border-l border-border flex flex-col max-h-[calc(100vh-52px)]">
+            <div className="px-5 py-4 border-b border-border bg-[var(--navy-deep)]">
+              <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-3">LIVE DASHBOARD</div>
+
+              <div className={`mb-3 px-3 py-3 border ${timeCritical ? "border-destructive" : "border-primary/50"} bg-[var(--navy-mid)]/60`}>
+                <div className="text-[9px] tracking-widest text-muted-foreground">TIME REMAINING</div>
+                <div className={`text-4xl font-black font-mono tabular-nums leading-none ${timeCritical ? "text-destructive animate-pulse" : "text-primary"}`}>
+                  {timeLeft.toFixed(1)}<span className="text-base text-muted-foreground">s</span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Metric label="PERFECT 10.9s" value={perfectCount} color="text-[var(--gold-bright)]" />
+                <Metric label="TOTAL SHOTS" value={totalShots} color="text-foreground" />
+                <Metric
+                  label="LAST SHOT"
+                  value={lastShot !== null ? lastShot.toFixed(1) : "—"}
+                  color={lastShot === 10.9 ? "text-[var(--gold-bright)]" : "text-foreground"}
+                />
+                <Metric label="TOTAL SCORE" value={score.toFixed(1)} color="text-primary" />
+              </div>
+
+              <div className="mt-3 bg-[var(--navy-mid)]/60 border border-border/40 px-3 py-3">
+                <div className="text-[9px] tracking-widest text-muted-foreground mb-1">CREDITS</div>
+                <div className="text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums leading-none">
+                  {progress.credits} <span className="text-sm text-muted-foreground">CR</span>
+                </div>
+              </div>
             </div>
-          </div>
-        </aside>
-      </div>
+
+            <div className="px-4 py-3 text-[10px] tracking-widest text-muted-foreground border-b border-border/40 flex items-center justify-between">
+              <span>ИСТОРИЯ ВЫСТРЕЛОВ</span>
+              <span className="text-muted-foreground/70">{shotHistory.length}</span>
+            </div>
+            <div ref={historyListRef} className="flex-1 overflow-y-auto font-mono text-sm">
+              {shotHistory.length === 0 && (
+                <div className="px-4 py-4 text-muted-foreground/60 text-xs italic">— нет выстрелов —</div>
+              )}
+              {shotHistory.map((h) => (
+                <div
+                  key={h.id}
+                  className={`flex items-center justify-between px-4 py-1.5 border-b border-border/30 ${
+                    h.score === 10.9 ? "bg-primary/10" : "bg-transparent"
+                  }`}
+                >
+                  <span className="text-muted-foreground text-xs">#{h.n}</span>
+                  <span className="text-[10px] text-muted-foreground/70 tracking-widest">{h.discipline}</span>
+                  <span
+                    className={`tabular-nums font-bold ${
+                      h.score === 10.9 ? "text-primary"
+                      : h.score >= 9 ? "text-foreground"
+                      : "text-muted-foreground"
+                    }`}
+                  >
+                    {h.score.toFixed(1)}
+                    {timeBonusForShot(h.score) > 0 && (
+                      <span className="ml-2 text-[10px] text-[var(--gold-bright)]">+{timeBonusForShot(h.score)}s</span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-border p-4 space-y-1 bg-[var(--navy-deep)] text-[10px] leading-relaxed text-muted-foreground tracking-wide">
+              <div className="text-foreground font-bold mb-1 tracking-widest">УПРАВЛЕНИЕ</div>
+              [ПКМ] Задержка дыхания ({holdWindow}s) · [ЛКМ] Выстрел · [R] Перезарядка
+              <div className="mt-2 text-foreground/80">
+                Бонус: 10.9 = +8s · 10.x = +4s · 9.x = +2s
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
 
       {/* SHOP MODAL */}
       <AnimatePresence>
         {shopOpen && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-[var(--navy-deep)]/95 backdrop-blur-md flex items-center justify-center p-6"
           >
             <motion.div
-              initial={{ scale: 0.95, y: 10 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 10 }}
+              initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
               className="w-full max-w-4xl bg-[var(--navy-mid)] border border-border shadow-2xl"
             >
-              {/* header */}
               <div className="flex items-center justify-between border-b border-border bg-[var(--navy-deep)] px-6 py-4">
                 <div className="flex items-center gap-4">
                   <div className="text-2xl font-black tracking-tight">МАГАЗИН</div>
@@ -716,30 +823,17 @@ export default function AirRifleGame() {
                 <div className="flex items-center gap-4">
                   <div className="font-mono text-sm">
                     <span className="text-muted-foreground mr-2">БАЛАНС</span>
-                    <span className="font-bold text-[var(--gold-bright)] tabular-nums">
-                      {progress.credits} CR
-                    </span>
+                    <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits} CR</span>
                   </div>
-                  <button
-                    onClick={() => setShopOpen(false)}
-                    className="text-muted-foreground hover:text-foreground text-xl px-2"
-                  >
-                    ✕
-                  </button>
+                  <button onClick={() => setShopOpen(false)} className="text-muted-foreground hover:text-foreground text-xl px-2">✕</button>
                 </div>
               </div>
 
-              {/* tabs */}
               <div className="flex border-b border-border bg-[var(--navy-deep)]">
-                <TabBtn active={shopTab === "upgrades"} onClick={() => setShopTab("upgrades")}>
-                  УЛУЧШЕНИЯ
-                </TabBtn>
-                <TabBtn active={shopTab === "skins"} onClick={() => setShopTab("skins")}>
-                  СКИНЫ ПРИЦЕЛА
-                </TabBtn>
+                <TabBtn active={shopTab === "upgrades"} onClick={() => setShopTab("upgrades")}>УЛУЧШЕНИЯ</TabBtn>
+                <TabBtn active={shopTab === "skins"} onClick={() => setShopTab("skins")}>СКИНЫ ПРИЦЕЛА</TabBtn>
               </div>
 
-              {/* body */}
               <div className="p-6 max-h-[60vh] overflow-auto">
                 {shopTab === "upgrades" && (
                   <div className="grid sm:grid-cols-2 gap-4">
@@ -747,33 +841,21 @@ export default function AirRifleGame() {
                       const owned = hasUpgrade(u.id);
                       const canAfford = progress.credits >= u.price;
                       return (
-                        <div
-                          key={u.id}
-                          className="bg-[var(--navy-deep)] border border-border/60 p-4 flex flex-col gap-3"
-                        >
+                        <div key={u.id} className="bg-[var(--navy-deep)] border border-border/60 p-4 flex flex-col gap-3">
                           <div>
                             <div className="text-base font-bold tracking-wide">{u.name}</div>
                             <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{u.desc}</div>
                           </div>
                           {owned ? (
-                            <button
-                              disabled
-                              className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-2"
-                            >
-                              ✓ КУПЛЕНО
-                            </button>
+                            <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-2">✓ КУПЛЕНО</button>
                           ) : (
                             <button
-                              disabled={!canAfford}
-                              onClick={() => buyUpgrade(u)}
+                              disabled={!canAfford} onClick={() => buyUpgrade(u)}
                               className={`mt-auto font-bold tracking-widest py-2 transition-colors ${
-                                canAfford
-                                  ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
-                                  : "bg-muted text-muted-foreground cursor-not-allowed"
+                                canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
+                                : "bg-muted text-muted-foreground cursor-not-allowed"
                               }`}
-                            >
-                              КУПИТЬ · {u.price} CR
-                            </button>
+                            >КУПИТЬ · {u.price} CR</button>
                           )}
                         </div>
                       );
@@ -788,60 +870,34 @@ export default function AirRifleGame() {
                       const equipped = progress.equipped === s.id;
                       const canAfford = progress.credits >= s.price;
                       return (
-                        <div
-                          key={s.id}
-                          className="bg-[var(--navy-deep)] border border-border/60 p-4 flex flex-col gap-3"
-                        >
+                        <div key={s.id} className="bg-[var(--navy-deep)] border border-border/60 p-4 flex flex-col gap-3">
                           <div className="flex items-center gap-4">
-                            {/* preview */}
-                            <div
-                              className="rounded-full shrink-0"
-                              style={{
-                                width: 48,
-                                height: 48,
-                                borderStyle: "solid",
-                                borderWidth: 3,
-                                borderColor: s.ring,
-                                boxShadow: s.glow ?? "0 0 0 1px rgba(255,255,255,0.08)",
-                              }}
-                            />
+                            <div className="rounded-full shrink-0" style={{
+                              width: 48, height: 48, borderStyle: "solid", borderWidth: 3,
+                              borderColor: s.ring,
+                              boxShadow: s.glow ?? "0 0 0 1px rgba(255,255,255,0.08)",
+                            }} />
                             <div className="flex-1">
                               <div className="text-base font-bold tracking-wide">{s.name}</div>
                               <div className="text-xs text-muted-foreground mt-1">
-                                {s.goldHalo
-                                  ? "Золотой ореол вокруг каждой пробоины."
-                                  : s.id === "default"
-                                    ? "Базовый прицел стрелка."
-                                    : "Косметический скин кольца мушки."}
+                                {s.goldHalo ? "Золотой ореол вокруг каждой пробоины."
+                                  : s.id === "default" ? "Базовый прицел стрелка."
+                                  : "Косметический скин прицела."}
                               </div>
                             </div>
                           </div>
                           {equipped ? (
-                            <button
-                              disabled
-                              className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-2"
-                            >
-                              ✓ ЭКИПИРОВАН
-                            </button>
+                            <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-2">✓ ЭКИПИРОВАН</button>
                           ) : owned ? (
-                            <button
-                              onClick={() => equipSkin(s)}
-                              className="mt-auto bg-primary text-primary-foreground font-bold tracking-widest py-2 hover:bg-[var(--gold-bright)] transition-colors"
-                            >
-                              ВЫБРАТЬ
-                            </button>
+                            <button onClick={() => equipSkin(s)} className="mt-auto bg-primary text-primary-foreground font-bold tracking-widest py-2 hover:bg-[var(--gold-bright)] transition-colors">ВЫБРАТЬ</button>
                           ) : (
                             <button
-                              disabled={!canAfford}
-                              onClick={() => buySkin(s)}
+                              disabled={!canAfford} onClick={() => buySkin(s)}
                               className={`mt-auto font-bold tracking-widest py-2 transition-colors ${
-                                canAfford
-                                  ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
-                                  : "bg-muted text-muted-foreground cursor-not-allowed"
+                                canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
+                                : "bg-muted text-muted-foreground cursor-not-allowed"
                               }`}
-                            >
-                              КУПИТЬ · {s.price} CR
-                            </button>
+                            >КУПИТЬ · {s.price} CR</button>
                           )}
                         </div>
                       );
@@ -852,22 +908,191 @@ export default function AirRifleGame() {
 
               <div className="border-t border-border px-6 py-3 bg-[var(--navy-deep)] flex justify-between items-center">
                 <div className="text-[10px] text-muted-foreground tracking-widest">
-                  10.9 = +500 CR · 10.0–10.8 = +100 CR · 9.0–9.9 = +50 CR
+                  10.9 = +500 CR / +8s · 10.x = +100 CR / +4s · 9.x = +50 CR / +2s
                 </div>
                 <button
-                  onClick={() => {
-                    setShopOpen(false);
-                    if (!started) startGame();
-                  }}
+                  onClick={() => setShopOpen(false)}
                   className="bg-primary text-primary-foreground font-bold tracking-widest px-6 py-2 hover:bg-[var(--gold-bright)] transition-colors"
-                >
-                  {started ? "ПРОДОЛЖИТЬ" : "НАЧАТЬ"}
-                </button>
+                >ЗАКРЫТЬ</button>
               </div>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+// ============================================================
+// Sub-components
+// ============================================================
+
+function DisciplineMenu({ onPick, credits }: { onPick: (d: Discipline) => void; credits: number }) {
+  return (
+    <div className="min-h-[calc(100vh-52px)] flex flex-col items-center justify-center px-6 py-10 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
+      <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-2">OLYMPIC SHOOTING SIMULATOR</div>
+      <h1 className="text-5xl md:text-6xl font-black tracking-tight text-center mb-2">ВЫБОР ДИСЦИПЛИНЫ</h1>
+      <div className="text-sm text-muted-foreground mb-2">
+        Старт: <span className="text-foreground font-mono">30 секунд</span>. Точные выстрелы добавляют время.
+      </div>
+      <div className="text-xs text-muted-foreground mb-8 font-mono">Баланс: <span className="text-[var(--gold-bright)] font-bold">{credits} CR</span></div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl w-full">
+        {DISCIPLINES.map((d) => (
+          <button
+            key={d.id}
+            onClick={() => onPick(d)}
+            className="group text-left bg-[var(--navy-mid)] border border-border hover:border-primary transition-colors p-5 flex gap-4 items-start"
+          >
+            <div className="shrink-0 w-20 h-20 rounded-full flex items-center justify-center bg-[var(--navy-deep)] border-2 border-primary/50 group-hover:border-primary">
+              <MiniTargetIcon disciplineId={d.id} />
+            </div>
+            <div className="flex-1">
+              <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{d.short}</div>
+              <div className="text-xl font-black tracking-tight">{d.name}</div>
+              <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{d.caption}</div>
+              <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] font-mono">
+                <MiniStat label="ПРИЦЕЛ" v={d.sight === "diopter" ? "ДИОПТР" : "ОТКР."} />
+                <MiniStat label="ТРЕМОР" v={d.amplitude < 30 ? "СРЕДН." : d.amplitude < 50 ? "СИЛЬН." : "ХАОС"} />
+                <MiniStat label="ВЕТЕР" v={d.wind > 0 ? "ДА" : "—"} />
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
+      <div className="mt-8 text-[10px] tracking-widest text-muted-foreground text-center max-w-xl">
+        [ПКМ] Задержка дыхания · [ЛКМ] Выстрел (1 патрон) · [R] Перезарядка
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, v }: { label: string; v: string }) {
+  return (
+    <div className="bg-[var(--navy-deep)] px-2 py-1 border border-border/40">
+      <div className="text-[8px] tracking-widest text-muted-foreground">{label}</div>
+      <div className="text-foreground font-bold">{v}</div>
+    </div>
+  );
+}
+
+function MiniTargetIcon({ disciplineId }: { disciplineId: DisciplineId }) {
+  const blackR = disciplineId.startsWith("ap") || disciplineId === "rfp25" ? 22 : 14;
+  return (
+    <svg width="48" height="48" viewBox="0 0 48 48">
+      <circle cx={24} cy={24} r={22} fill="#f4f4ef" stroke="#222" strokeWidth="1" />
+      <circle cx={24} cy={24} r={blackR} fill="#0a0a0a" />
+      <circle cx={24} cy={24} r={2} fill="#fff" />
+    </svg>
+  );
+}
+
+function TargetSvg({ discipline: d, holes }: { discipline: Discipline; holes: Hole[] }) {
+  const CENTER = d.targetPx / 2;
+  const BULLET_PX = d.bulletMm * d.mmToPx;
+  // black starts at ringMm index blackRingFromIdx (so radius = ringMm[blackRingFromIdx])
+  const blackR = d.ringMm[d.blackRingFromIdx] * d.mmToPx;
+  // Outer rings (white area) draw stroke only; inner rings on black draw white strokes
+  return (
+    <svg width={d.targetPx} height={d.targetPx} className="absolute inset-0">
+      {/* white outer rings */}
+      {d.ringMm.map((mm, idx) => {
+        if (idx <= d.blackRingFromIdx) return null;
+        const r = mm * d.mmToPx;
+        return <circle key={`o${idx}`} cx={CENTER} cy={CENTER} r={r} fill="none" stroke="#222" strokeWidth={1} />;
+      })}
+      {/* ring numbers on white */}
+      {d.ringMm.map((mm, idx) => {
+        if (idx <= d.blackRingFromIdx) return null;
+        const r = (mm - (d.ringMm[1] - d.ringMm[0]) / 2) * d.mmToPx;
+        const num = 10 - idx;
+        return (
+          <text key={`tn${idx}`} x={CENTER} y={CENTER + r + 4} textAnchor="middle"
+            fontSize="10" fontWeight="bold" fill="#222">{num}</text>
+        );
+      })}
+      {/* black bull */}
+      <circle cx={CENTER} cy={CENTER} r={blackR} fill="#0a0a0a" />
+      {/* inner rings (white strokes) */}
+      {d.ringMm.map((mm, idx) => {
+        if (idx > d.blackRingFromIdx) return null;
+        if (idx === 0) return null;
+        const r = mm * d.mmToPx;
+        return <circle key={`i${idx}`} cx={CENTER} cy={CENTER} r={r} fill="none"
+          stroke="#fff" strokeWidth={0.6} opacity={0.45} />;
+      })}
+      {/* black ring numbers */}
+      {d.ringMm.map((mm, idx) => {
+        if (idx > d.blackRingFromIdx) return null;
+        if (idx === 0) return null;
+        const r = (mm - (d.ringMm[1] - d.ringMm[0]) / 2) * d.mmToPx;
+        const num = 10 - idx;
+        return (
+          <text key={`tb${idx}`} x={CENTER} y={CENTER + r + 4} textAnchor="middle"
+            fontSize="9" fontWeight="bold" fill="#fff">{num}</text>
+        );
+      })}
+      {/* center dot */}
+      <circle cx={CENTER} cy={CENTER} r={0.8} fill="#fff" />
+
+      {/* Holes */}
+      {holes.map((h) => (
+        <g key={h.id}>
+          {h.gold && (
+            <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 + 6} fill="none" stroke="#f0c14a" strokeWidth={3} opacity={0.85}>
+              <animate attributeName="opacity" from="1" to="0" dur="1s" fill="freeze" />
+              <animate attributeName="r" from={BULLET_PX / 2 + 2} to={BULLET_PX / 2 + 14} dur="1s" fill="freeze" />
+            </circle>
+          )}
+          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2} fill="#fff" stroke="#000" strokeWidth={0.8} />
+          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 - 1.2} fill="#1a1a1a" />
+        </g>
+      ))}
+    </svg>
+  );
+}
+
+function DiopterSight({ x, y, inFocus, overHold, skin }:
+  { x: number; y: number; inFocus: boolean; overHold: boolean; skin: Skin }) {
+  const size = 38;
+  return (
+    <div className="absolute pointer-events-none" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
+      <div className="rounded-full" style={{
+        width: size, height: size, borderStyle: "solid", borderWidth: 2.5,
+        borderColor: inFocus ? "var(--gold)" : overHold ? "oklch(0.6 0.24 27)" : skin.ring,
+        boxShadow: inFocus
+          ? "0 0 0 6px rgba(220,180,60,0.25), inset 0 0 0 1px rgba(255,255,255,0.4)"
+          : skin.glow ?? "0 0 0 2px rgba(255,255,255,0.4)",
+        background: "transparent",
+      }} />
+    </div>
+  );
+}
+
+function OpenSight({ x, y, inFocus, overHold, skin }:
+  { x: number; y: number; inFocus: boolean; overHold: boolean; skin: Skin }) {
+  const color = inFocus ? "var(--gold)" : overHold ? "oklch(0.6 0.24 27)" : skin.ring;
+  return (
+    <div className="absolute pointer-events-none" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
+      {/* front post */}
+      <div style={{
+        position: "absolute", left: -2, top: -16, width: 4, height: 22,
+        background: color, boxShadow: skin.glow,
+      }} />
+      {/* rear notch (two posts) */}
+      <div style={{
+        position: "absolute", left: -22, top: 6, width: 14, height: 10,
+        borderRight: `3px solid ${color}`,
+      }} />
+      <div style={{
+        position: "absolute", left: 8, top: 6, width: 14, height: 10,
+        borderLeft: `3px solid ${color}`,
+      }} />
+      {/* baseline */}
+      <div style={{
+        position: "absolute", left: -24, top: 14, width: 48, height: 2,
+        background: color, opacity: 0.6,
+      }} />
     </div>
   );
 }
@@ -881,25 +1106,20 @@ function Metric({ label, value, color }: { label: string; value: string | number
   );
 }
 
-function TabBtn({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <button
-      onClick={onClick}
-      className={`px-6 py-3 text-sm font-bold tracking-widest transition-colors border-b-2 ${
-        active
-          ? "border-primary text-primary"
-          : "border-transparent text-muted-foreground hover:text-foreground"
-      }`}
-    >
-      {children}
-    </button>
+    <div className="bg-[var(--navy-mid)]/60 border border-border/40 px-3 py-3">
+      <div className="text-[9px] tracking-widest text-muted-foreground mb-1">{label}</div>
+      <div className="text-2xl font-black text-primary tabular-nums leading-none">{value}</div>
+    </div>
+  );
+}
+
+function TabBtn({ active, onClick, children }:
+  { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} className={`px-6 py-3 text-sm font-bold tracking-widest transition-colors border-b-2 ${
+      active ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+    }`}>{children}</button>
   );
 }
