@@ -34,20 +34,46 @@ function getCtx() {
 }
 function playCrack() {
   const ctx = getCtx();
-  const dur = 0.12;
+  const now = ctx.currentTime;
+  // Sharp pneumatic air burst: very short white-noise transient
+  const dur = 0.09;
   const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
   const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / data.length, 3);
+  for (let i = 0; i < data.length; i++) {
+    const env = Math.pow(1 - i / data.length, 4);
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
   const src = ctx.createBufferSource();
   src.buffer = buffer;
-  const filter = ctx.createBiquadFilter();
-  filter.type = "highpass";
-  filter.frequency.value = 1800;
+  const hp = ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 2200;
+  const peak = ctx.createBiquadFilter();
+  peak.type = "peaking";
+  peak.frequency.value = 4800;
+  peak.Q.value = 1.4;
+  peak.gain.value = 8;
   const gain = ctx.createGain();
-  gain.gain.value = 0.55;
-  src.connect(filter).connect(gain).connect(ctx.destination);
-  src.start();
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.65, now + 0.002);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  src.connect(hp).connect(peak).connect(gain).connect(ctx.destination);
+  src.start(now);
+
+  // Tiny mechanical "tink" of the valve
+  const tink = ctx.createOscillator();
+  const tg = ctx.createGain();
+  tink.type = "triangle";
+  tink.frequency.setValueAtTime(5200, now);
+  tink.frequency.exponentialRampToValueAtTime(2400, now + 0.04);
+  tg.gain.setValueAtTime(0.0001, now);
+  tg.gain.exponentialRampToValueAtTime(0.18, now + 0.003);
+  tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+  tink.connect(tg).connect(ctx.destination);
+  tink.start(now);
+  tink.stop(now + 0.06);
 }
+
 function playHeartbeat(intensity: number) {
   const ctx = getCtx();
   const osc = ctx.createOscillator();
@@ -75,38 +101,86 @@ function playChime() {
     osc.stop(ctx.currentTime + i * 0.08 + 1.5);
   });
 }
-function playReload() {
+// Generic metallic click helper
+function mkMetalClick(startOffset: number, freq: number, dur: number, gainV: number, q = 6) {
   const ctx = getCtx();
   const now = ctx.currentTime;
-  const mkClick = (t: number, freq: number, dur: number, gainV: number) => {
-    const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2);
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.value = freq;
-    bp.Q.value = 4;
-    const g = ctx.createGain();
-    g.gain.value = gainV;
-    src.connect(bp).connect(g).connect(ctx.destination);
-    src.start(now + t);
-  };
-  mkClick(0, 1200, 0.08, 0.5);
-  mkClick(0.18, 2400, 0.04, 0.4);
-  mkClick(0.35, 900, 0.1, 0.55);
+  const buf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const bp = ctx.createBiquadFilter();
+  bp.type = "bandpass";
+  bp.frequency.value = freq;
+  bp.Q.value = q;
+  const g = ctx.createGain();
+  g.gain.value = gainV;
+  src.connect(bp).connect(g).connect(ctx.destination);
+  src.start(now + startOffset);
+}
+
+// Stage 1: bolt opens, spring cocks
+function playBoltOpen() {
+  const ctx = getCtx();
+  const now = ctx.currentTime;
+  // crisp metallic click
+  mkMetalClick(0, 2600, 0.05, 0.5, 8);
+  mkMetalClick(0.015, 1400, 0.09, 0.45, 5);
+  // spring tension — descending pitch
   const osc = ctx.createOscillator();
   const g = ctx.createGain();
-  osc.frequency.value = 1800;
-  osc.type = "triangle";
-  g.gain.setValueAtTime(0, now + 0.35);
-  g.gain.linearRampToValueAtTime(0.13, now + 0.36);
-  g.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
-  osc.connect(g).connect(ctx.destination);
-  osc.start(now + 0.35);
-  osc.stop(now + 0.6);
+  osc.type = "sawtooth";
+  osc.frequency.setValueAtTime(1800, now + 0.04);
+  osc.frequency.exponentialRampToValueAtTime(700, now + 0.22);
+  g.gain.setValueAtTime(0.0001, now + 0.04);
+  g.gain.exponentialRampToValueAtTime(0.08, now + 0.06);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
+  const hp = ctx.createBiquadFilter();
+  hp.type = "highpass";
+  hp.frequency.value = 600;
+  osc.connect(hp).connect(g).connect(ctx.destination);
+  osc.start(now + 0.04);
+  osc.stop(now + 0.26);
 }
+
+// Stage 2: bolt closes, chamber seals (thicker, lower thunk)
+function playBoltClose() {
+  const ctx = getCtx();
+  const now = ctx.currentTime;
+  // dense low thunk via filtered noise
+  const dur = 0.13;
+  const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  const lp = ctx.createBiquadFilter();
+  lp.type = "lowpass";
+  lp.frequency.value = 900;
+  lp.Q.value = 2;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, now);
+  g.gain.exponentialRampToValueAtTime(0.6, now + 0.004);
+  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
+  src.connect(lp).connect(g).connect(ctx.destination);
+  src.start(now);
+  // sharp metallic lock-in tick on top
+  mkMetalClick(0.005, 1700, 0.05, 0.4, 7);
+  // sub thump for seal
+  const sub = ctx.createOscillator();
+  const sg = ctx.createGain();
+  sub.type = "sine";
+  sub.frequency.setValueAtTime(180, now);
+  sub.frequency.exponentialRampToValueAtTime(80, now + 0.12);
+  sg.gain.setValueAtTime(0.0001, now);
+  sg.gain.exponentialRampToValueAtTime(0.35, now + 0.005);
+  sg.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+  sub.connect(sg).connect(ctx.destination);
+  sub.start(now);
+  sub.stop(now + 0.16);
+}
+
 function playEmptyClick() {
   const ctx = getCtx();
   const o = ctx.createOscillator();
@@ -227,6 +301,8 @@ export default function AirRifleGame() {
   const [holding, setHolding] = useState(false);
   const [holdStart, setHoldStart] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(true);
+  const [reloading, setReloading] = useState(false);
+
   const [perfect, setPerfect] = useState(false);
 
   const [perfectCount, setPerfectCount] = useState(0);
@@ -282,10 +358,21 @@ export default function AirRifleGame() {
 
   // Reload via R
   const reload = useCallback(() => {
-    if (loaded) return;
-    playReload();
-    setTimeout(() => setLoaded(true), 450);
-  }, [loaded]);
+    if (loaded || reloading) return;
+    setReloading(true);
+    // Stage 1: bolt open + spring cock
+    playBoltOpen();
+    // Pause 350ms (loading the pellet), then stage 2: bolt close
+    setTimeout(() => {
+      playBoltClose();
+      // Chamber sealed after the close finishes (~180ms)
+      setTimeout(() => {
+        setLoaded(true);
+        setReloading(false);
+      }, 180);
+    }, 350);
+  }, [loaded, reloading]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "r" || e.key === "R" || e.key === "к" || e.key === "К") reload();
@@ -355,10 +442,11 @@ export default function AirRifleGame() {
   }, [started, holding, holdStart, mouse, progress.upgrades]);
 
   const fire = useCallback(() => {
-    if (!loaded) {
+    if (!loaded || reloading) {
       playEmptyClick();
       return;
     }
+
     playCrack();
     setLoaded(false);
     const hitX = sightRef.current.x;
@@ -389,7 +477,7 @@ export default function AirRifleGame() {
     }
     setHolding(false);
     setHoldStart(null);
-  }, [loaded, equippedSkin]);
+  }, [loaded, reloading, equippedSkin]);
 
   const startGame = () => {
     setStarted(true);
@@ -620,9 +708,10 @@ export default function AirRifleGame() {
           <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between text-xs font-mono pointer-events-none">
             <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-l-2 border-primary">
               <div className="text-[9px] tracking-widest text-muted-foreground">CHAMBER</div>
-              <div className={`font-bold ${loaded ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
-                {loaded ? "● LOADED" : "○ EMPTY · Нажмите [R] для перезарядки"}
+              <div className={`font-bold ${reloading ? "text-[var(--gold-bright)] animate-pulse" : loaded ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
+                {reloading ? "◐ RELOADING…" : loaded ? "● LOADED" : "○ EMPTY · Нажмите [R] для перезарядки"}
               </div>
+
             </div>
             <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-r-2 border-primary text-right">
               <div className="text-[9px] tracking-widest text-muted-foreground">BREATH</div>
