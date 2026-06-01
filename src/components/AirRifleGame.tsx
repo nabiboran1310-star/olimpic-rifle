@@ -26,189 +26,49 @@ function creditsForShot(s: number): number {
   return 0;
 }
 
-// ---------- Audio ----------
-let audioCtx: AudioContext | null = null;
-function getCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
-  return audioCtx;
+// ---------- Audio (real MP3 files, easy to swap) ----------
+const SOUND_URLS = {
+  shot: "https://assets.mixkit.co/active_storage/sfx/1670/1670-preview.mp3",
+  boltOpen: "https://assets.mixkit.co/active_storage/sfx/1124/1124-preview.mp3",
+  boltClose: "https://assets.mixkit.co/active_storage/sfx/1118/1118-preview.mp3",
+  chime: "https://assets.mixkit.co/active_storage/sfx/270/270-preview.mp3",
+  purchase: "https://assets.mixkit.co/active_storage/sfx/2003/2003-preview.mp3",
+  emptyClick: "https://assets.mixkit.co/active_storage/sfx/2778/2778-preview.mp3",
+} as const;
+
+function makeAudio(url: string, volume = 1) {
+  if (typeof Audio === "undefined") return null;
+  const a = new Audio(url);
+  a.preload = "auto";
+  a.volume = volume;
+  return a;
 }
-function playCrack() {
-  const ctx = getCtx();
-  const now = ctx.currentTime;
-  // Sharp pneumatic air burst: very short white-noise transient
-  const dur = 0.09;
-  const buffer = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) {
-    const env = Math.pow(1 - i / data.length, 4);
-    data[i] = (Math.random() * 2 - 1) * env;
+
+const shotAudio = makeAudio(SOUND_URLS.shot, 0.7);
+const boltOpenAudio = makeAudio(SOUND_URLS.boltOpen, 0.8);
+const boltCloseAudio = makeAudio(SOUND_URLS.boltClose, 0.85);
+const chimeAudio = makeAudio(SOUND_URLS.chime, 0.6);
+const purchaseAudio = makeAudio(SOUND_URLS.purchase, 0.5);
+const emptyClickAudio = makeAudio(SOUND_URLS.emptyClick, 0.5);
+
+function playSfx(a: HTMLAudioElement | null) {
+  if (!a) return;
+  try {
+    const clone = a.cloneNode(true) as HTMLAudioElement;
+    clone.volume = a.volume;
+    void clone.play().catch(() => {});
+  } catch {
+    /* ignore */
   }
-  const src = ctx.createBufferSource();
-  src.buffer = buffer;
-  const hp = ctx.createBiquadFilter();
-  hp.type = "highpass";
-  hp.frequency.value = 2200;
-  const peak = ctx.createBiquadFilter();
-  peak.type = "peaking";
-  peak.frequency.value = 4800;
-  peak.Q.value = 1.4;
-  peak.gain.value = 8;
-  const gain = ctx.createGain();
-  gain.gain.setValueAtTime(0.0001, now);
-  gain.gain.exponentialRampToValueAtTime(0.65, now + 0.002);
-  gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-  src.connect(hp).connect(peak).connect(gain).connect(ctx.destination);
-  src.start(now);
-
-  // Tiny mechanical "tink" of the valve
-  const tink = ctx.createOscillator();
-  const tg = ctx.createGain();
-  tink.type = "triangle";
-  tink.frequency.setValueAtTime(5200, now);
-  tink.frequency.exponentialRampToValueAtTime(2400, now + 0.04);
-  tg.gain.setValueAtTime(0.0001, now);
-  tg.gain.exponentialRampToValueAtTime(0.18, now + 0.003);
-  tg.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
-  tink.connect(tg).connect(ctx.destination);
-  tink.start(now);
-  tink.stop(now + 0.06);
 }
 
-function playHeartbeat(intensity: number) {
-  const ctx = getCtx();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
-  osc.frequency.value = 60;
-  gain.gain.setValueAtTime(0, ctx.currentTime);
-  gain.gain.linearRampToValueAtTime(0.1 + intensity * 0.1, ctx.currentTime + 0.02);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
-  osc.connect(gain).connect(ctx.destination);
-  osc.start();
-  osc.stop(ctx.currentTime + 0.2);
-}
-function playChime() {
-  const ctx = getCtx();
-  [880, 1320, 1760, 2200].forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.frequency.value = freq;
-    osc.type = "sine";
-    gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.08);
-    gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + i * 0.08 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.08 + 1.4);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(ctx.currentTime + i * 0.08);
-    osc.stop(ctx.currentTime + i * 0.08 + 1.5);
-  });
-}
-// Generic metallic click helper
-function mkMetalClick(startOffset: number, freq: number, dur: number, gainV: number, q = 6) {
-  const ctx = getCtx();
-  const now = ctx.currentTime;
-  const buf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.5);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  const bp = ctx.createBiquadFilter();
-  bp.type = "bandpass";
-  bp.frequency.value = freq;
-  bp.Q.value = q;
-  const g = ctx.createGain();
-  g.gain.value = gainV;
-  src.connect(bp).connect(g).connect(ctx.destination);
-  src.start(now + startOffset);
-}
-
-// Stage 1: bolt opens, spring cocks
-function playBoltOpen() {
-  const ctx = getCtx();
-  const now = ctx.currentTime;
-  // crisp metallic click
-  mkMetalClick(0, 2600, 0.05, 0.5, 8);
-  mkMetalClick(0.015, 1400, 0.09, 0.45, 5);
-  // spring tension — descending pitch
-  const osc = ctx.createOscillator();
-  const g = ctx.createGain();
-  osc.type = "sawtooth";
-  osc.frequency.setValueAtTime(1800, now + 0.04);
-  osc.frequency.exponentialRampToValueAtTime(700, now + 0.22);
-  g.gain.setValueAtTime(0.0001, now + 0.04);
-  g.gain.exponentialRampToValueAtTime(0.08, now + 0.06);
-  g.gain.exponentialRampToValueAtTime(0.0001, now + 0.24);
-  const hp = ctx.createBiquadFilter();
-  hp.type = "highpass";
-  hp.frequency.value = 600;
-  osc.connect(hp).connect(g).connect(ctx.destination);
-  osc.start(now + 0.04);
-  osc.stop(now + 0.26);
-}
-
-// Stage 2: bolt closes, chamber seals (thicker, lower thunk)
-function playBoltClose() {
-  const ctx = getCtx();
-  const now = ctx.currentTime;
-  // dense low thunk via filtered noise
-  const dur = 0.13;
-  const buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 3);
-  const src = ctx.createBufferSource();
-  src.buffer = buf;
-  const lp = ctx.createBiquadFilter();
-  lp.type = "lowpass";
-  lp.frequency.value = 900;
-  lp.Q.value = 2;
-  const g = ctx.createGain();
-  g.gain.setValueAtTime(0.0001, now);
-  g.gain.exponentialRampToValueAtTime(0.6, now + 0.004);
-  g.gain.exponentialRampToValueAtTime(0.0001, now + dur);
-  src.connect(lp).connect(g).connect(ctx.destination);
-  src.start(now);
-  // sharp metallic lock-in tick on top
-  mkMetalClick(0.005, 1700, 0.05, 0.4, 7);
-  // sub thump for seal
-  const sub = ctx.createOscillator();
-  const sg = ctx.createGain();
-  sub.type = "sine";
-  sub.frequency.setValueAtTime(180, now);
-  sub.frequency.exponentialRampToValueAtTime(80, now + 0.12);
-  sg.gain.setValueAtTime(0.0001, now);
-  sg.gain.exponentialRampToValueAtTime(0.35, now + 0.005);
-  sg.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
-  sub.connect(sg).connect(ctx.destination);
-  sub.start(now);
-  sub.stop(now + 0.16);
-}
-
-function playEmptyClick() {
-  const ctx = getCtx();
-  const o = ctx.createOscillator();
-  const g = ctx.createGain();
-  o.frequency.value = 220;
-  o.type = "square";
-  g.gain.setValueAtTime(0.12, ctx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08);
-  o.connect(g).connect(ctx.destination);
-  o.start();
-  o.stop(ctx.currentTime + 0.1);
-}
-function playPurchase() {
-  const ctx = getCtx();
-  const now = ctx.currentTime;
-  [660, 880, 1320].forEach((f, i) => {
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.type = "sine";
-    o.frequency.value = f;
-    g.gain.setValueAtTime(0, now + i * 0.06);
-    g.gain.linearRampToValueAtTime(0.18, now + i * 0.06 + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.4);
-    o.connect(g).connect(ctx.destination);
-    o.start(now + i * 0.06);
-    o.stop(now + i * 0.06 + 0.5);
-  });
-}
+function playCrack() { playSfx(shotAudio); }
+function playBoltOpen() { playSfx(boltOpenAudio); }
+function playBoltClose() { playSfx(boltCloseAudio); }
+function playChime() { playSfx(chimeAudio); }
+function playPurchase() { playSfx(purchaseAudio); }
+function playEmptyClick() { playSfx(emptyClickAudio); }
+function playHeartbeat(_intensity: number) { /* removed synth heartbeat */ }
 
 // ---------- Skins & Upgrades ----------
 type Skin = {
@@ -488,7 +348,6 @@ export default function AirRifleGame() {
     setTotalShots(0);
     setLastShot(null);
     setLoaded(true);
-    getCtx();
   };
 
   // Shop actions
