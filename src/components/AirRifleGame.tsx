@@ -442,10 +442,11 @@ export default function AirRifleGame() {
   }, [started, holding, holdStart, mouse, progress.upgrades]);
 
   const fire = useCallback(() => {
-    if (!loaded) {
+    if (!loaded || reloading) {
       playEmptyClick();
       return;
     }
+
     playCrack();
     setLoaded(false);
     const hitX = sightRef.current.x;
