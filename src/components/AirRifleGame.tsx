@@ -102,28 +102,17 @@ export default function AirRifleGame() {
     return () => window.removeEventListener("mousemove", onMove);
   }, []);
 
-  // Spacebar breath control
+  // Global mouseup safety net for right-button release outside the arena
   useEffect(() => {
-    const down = (e: KeyboardEvent) => {
-      if (e.code === "Space" && !holding) {
-        e.preventDefault();
-        setHolding(true);
-        setHoldStart(performance.now());
-      }
-    };
-    const up = (e: KeyboardEvent) => {
-      if (e.code === "Space") {
+    const up = (e: MouseEvent) => {
+      if (e.button === 2) {
         setHolding(false);
         setHoldStart(null);
       }
     };
-    window.addEventListener("keydown", down);
-    window.addEventListener("keyup", up);
-    return () => {
-      window.removeEventListener("keydown", down);
-      window.removeEventListener("keyup", up);
-    };
-  }, [holding]);
+    window.addEventListener("mouseup", up);
+    return () => window.removeEventListener("mouseup", up);
+  }, []);
 
   // Physics loop
   useEffect(() => {
@@ -233,7 +222,21 @@ export default function AirRifleGame() {
 
           <div
             ref={arenaRef}
-            onClick={fire}
+            onMouseDown={(e) => {
+              if (e.button === 0) {
+                fire();
+              } else if (e.button === 2) {
+                setHolding(true);
+                setHoldStart(performance.now());
+              }
+            }}
+            onMouseUp={(e) => {
+              if (e.button === 2) {
+                setHolding(false);
+                setHoldStart(null);
+              }
+            }}
+            onContextMenu={(e) => e.preventDefault()}
             className="relative cursor-none shadow-2xl"
             style={{ width: TARGET_SIZE, height: TARGET_SIZE, background: "#f4f4ef" }}
           >
@@ -474,7 +477,7 @@ export default function AirRifleGame() {
           <div className="border-t border-border p-4 space-y-3 bg-[var(--navy-deep)]">
             <div className="text-[10px] leading-relaxed text-muted-foreground tracking-wide">
               <div className="text-foreground font-bold mb-1 tracking-widest">CONTROLS</div>
-              MOUSE — AIM · CLICK — FIRE · SPACE — HOLD BREATH (3s optimal window)
+              [Удерживайте ПКМ] Задержать дыхание | [ЛКМ] Выстрел
             </div>
             {shots.length >= 10 && (
               <button
