@@ -394,6 +394,9 @@ export default function AirRifleGame() {
     setScore(0);
     setCombo(0);
     setBestCombo(0);
+    setPerfectCount(0);
+    setTotalShots(0);
+    setLastShot(null);
     setTimeLeft(START_TIME);
     setLoaded(true);
     setLastHole(null);
