@@ -358,10 +358,21 @@ export default function AirRifleGame() {
 
   // Reload via R
   const reload = useCallback(() => {
-    if (loaded) return;
-    playReload();
-    setTimeout(() => setLoaded(true), 450);
-  }, [loaded]);
+    if (loaded || reloading) return;
+    setReloading(true);
+    // Stage 1: bolt open + spring cock
+    playBoltOpen();
+    // Pause 350ms (loading the pellet), then stage 2: bolt close
+    setTimeout(() => {
+      playBoltClose();
+      // Chamber sealed after the close finishes (~180ms)
+      setTimeout(() => {
+        setLoaded(true);
+        setReloading(false);
+      }, 180);
+    }, 350);
+  }, [loaded, reloading]);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "r" || e.key === "R" || e.key === "к" || e.key === "К") reload();
