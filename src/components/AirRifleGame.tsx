@@ -230,6 +230,9 @@ export default function AirRifleGame() {
   const [score, setScore] = useState(0);
   const [combo, setCombo] = useState(0);
   const [bestCombo, setBestCombo] = useState(0);
+  const [perfectCount, setPerfectCount] = useState(0);
+  const [totalShots, setTotalShots] = useState(0);
+  const [lastShot, setLastShot] = useState<number | null>(null);
   const [gameOver, setGameOver] = useState(false);
   const [started, setStarted] = useState(false);
   const lastHeartbeat = useRef(0);
