@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import { Link } from "@tanstack/react-router";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/use-auth";
 
 // ============================================================
 // Disciplines
@@ -208,9 +211,11 @@ type Progress = {
   owned: string[];
   upgrades: string[];
   equipped: string;
+  totalScore: number;
+  perfectTens: number;
 };
 function loadProgress(): Progress {
-  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default" };
+  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default", totalScore: 0, perfectTens: 0 };
   if (typeof window === "undefined") return def;
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -221,6 +226,8 @@ function loadProgress(): Progress {
       owned: Array.isArray(p.owned) && p.owned.includes("default") ? p.owned : ["default", ...(p.owned || [])],
       upgrades: Array.isArray(p.upgrades) ? p.upgrades : [],
       equipped: typeof p.equipped === "string" ? p.equipped : "default",
+      totalScore: Number(p.totalScore) || 0,
+      perfectTens: Number(p.perfectTens) || 0,
     };
   } catch { return def; }
 }
@@ -278,8 +285,56 @@ export default function AirRifleGame() {
   const hasUpgrade = (id: string) => progress.upgrades.includes(id);
   const holdWindow = hasUpgrade("premium") ? 5 : 3;
 
-  // Persist
-  useEffect(() => { saveProgress(progress); }, [progress]);
+  // Auth + Cloud sync
+  const { user } = useAuth();
+  const hydratedRef = useRef(false);
+
+  // Load profile from cloud when user logs in
+  useEffect(() => {
+    if (!user) { hydratedRef.current = false; return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("credits, total_score, perfect_tens, skins, upgrades, equipped_skin")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const skinsList = Array.isArray(data.skins) ? (data.skins as string[]) : ["default"];
+      const upgradesList = Array.isArray(data.upgrades) ? (data.upgrades as string[]) : [];
+      setProgress({
+        credits: data.credits ?? 0,
+        owned: skinsList.includes("default") ? skinsList : ["default", ...skinsList],
+        upgrades: upgradesList,
+        equipped: data.equipped_skin ?? "default",
+        totalScore: Number(data.total_score) || 0,
+        perfectTens: data.perfect_tens ?? 0,
+      });
+      hydratedRef.current = true;
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Persist locally + to cloud (debounced)
+  useEffect(() => {
+    saveProgress(progress);
+    if (!user || !hydratedRef.current) return;
+    const t = setTimeout(() => {
+      supabase
+        .from("profiles")
+        .update({
+          credits: progress.credits,
+          total_score: progress.totalScore,
+          perfect_tens: progress.perfectTens,
+          skins: progress.owned,
+          upgrades: progress.upgrades,
+          equipped_skin: progress.equipped,
+        })
+        .eq("user_id", user.id)
+        .then(() => {});
+    }, 800);
+    return () => clearTimeout(t);
+  }, [progress, user]);
 
   // Mouse tracking
   useEffect(() => {
@@ -477,9 +532,15 @@ export default function AirRifleGame() {
     if (bonus > 0) setTimeLeft((t) => Math.min(120, +(t + bonus).toFixed(2)));
 
     const earned = creditsForShot(sc);
-    if (earned > 0) setProgress((p) => ({ ...p, credits: p.credits + earned }));
+    const gotPerfect = sc === 10.9;
+    setProgress((p) => ({
+      ...p,
+      credits: p.credits + earned,
+      totalScore: +(p.totalScore + sc).toFixed(1),
+      perfectTens: p.perfectTens + (gotPerfect ? 1 : 0),
+    }));
 
-    if (sc === 10.9) {
+    if (gotPerfect) {
       setPerfectCount((c) => c + 1);
       playSfx(A.chime);
       playSfx(A.crowd);
@@ -596,6 +657,12 @@ export default function AirRifleGame() {
           >
             МАГАЗИН
           </button>
+          <Link
+            to={user ? "/profile" : "/auth"}
+            className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-3 py-1.5 hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
+          >
+            {user ? "ПРОФИЛЬ" : "ВОЙТИ"}
+          </Link>
         </div>
       </div>
 
