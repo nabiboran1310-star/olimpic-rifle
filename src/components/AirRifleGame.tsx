@@ -287,6 +287,8 @@ export default function AirRifleGame() {
 
   // Auth + Cloud sync
   const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
   const hydratedRef = useRef(false);
 
   // Load profile from cloud when user logs in
