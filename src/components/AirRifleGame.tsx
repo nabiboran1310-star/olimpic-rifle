@@ -532,9 +532,15 @@ export default function AirRifleGame() {
     if (bonus > 0) setTimeLeft((t) => Math.min(120, +(t + bonus).toFixed(2)));
 
     const earned = creditsForShot(sc);
-    if (earned > 0) setProgress((p) => ({ ...p, credits: p.credits + earned }));
+    const gotPerfect = sc === 10.9;
+    setProgress((p) => ({
+      ...p,
+      credits: p.credits + earned,
+      totalScore: +(p.totalScore + sc).toFixed(1),
+      perfectTens: p.perfectTens + (gotPerfect ? 1 : 0),
+    }));
 
-    if (sc === 10.9) {
+    if (gotPerfect) {
       setPerfectCount((c) => c + 1);
       playSfx(A.chime);
       playSfx(A.crowd);
