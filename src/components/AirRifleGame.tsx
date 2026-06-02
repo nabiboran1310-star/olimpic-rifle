@@ -285,8 +285,56 @@ export default function AirRifleGame() {
   const hasUpgrade = (id: string) => progress.upgrades.includes(id);
   const holdWindow = hasUpgrade("premium") ? 5 : 3;
 
-  // Persist
-  useEffect(() => { saveProgress(progress); }, [progress]);
+  // Auth + Cloud sync
+  const { user } = useAuth();
+  const hydratedRef = useRef(false);
+
+  // Load profile from cloud when user logs in
+  useEffect(() => {
+    if (!user) { hydratedRef.current = false; return; }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("credits, total_score, perfect_tens, skins, upgrades, equipped_skin")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      const skinsList = Array.isArray(data.skins) ? (data.skins as string[]) : ["default"];
+      const upgradesList = Array.isArray(data.upgrades) ? (data.upgrades as string[]) : [];
+      setProgress({
+        credits: data.credits ?? 0,
+        owned: skinsList.includes("default") ? skinsList : ["default", ...skinsList],
+        upgrades: upgradesList,
+        equipped: data.equipped_skin ?? "default",
+        totalScore: Number(data.total_score) || 0,
+        perfectTens: data.perfect_tens ?? 0,
+      });
+      hydratedRef.current = true;
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Persist locally + to cloud (debounced)
+  useEffect(() => {
+    saveProgress(progress);
+    if (!user || !hydratedRef.current) return;
+    const t = setTimeout(() => {
+      supabase
+        .from("profiles")
+        .update({
+          credits: progress.credits,
+          total_score: progress.totalScore,
+          perfect_tens: progress.perfectTens,
+          skins: progress.owned,
+          upgrades: progress.upgrades,
+          equipped_skin: progress.equipped,
+        })
+        .eq("user_id", user.id)
+        .then(() => {});
+    }, 800);
+    return () => clearTimeout(t);
+  }, [progress, user]);
 
   // Mouse tracking
   useEffect(() => {
