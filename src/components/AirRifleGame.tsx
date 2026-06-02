@@ -211,9 +211,11 @@ type Progress = {
   owned: string[];
   upgrades: string[];
   equipped: string;
+  totalScore: number;
+  perfectTens: number;
 };
 function loadProgress(): Progress {
-  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default" };
+  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default", totalScore: 0, perfectTens: 0 };
   if (typeof window === "undefined") return def;
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -224,6 +226,8 @@ function loadProgress(): Progress {
       owned: Array.isArray(p.owned) && p.owned.includes("default") ? p.owned : ["default", ...(p.owned || [])],
       upgrades: Array.isArray(p.upgrades) ? p.upgrades : [],
       equipped: typeof p.equipped === "string" ? p.equipped : "default",
+      totalScore: Number(p.totalScore) || 0,
+      perfectTens: Number(p.perfectTens) || 0,
     };
   } catch { return def; }
 }
