@@ -657,6 +657,12 @@ export default function AirRifleGame() {
           >
             МАГАЗИН
           </button>
+          <Link
+            to={user ? "/profile" : "/auth"}
+            className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-3 py-1.5 hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
+          >
+            {user ? "ПРОФИЛЬ" : "ВОЙТИ"}
+          </Link>
         </div>
       </div>
 
