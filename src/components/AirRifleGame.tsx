@@ -1193,86 +1193,98 @@ function HomeScreen({
   const credits = progress.credits;
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
 
-  // Cohesive accent colors for the 5 discipline tiles
-  const disciplineAccents: Record<DisciplineId, { from: string; to: string; ring: string }> = {
-    ar10:    { from: "#0ea5e9", to: "#1e3a8a", ring: "#38bdf8" },
-    boar:    { from: "#dc2626", to: "#7f1d1d", ring: "#f87171" },
-    rifle50: { from: "#16a34a", to: "#14532d", ring: "#4ade80" },
-    ap10:    { from: "#a855f7", to: "#4c1d95", ring: "#c084fc" },
-    rfp25:   { from: "#f59e0b", to: "#78350f", ring: "#fbbf24" },
+  // Voltagent-inspired tokens — near-black canvas, single electric-green accent
+  const VOLT = {
+    canvas: "#101010",
+    canvasSoft: "#1a1a1a",
+    hairline: "#3d3a39",
+    ink: "#f2f2f2",
+    body: "#bdbdbd",
+    mute: "#8b949e",
+    primary: "#00d992",
+    onPrimary: "#101010",
   };
 
-  return (
-    <div className="min-h-screen flex flex-col items-center px-4 md:px-6 py-8 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
-      {/* Header row with profile */}
-      <div className="w-full max-w-6xl flex items-center justify-between mb-6">
-        <div>
-          <div className="text-[10px] tracking-[0.5em] text-primary font-bold">OLYMPIC SHOOTING SIMULATOR</div>
-          <div className="text-xs text-muted-foreground mt-1">Добро пожаловать, стрелок{user?.email ? `, ${user.email.split("@")[0]}` : ""}!</div>
-        </div>
-        {mounted && (
-          <Link
-            to={user ? "/profile" : "/auth"}
-            className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
-          >
-            {user ? "ПРОФИЛЬ" : "ВОЙТИ"}
-          </Link>
-        )}
-      </div>
-
-      <h1 className="text-4xl md:text-6xl font-black tracking-tight text-center mb-2">ГЛАВНЫЙ ЭКРАН</h1>
-
-      {/* Player stats */}
-      <div className="w-full max-w-6xl grid grid-cols-3 gap-3 md:gap-4 my-6">
-        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
-          <div className="text-[10px] tracking-widest text-muted-foreground">КРЕДИТЫ</div>
-          <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{credits} <span className="text-sm text-muted-foreground">CR</span></div>
-        </div>
-        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
-          <div className="text-[10px] tracking-widest text-muted-foreground">ОБЩИЙ СЧЁТ</div>
-          <div className="text-2xl md:text-3xl font-black text-primary font-mono tabular-nums">{Number(progress.totalScore).toFixed(1)}</div>
-        </div>
-        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
-          <div className="text-[10px] tracking-widest text-muted-foreground">ИДЕАЛЬНЫХ 10.9</div>
-          <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{progress.perfectTens}</div>
-        </div>
-      </div>
-
-      {/* 5 Discipline buttons — Quick Play */}
+      {/* 5 Discipline buttons — Quick Play (Voltagent-inspired) */}
       <div className="w-full max-w-6xl mt-2">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-xl md:text-2xl font-black tracking-tight">ДИСЦИПЛИНЫ · БЫСТРАЯ ИГРА</h2>
-          <div className="text-[10px] text-muted-foreground">30 сек · точные выстрелы добавляют время</div>
+          <h2 className="text-xl md:text-2xl font-black tracking-tight" style={{ color: VOLT.ink }}>ДИСЦИПЛИНЫ · БЫСТРАЯ ИГРА</h2>
+          <div className="text-[10px]" style={{ color: VOLT.mute }}>30 сек · точные выстрелы добавляют время</div>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {DISCIPLINES.map((d) => {
-            const a = disciplineAccents[d.id];
             return (
               <button
                 key={d.id}
                 onClick={() => onPickQuick(d)}
-                className="group relative overflow-hidden text-left border border-border hover:border-[color:var(--ring)] transition-all duration-200 p-4 flex flex-col gap-3 min-h-[180px] hover:-translate-y-1 hover:shadow-2xl"
+                className="group relative overflow-hidden text-left transition-all duration-200 p-5 flex flex-col gap-4 min-h-[200px] hover:-translate-y-0.5"
                 style={{
-                  background: `linear-gradient(140deg, ${a.from} 0%, ${a.to} 100%)`,
+                  background: VOLT.canvas,
+                  border: `1px solid ${VOLT.hairline}`,
+                  borderRadius: 8,
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.borderColor = VOLT.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.borderColor = VOLT.hairline; }}
               >
-                {/* glossy overlay */}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/40" />
-                {/* target glyph */}
+                {/* eyebrow + glyph */}
                 <div className="relative flex items-center justify-between">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.45)", border: `2px solid ${a.ring}` }}>
+                  <div
+                    className="w-10 h-10 flex items-center justify-center"
+                    style={{ background: VOLT.canvasSoft, border: `1px solid ${VOLT.hairline}`, borderRadius: 6 }}
+                  >
                     <MiniTargetIcon disciplineId={d.id} />
                   </div>
-                  <div className="text-[9px] tracking-[0.3em] font-bold text-white/90">{d.short}</div>
+                  <div
+                    className="text-[11px] font-semibold"
+                    style={{ color: VOLT.primary, fontFamily: "SFMono-Regular, Menlo, Monaco, Consolas, monospace", letterSpacing: "0.18em" }}
+                  >
+                    {d.short}
+                  </div>
                 </div>
+
+                {/* title + caption */}
                 <div className="relative">
-                  <div className="text-lg font-black tracking-tight text-white leading-tight">{d.name}</div>
-                  <div className="text-[11px] text-white/70 mt-1 leading-snug line-clamp-2">{d.caption}</div>
+                  <div
+                    className="text-[18px] font-semibold tracking-tight leading-snug"
+                    style={{ color: VOLT.ink, fontFamily: "Inter, system-ui, sans-serif" }}
+                  >
+                    {d.name}
+                  </div>
+                  <div
+                    className="text-[13px] mt-1.5 leading-snug line-clamp-2"
+                    style={{ color: VOLT.body }}
+                  >
+                    {d.caption}
+                  </div>
                 </div>
-                <div className="relative mt-auto flex items-center justify-between text-[10px] font-mono text-white/80">
-                  <span>{d.sight === "diopter" ? "ДИОПТР" : "ОТКРЫТЫЙ"}</span>
-                  <span className="px-2 py-1 bg-black/40 border border-white/20 group-hover:bg-white group-hover:text-black transition-colors font-bold tracking-widest">
-                    ИГРАТЬ →
+
+                {/* footer: sight pill + npx-style command chip */}
+                <div className="relative mt-auto flex items-center justify-between">
+                  <span
+                    className="px-2 py-0.5 text-[10px] font-medium"
+                    style={{
+                      color: VOLT.body,
+                      background: VOLT.canvas,
+                      border: `1px solid ${VOLT.hairline}`,
+                      borderRadius: 9999,
+                      fontFamily: "SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    }}
+                  >
+                    {d.sight === "diopter" ? "diopter" : "open"}
+                  </span>
+                  <span
+                    className="px-2.5 py-1 text-[12px] font-semibold transition-colors"
+                    style={{
+                      color: VOLT.primary,
+                      background: VOLT.canvasSoft,
+                      border: `1px solid ${VOLT.hairline}`,
+                      borderRadius: 6,
+                      fontFamily: "SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.background = VOLT.primary; e.currentTarget.style.color = VOLT.onPrimary; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = VOLT.canvasSoft; e.currentTarget.style.color = VOLT.primary; }}
+                  >
+                    ▸ play
                   </span>
                 </div>
               </button>
