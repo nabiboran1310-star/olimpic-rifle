@@ -362,15 +362,10 @@ export default function AirRifleGame() {
   useEffect(() => { setMounted(true); }, []);
   const hydratedRef = useRef(false);
 
-  // Route-driven screen separation: '/' = Home, '/range' = Shooting
+  // Route-driven screen separation: '/' = Home, '/range' = Shooting.
+  // Route is synced manually inside startMatch / backToMenu — no auto-redirect
+  // here (it was racing the state update on match start and bouncing user home).
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
-  useEffect(() => {
-    // If user lands on /range without an active session, send them home
-    if (pathname === "/range" && phase === "menu") {
-      navigate({ to: "/" });
-    }
-  }, [pathname, phase, navigate]);
 
   // Responsive arena scale (landscape phones / small heights)
   const [arenaScale, setArenaScale] = useState(1);
