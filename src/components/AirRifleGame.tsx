@@ -552,9 +552,9 @@ export default function AirRifleGame() {
     }
   }, [shotHistory.length]);
 
-  // Game timer (only in quick mode)
+  // Game timer (only in quick mode AND match mode — paused during sighting)
   useEffect(() => {
-    if (phase !== "playing" || mode === "career") return;
+    if (phase !== "playing" || mode === "career" || sessionMode !== "match") return;
     const t = setInterval(() => {
       setTimeLeft((tl) => {
         if (tl <= 0.1) {
@@ -565,15 +565,15 @@ export default function AirRifleGame() {
       });
     }, 100);
     return () => clearInterval(t);
-  }, [phase, mode]);
+  }, [phase, mode, sessionMode]);
 
   // Game over trigger (quick mode only — by time)
   useEffect(() => {
-    if (phase === "playing" && mode === "quick" && timeLeft <= 0) {
+    if (phase === "playing" && mode === "quick" && sessionMode === "match" && timeLeft <= 0) {
       setPhase("gameover");
       playSfx(A.gameOver);
     }
-  }, [timeLeft, phase, mode]);
+  }, [timeLeft, phase, mode, sessionMode]);
 
   // Physics
   useEffect(() => {
