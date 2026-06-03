@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 // ============================================================
 // Disciplines
 // ============================================================
-type DisciplineId = "ar10" | "rifle50" | "ap10" | "rfp25";
+type DisciplineId = "ar10" | "rifle50" | "ap10" | "rfp25" | "boar";
 
 type Discipline = {
   id: DisciplineId;
@@ -48,6 +48,24 @@ const DISCIPLINES: Discipline[] = [
     mmToPx: 520 / 2 / 45.5,
     bulletMm: 4.5,
     blackRingFromIdx: 6, // rings 10..4 inside black? we'll use ring idx >= 4 (i.e. <=6 ring number)
+    shotSound: "air",
+  },
+  {
+    id: "boar",
+    name: "Бегущий кабан 10м",
+    short: "10m RUNNING TARGET",
+    caption: "ISSF Running Target · движущаяся мишень · упреждение",
+    sight: "diopter",
+    amplitude: 22,
+    pulseAmp: 10,
+    jitter: 3,
+    wind: 0,
+    dampenFocus: 0.22,
+    targetPx: 520,
+    ringMm: [0.5, 5.5, 10.5, 15.5, 20.5, 25.5, 30.5, 35.5, 40.5, 45.5],
+    mmToPx: 520 / 2 / 45.5,
+    bulletMm: 4.5,
+    blackRingFromIdx: 6,
     shotSound: "air",
   },
   {
@@ -120,6 +138,49 @@ function computeDecimalScore(distPx: number, d: Discipline): number {
   const score = 10.9 - (distMm / ringStep);
   return Math.max(0, Math.round(score * 10) / 10);
 }
+
+function computeIntegerScore(distPx: number, d: Discipline): number {
+  const distMm = distPx / d.mmToPx;
+  for (let i = 0; i < 10; i++) {
+    if (distMm <= d.ringMm[i]) return 10 - i;
+  }
+  return 0;
+}
+
+// ============================================================
+// Career Mode
+// ============================================================
+type CareerLevel = {
+  id: 1 | 2 | 3;
+  name: string;
+  short: string;
+  description: string;
+  disciplineId: DisciplineId;
+  shots: number;
+  winScore: number;
+  scoring: "integer" | "decimal";
+  moving: boolean;
+  hardcore: boolean;
+};
+
+const CAREER_LEVELS: CareerLevel[] = [
+  {
+    id: 1, name: "Клубный дебют", short: "L1 · INTEGER",
+    description: "Винтовка 10м. Только целые очки. 10 выстрелов. Цель: набрать 95+.",
+    disciplineId: "ar10", shots: 10, winScore: 95, scoring: "integer", moving: false, hardcore: false,
+  },
+  {
+    id: 2, name: "Олимпийский отбор · Бегущий кабан", short: "L2 · RUNNING TARGET",
+    description: "Движущаяся мишень. Десятые. 10 выстрелов. Цель: 96.0+.",
+    disciplineId: "boar", shots: 10, winScore: 96.0, scoring: "decimal", moving: true, hardcore: false,
+  },
+  {
+    id: 3, name: "Олимпийское Золото", short: "L3 · HARDCORE 50M",
+    description: "Винтовка 50м. Сильный ветер + макс. дрожание. 10 выстрелов. Цель: 104.5+.",
+    disciplineId: "rifle50", shots: 10, winScore: 104.5, scoring: "decimal", moving: false, hardcore: true,
+  },
+];
+const CAREER_WIN_BONUS = 2000;
 
 function timeBonusForShot(s: number): number {
   if (s === 10.9) return 8;
@@ -213,9 +274,10 @@ type Progress = {
   equipped: string;
   totalScore: number;
   perfectTens: number;
+  careerCompleted: number; // highest completed career level (0..3)
 };
 function loadProgress(): Progress {
-  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default", totalScore: 0, perfectTens: 0 };
+  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default", totalScore: 0, perfectTens: 0, careerCompleted: 0 };
   if (typeof window === "undefined") return def;
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -228,6 +290,7 @@ function loadProgress(): Progress {
       equipped: typeof p.equipped === "string" ? p.equipped : "default",
       totalScore: Number(p.totalScore) || 0,
       perfectTens: Number(p.perfectTens) || 0,
+      careerCompleted: Math.max(0, Math.min(3, Number(p.careerCompleted) || 0)),
     };
   } catch { return def; }
 }
@@ -273,6 +336,13 @@ export default function AirRifleGame() {
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
   const [shopOpen, setShopOpen] = useState(false);
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
+
+  // Career mode
+  const [mode, setMode] = useState<"quick" | "career">("quick");
+  const [careerLevel, setCareerLevel] = useState<CareerLevel | null>(null);
+  const [careerResult, setCareerResult] = useState<{ won: boolean; score: number; level: CareerLevel } | null>(null);
+  const [targetOffsetX, setTargetOffsetX] = useState(0);
+  const targetOffsetRef = useRef(0);
 
   const tRef = useRef(0);
   const holeIdRef = useRef(0);
@@ -329,14 +399,15 @@ export default function AirRifleGame() {
       if (cancelled || !data) return;
       const skinsList = Array.isArray(data.skins) ? (data.skins as string[]) : ["default"];
       const upgradesList = Array.isArray(data.upgrades) ? (data.upgrades as string[]) : [];
-      setProgress({
+      setProgress((prev) => ({
         credits: data.credits ?? 0,
         owned: skinsList.includes("default") ? skinsList : ["default", ...skinsList],
         upgrades: upgradesList,
         equipped: data.equipped_skin ?? "default",
         totalScore: Number(data.total_score) || 0,
         perfectTens: data.perfect_tens ?? 0,
-      });
+        careerCompleted: prev.careerCompleted,
+      }));
       hydratedRef.current = true;
     })();
     return () => { cancelled = true; };
@@ -434,9 +505,9 @@ export default function AirRifleGame() {
     }
   }, [shotHistory.length]);
 
-  // Game timer
+  // Game timer (only in quick mode)
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || mode === "career") return;
     const t = setInterval(() => {
       setTimeLeft((tl) => {
         if (tl <= 0.1) {
@@ -447,15 +518,15 @@ export default function AirRifleGame() {
       });
     }, 100);
     return () => clearInterval(t);
-  }, [phase]);
+  }, [phase, mode]);
 
-  // Game over trigger
+  // Game over trigger (quick mode only — by time)
   useEffect(() => {
-    if (phase === "playing" && timeLeft <= 0) {
+    if (phase === "playing" && mode === "quick" && timeLeft <= 0) {
       setPhase("gameover");
       playSfx(A.gameOver);
     }
-  }, [timeLeft, phase]);
+  }, [timeLeft, phase, mode]);
 
   // Physics
   useEffect(() => {
@@ -465,6 +536,9 @@ export default function AirRifleGame() {
     let windX = 0, windY = 0;
     let windTimer = 0;
     let windTargetX = 0, windTargetY = 0;
+
+    const moving = !!(mode === "career" && careerLevel?.moving);
+    const hardcore = !!(mode === "career" && careerLevel?.hardcore);
 
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
@@ -483,25 +557,22 @@ export default function AirRifleGame() {
       const jacketMul = hasUpgrade("jacket") ? 0.8 : 1;
       const gloveMul  = hasUpgrade("glove")  ? 0.7 : 1;
 
-      const baseAmp = d.amplitude * jacketMul;
-      // figure-8 sway (rifle) or sharper chaotic sway (pistol)
+      const hardcoreAmpMul = hardcore ? 1.6 : 1;
+      const baseAmp = d.amplitude * jacketMul * hardcoreAmpMul;
       let swayX: number, swayY: number;
       if (d.sight === "diopter") {
         swayX = Math.sin(t * 1.8) * baseAmp + Math.sin(t * 4.2) * baseAmp * 0.35;
         swayY = Math.sin(t * 3.6) * baseAmp * 0.55 + Math.cos(t * 2.1) * baseAmp * 0.4;
       } else {
-        // pistol: bigger faster, less coherent
         swayX = Math.sin(t * 2.4) * baseAmp * 0.9 + Math.sin(t * 5.7) * baseAmp * 0.5;
         swayY = Math.cos(t * 2.9) * baseAmp * 0.9 + Math.sin(t * 6.3) * baseAmp * 0.4;
       }
 
-      // 25m rapid: hard kicks
       if (d.id === "rfp25" && Math.random() < 0.04) {
         swayX += (Math.random() - 0.5) * baseAmp * 1.2;
         swayY += (Math.random() - 0.5) * baseAmp * 1.2;
       }
 
-      // heartbeat micro-jerk
       const beatPhase = (t % 0.75) / 0.75;
       const pulse = Math.exp(-Math.pow((beatPhase - 0.1) * 9, 2)) * d.pulseAmp * gloveMul;
       const pulseX = pulse * Math.sin(t * 13);
@@ -511,14 +582,15 @@ export default function AirRifleGame() {
       const jx = (Math.random() - 0.5) * jitter;
       const jy = (Math.random() - 0.5) * jitter;
 
-      // Wind drift (50m / 25m)
-      if (d.wind > 0) {
+      // Wind drift (50m / 25m / hardcore L3)
+      const effectiveWind = hardcore ? Math.max(d.wind, 0.6) * 1.8 : d.wind;
+      if (effectiveWind > 0) {
         windTimer -= dt;
         if (windTimer <= 0) {
           windTimer = 1.5 + Math.random() * 2;
           const ang = Math.random() * Math.PI * 2;
-          windTargetX = Math.cos(ang) * d.wind * 14;
-          windTargetY = Math.sin(ang) * d.wind * 14;
+          windTargetX = Math.cos(ang) * effectiveWind * 14;
+          windTargetY = Math.sin(ang) * effectiveWind * 14;
         }
         windX += (windTargetX - windX) * dt * 1.2;
         windY += (windTargetY - windY) * dt * 1.2;
@@ -535,11 +607,23 @@ export default function AirRifleGame() {
       sightRef.current = next;
       setSight(next);
 
+      // Moving target (Running Boar): smooth horizontal sweep
+      if (moving) {
+        const range = size * 0.32; // ±~33% of arena
+        const speed = 0.55; // rad/s
+        const off = Math.sin(t * speed) * range;
+        targetOffsetRef.current = off;
+        setTargetOffsetX(off);
+      } else if (targetOffsetRef.current !== 0) {
+        targetOffsetRef.current = 0;
+        setTargetOffsetX(0);
+      }
+
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [phase, holding, holdStart, mouse, discipline, progress.upgrades, holdWindow]);
+  }, [phase, holding, holdStart, mouse, discipline, progress.upgrades, holdWindow, mode, careerLevel]);
 
   // Fire
   const fire = useCallback(() => {
@@ -554,13 +638,20 @@ export default function AirRifleGame() {
     const center = d.targetPx / 2;
     const hitX = sightRef.current.x;
     const hitY = sightRef.current.y;
-    const dx = hitX - center;
+    const offX = targetOffsetRef.current;
+    // hit relative to current target center
+    const dx = hitX - (center + offX);
     const dy = hitY - center;
     const distPx = Math.hypot(dx, dy);
-    const sc = computeDecimalScore(distPx, d);
+
+    const useInteger = mode === "career" && careerLevel?.scoring === "integer";
+    const scRaw = useInteger ? computeIntegerScore(distPx, d) : computeDecimalScore(distPx, d);
+    const sc = useInteger ? scRaw : +scRaw.toFixed(1);
+
     const id = ++holeIdRef.current;
     const gold = !!equippedSkin.goldHalo;
-    setHoles((h) => [...h, { x: hitX, y: hitY, score: sc, id, gold }]);
+    // store hole in target-local space so it moves with target
+    setHoles((h) => [...h, { x: hitX - offX, y: hitY, score: sc, id, gold }]);
     if (gold) {
       setTimeout(() => {
         setHoles((h) => h.map((hh) => (hh.id === id ? { ...hh, gold: false } : hh)));
@@ -573,11 +664,14 @@ export default function AirRifleGame() {
     setScore((s) => +(s + sc).toFixed(1));
     setShotHistory((h) => [...h, { n: shotNum, score: sc, discipline: d.short, id }]);
 
-    const bonus = timeBonusForShot(sc);
-    if (bonus > 0) setTimeLeft((t) => Math.min(120, +(t + bonus).toFixed(2)));
+    // Time bonus — only in quick mode
+    if (mode === "quick") {
+      const bonus = timeBonusForShot(sc);
+      if (bonus > 0) setTimeLeft((t) => Math.min(120, +(t + bonus).toFixed(2)));
+    }
 
     const earned = creditsForShot(sc);
-    const gotPerfect = sc === 10.9;
+    const gotPerfect = useInteger ? sc === 10 : sc === 10.9;
     setProgress((p) => ({
       ...p,
       credits: p.credits + earned,
@@ -591,23 +685,17 @@ export default function AirRifleGame() {
       playSfx(A.crowd);
       setPerfect(true);
       setTimeout(() => setPerfect(false), 1800);
-      // Confetti burst
       const rect = arenaRef.current?.getBoundingClientRect();
       if (rect) {
         const cx = (rect.left + hitX) / window.innerWidth;
         const cy = (rect.top + hitY) / window.innerHeight;
         confetti({
-          particleCount: 140,
-          spread: 110,
-          startVelocity: 55,
+          particleCount: 140, spread: 110, startVelocity: 55,
           origin: { x: cx, y: cy },
-          colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"],
-          ticks: 220,
+          colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"], ticks: 220,
         });
         confetti({
-          particleCount: 80,
-          spread: 70,
-          startVelocity: 35,
+          particleCount: 80, spread: 70, startVelocity: 35,
           origin: { x: cx, y: cy },
           colors: ["#f0c14a", "#ffffff"],
         });
@@ -615,10 +703,38 @@ export default function AirRifleGame() {
     }
     setHolding(false);
     setHoldStart(null);
-  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots]);
+
+    // Career: end of level when shots limit reached
+    if (mode === "career" && careerLevel && shotNum >= careerLevel.shots) {
+      const finalScore = +(score + sc).toFixed(1);
+      const won = finalScore >= careerLevel.winScore;
+      setTimeout(() => {
+        setCareerResult({ won, score: finalScore, level: careerLevel });
+        setPhase("gameover");
+        if (won) {
+          playSfx(A.crowd);
+          setProgress((p) => ({
+            ...p,
+            credits: p.credits + CAREER_WIN_BONUS,
+            careerCompleted: Math.max(p.careerCompleted, careerLevel.id),
+          }));
+          confetti({
+            particleCount: 220, spread: 140, startVelocity: 60,
+            origin: { x: 0.5, y: 0.5 },
+            colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"],
+          });
+        } else {
+          playSfx(A.gameOver);
+        }
+      }, 600);
+    }
+  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score]);
 
   // ----- actions -----
   const startMatch = (d: Discipline) => {
+    setMode("quick");
+    setCareerLevel(null);
+    setCareerResult(null);
     setDiscipline(d);
     setPhase("playing");
     setHoles([]);
@@ -631,16 +747,41 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
+    targetOffsetRef.current = 0;
+    setTargetOffsetX(0);
+  };
+
+  const startCareerLevel = (lvl: CareerLevel) => {
+    const d = DISCIPLINES.find((x) => x.id === lvl.disciplineId) ?? DISCIPLINES[0];
+    setMode("career");
+    setCareerLevel(lvl);
+    setCareerResult(null);
+    setDiscipline(d);
+    setPhase("playing");
+    setHoles([]);
+    setShotHistory([]);
+    setScore(0);
+    setPerfectCount(0);
+    setTotalShots(0);
+    setLastShot(null);
+    setTimeLeft(999);
+    setLoaded(true);
+    setReloading(false);
+    setShopOpen(false);
+    targetOffsetRef.current = 0;
+    setTargetOffsetX(0);
   };
 
   const backToMenu = () => {
     setPhase("menu");
     setHoles([]);
+    setCareerResult(null);
   };
 
   const resetTarget = () => {
     setHoles([]);
   };
+
 
   const buySkin = (s: Skin) => {
     if (progress.owned.includes(s.id) || progress.credits < s.price) return;
@@ -674,10 +815,18 @@ export default function AirRifleGame() {
           </span>
         </div>
         <div className="flex items-center gap-4 text-xs font-mono">
-          {phase === "playing" && (
+          {phase === "playing" && mode === "quick" && (
             <div className={`px-2 py-0.5 border ${timeCritical ? "border-destructive text-destructive animate-pulse" : "border-primary text-primary"}`}>
               <span className="text-muted-foreground mr-2">ВРЕМЯ</span>
               <span className="font-bold tabular-nums">{timeLeft.toFixed(1)}s</span>
+            </div>
+          )}
+          {phase === "playing" && mode === "career" && careerLevel && (
+            <div className="px-2 py-0.5 border border-primary text-primary">
+              <span className="text-muted-foreground mr-2">ВЫСТРЕЛ</span>
+              <span className="font-bold tabular-nums">{totalShots}/{careerLevel.shots}</span>
+              <span className="text-muted-foreground ml-2">ЦЕЛЬ</span>
+              <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
             </div>
           )}
           <div>
@@ -719,7 +868,9 @@ export default function AirRifleGame() {
       {phase === "menu" && (
         <DisciplineMenu
           onPick={startMatch}
+          onPickCareer={startCareerLevel}
           credits={progress.credits}
+          careerCompleted={progress.careerCompleted}
         />
       )}
 
@@ -775,7 +926,7 @@ export default function AirRifleGame() {
                 }}
               >
 
-              <TargetSvg discipline={discipline} holes={holes} />
+              <TargetSvg discipline={discipline} holes={holes} offsetX={targetOffsetX} />
 
               {/* Sight */}
               {phase === "playing" && (
@@ -837,27 +988,69 @@ export default function AirRifleGame() {
             {phase === "gameover" && (
               <div className="absolute inset-0 flex items-center justify-center bg-[var(--navy-deep)]/95 backdrop-blur-sm z-40">
                 <div className="text-center space-y-6 px-8 max-w-lg">
-                  <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">TIME UP</div>
-                  <div className="text-6xl font-black tracking-tight">GAME OVER</div>
-                  <div className="grid grid-cols-3 gap-4 text-sm font-mono">
-                    <Stat label="SCORE" value={score.toFixed(1)} />
-                    <Stat label="SHOTS" value={totalShots} />
-                    <Stat label="10.9s" value={perfectCount} />
-                  </div>
-                  <div className="flex gap-3 justify-center pt-2">
-                    <button
-                      onClick={() => startMatch(discipline)}
-                      className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
-                    >
-                      ПОВТОРИТЬ
-                    </button>
-                    <button
-                      onClick={backToMenu}
-                      className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
-                    >
-                      ДИСЦИПЛИНЫ
-                    </button>
-                  </div>
+                  {careerResult ? (
+                    <>
+                      <div className={`text-[10px] tracking-[0.5em] font-bold ${careerResult.won ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
+                        {careerResult.level.short}
+                      </div>
+                      <div className="text-5xl font-black tracking-tight">
+                        {careerResult.won ? "УРОВЕНЬ ПРОЙДЕН!" : "ПРОВАЛ"}
+                      </div>
+                      {careerResult.won && (
+                        <div className="text-lg text-[var(--gold-bright)] font-bold tracking-wide">
+                          + {CAREER_WIN_BONUS} КРЕДИТОВ БОНУСА
+                        </div>
+                      )}
+                      <div className="grid grid-cols-3 gap-4 text-sm font-mono">
+                        <Stat label="SCORE" value={careerResult.score.toFixed(1)} />
+                        <Stat label="ЦЕЛЬ" value={careerResult.level.winScore} />
+                        <Stat label="ВЫСТРЕЛОВ" value={totalShots} />
+                      </div>
+                      {!careerResult.won && (
+                        <div className="text-xs text-muted-foreground">
+                          Не хватило {(careerResult.level.winScore - careerResult.score).toFixed(1)} очка. Попробуйте ещё раз.
+                        </div>
+                      )}
+                      <div className="flex gap-3 justify-center pt-2 flex-wrap">
+                        <button
+                          onClick={() => startCareerLevel(careerResult.level)}
+                          className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
+                        >
+                          ПОВТОРИТЬ
+                        </button>
+                        <button
+                          onClick={backToMenu}
+                          className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
+                        >
+                          К МЕНЮ КАРЬЕРЫ
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">TIME UP</div>
+                      <div className="text-6xl font-black tracking-tight">GAME OVER</div>
+                      <div className="grid grid-cols-3 gap-4 text-sm font-mono">
+                        <Stat label="SCORE" value={score.toFixed(1)} />
+                        <Stat label="SHOTS" value={totalShots} />
+                        <Stat label="10.9s" value={perfectCount} />
+                      </div>
+                      <div className="flex gap-3 justify-center pt-2">
+                        <button
+                          onClick={() => startMatch(discipline)}
+                          className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
+                        >
+                          ПОВТОРИТЬ
+                        </button>
+                        <button
+                          onClick={backToMenu}
+                          className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
+                        >
+                          ДИСЦИПЛИНЫ
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -868,12 +1061,24 @@ export default function AirRifleGame() {
             <div className="px-5 py-4 border-b border-border bg-[var(--navy-deep)]">
               <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-3">LIVE DASHBOARD</div>
 
-              <div className={`mb-3 px-3 py-3 border ${timeCritical ? "border-destructive" : "border-primary/50"} bg-[var(--navy-mid)]/60`}>
-                <div className="text-[9px] tracking-widest text-muted-foreground">TIME REMAINING</div>
-                <div className={`text-4xl font-black font-mono tabular-nums leading-none ${timeCritical ? "text-destructive animate-pulse" : "text-primary"}`}>
-                  {timeLeft.toFixed(1)}<span className="text-base text-muted-foreground">s</span>
+              {mode === "career" && careerLevel ? (
+                <div className="mb-3 px-3 py-3 border border-primary/50 bg-[var(--navy-mid)]/60">
+                  <div className="text-[9px] tracking-widest text-muted-foreground">КАРЬЕРА · {careerLevel.short}</div>
+                  <div className="text-2xl font-black font-mono tabular-nums leading-tight text-primary mt-1">
+                    {totalShots}<span className="text-base text-muted-foreground">/{careerLevel.shots}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    Цель: <span className="text-[var(--gold-bright)] font-bold">{careerLevel.winScore}</span> · Текущий: <span className="text-foreground font-bold">{score.toFixed(1)}</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className={`mb-3 px-3 py-3 border ${timeCritical ? "border-destructive" : "border-primary/50"} bg-[var(--navy-mid)]/60`}>
+                  <div className="text-[9px] tracking-widest text-muted-foreground">TIME REMAINING</div>
+                  <div className={`text-4xl font-black font-mono tabular-nums leading-none ${timeCritical ? "text-destructive animate-pulse" : "text-primary"}`}>
+                    {timeLeft.toFixed(1)}<span className="text-base text-muted-foreground">s</span>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <Metric label="PERFECT 10.9s" value={perfectCount} color="text-[var(--gold-bright)]" />
@@ -1061,39 +1266,118 @@ export default function AirRifleGame() {
 // Sub-components
 // ============================================================
 
-function DisciplineMenu({ onPick, credits }: { onPick: (d: Discipline) => void; credits: number }) {
+function DisciplineMenu({
+  onPick, onPickCareer, credits, careerCompleted,
+}: {
+  onPick: (d: Discipline) => void;
+  onPickCareer: (lvl: CareerLevel) => void;
+  credits: number;
+  careerCompleted: number;
+}) {
+  const [tab, setTab] = useState<"quick" | "career">("quick");
   return (
-    <div className="min-h-[calc(100vh-52px)] flex flex-col items-center justify-center px-6 py-10 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
+    <div className="min-h-[calc(100vh-52px)] flex flex-col items-center justify-start px-6 py-10 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
       <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-2">OLYMPIC SHOOTING SIMULATOR</div>
-      <h1 className="text-5xl md:text-6xl font-black tracking-tight text-center mb-2">ВЫБОР ДИСЦИПЛИНЫ</h1>
-      <div className="text-sm text-muted-foreground mb-2">
-        Старт: <span className="text-foreground font-mono">30 секунд</span>. Точные выстрелы добавляют время.
+      <h1 className="text-4xl md:text-6xl font-black tracking-tight text-center mb-2">
+        {tab === "quick" ? "ВЫБОР ДИСЦИПЛИНЫ" : "РЕЖИМ КАРЬЕРЫ"}
+      </h1>
+      <div className="text-xs text-muted-foreground mb-6 font-mono">
+        Баланс: <span className="text-[var(--gold-bright)] font-bold">{credits} CR</span>
       </div>
-      <div className="text-xs text-muted-foreground mb-8 font-mono">Баланс: <span className="text-[var(--gold-bright)] font-bold">{credits} CR</span></div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl w-full">
-        {DISCIPLINES.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => onPick(d)}
-            className="group text-left bg-[var(--navy-mid)] border border-border hover:border-primary transition-colors p-5 flex gap-4 items-start"
-          >
-            <div className="shrink-0 w-20 h-20 rounded-full flex items-center justify-center bg-[var(--navy-deep)] border-2 border-primary/50 group-hover:border-primary">
-              <MiniTargetIcon disciplineId={d.id} />
-            </div>
-            <div className="flex-1">
-              <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{d.short}</div>
-              <div className="text-xl font-black tracking-tight">{d.name}</div>
-              <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{d.caption}</div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] font-mono">
-                <MiniStat label="ПРИЦЕЛ" v={d.sight === "diopter" ? "ДИОПТР" : "ОТКР."} />
-                <MiniStat label="ТРЕМОР" v={d.amplitude < 30 ? "СРЕДН." : d.amplitude < 50 ? "СИЛЬН." : "ХАОС"} />
-                <MiniStat label="ВЕТЕР" v={d.wind > 0 ? "ДА" : "—"} />
-              </div>
-            </div>
-          </button>
-        ))}
+      <div className="flex gap-2 mb-8">
+        <button
+          onClick={() => setTab("quick")}
+          className={`px-5 py-2 font-bold tracking-widest text-xs transition-colors border ${
+            tab === "quick" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >БЫСТРАЯ ИГРА</button>
+        <button
+          onClick={() => setTab("career")}
+          className={`px-5 py-2 font-bold tracking-widest text-xs transition-colors border ${
+            tab === "career" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >КАРЬЕРА</button>
       </div>
+
+      {tab === "quick" && (
+        <>
+          <div className="text-sm text-muted-foreground mb-6 text-center">
+            Старт: <span className="text-foreground font-mono">30 секунд</span>. Точные выстрелы добавляют время.
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl w-full">
+            {DISCIPLINES.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => onPick(d)}
+                className="group text-left bg-[var(--navy-mid)] border border-border hover:border-primary transition-colors p-5 flex gap-4 items-start"
+              >
+                <div className="shrink-0 w-20 h-20 rounded-full flex items-center justify-center bg-[var(--navy-deep)] border-2 border-primary/50 group-hover:border-primary">
+                  <MiniTargetIcon disciplineId={d.id} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{d.short}</div>
+                  <div className="text-xl font-black tracking-tight">{d.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{d.caption}</div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] font-mono">
+                    <MiniStat label="ПРИЦЕЛ" v={d.sight === "diopter" ? "ДИОПТР" : "ОТКР."} />
+                    <MiniStat label="ТРЕМОР" v={d.amplitude < 30 ? "СРЕДН." : d.amplitude < 50 ? "СИЛЬН." : "ХАОС"} />
+                    <MiniStat label="ВЕТЕР" v={d.wind > 0 ? "ДА" : "—"} />
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === "career" && (
+        <>
+          <div className="text-sm text-muted-foreground mb-6 text-center max-w-2xl">
+            Три уникальных уровня. У каждого свои правила подсчёта и механики. Уровни открываются последовательно. За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span>.
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl w-full">
+            {CAREER_LEVELS.map((lvl) => {
+              const unlocked = lvl.id === 1 || careerCompleted >= lvl.id - 1;
+              const done = careerCompleted >= lvl.id;
+              return (
+                <button
+                  key={lvl.id}
+                  disabled={!unlocked}
+                  onClick={() => onPickCareer(lvl)}
+                  className={`group text-left border p-5 flex flex-col gap-3 transition-colors min-h-[260px] ${
+                    !unlocked
+                      ? "bg-[var(--navy-deep)]/60 border-border/40 opacity-50 cursor-not-allowed"
+                      : done
+                        ? "bg-[var(--navy-mid)] border-[var(--gold-bright)] hover:border-primary"
+                        : "bg-[var(--navy-mid)] border-border hover:border-primary"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{lvl.short}</div>
+                    {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">✓ ПРОЙДЕН</div>}
+                    {!unlocked && <div className="text-[10px] font-bold text-muted-foreground tracking-widest">🔒 ЗАКРЫТ</div>}
+                  </div>
+                  <div className="text-xl font-black tracking-tight">УРОВЕНЬ {lvl.id}</div>
+                  <div className="text-base font-bold">{lvl.name}</div>
+                  <div className="text-xs text-muted-foreground leading-relaxed flex-1">{lvl.description}</div>
+                  <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-auto">
+                    <MiniStat label="ВЫСТРЕЛЫ" v={String(lvl.shots)} />
+                    <MiniStat label="ОЧКИ" v={lvl.scoring === "integer" ? "ЦЕЛЫЕ" : "10.x"} />
+                    <MiniStat label="ЦЕЛЬ" v={String(lvl.winScore)} />
+                  </div>
+                  {!unlocked && (
+                    <div className="text-[10px] text-muted-foreground text-center">
+                      Пройдите уровень {lvl.id - 1}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       <div className="mt-8 text-[10px] tracking-widest text-muted-foreground text-center max-w-xl">
         [ПКМ] Задержка дыхания · [ЛКМ] Выстрел (1 патрон) · [R] Перезарядка
       </div>
@@ -1121,14 +1405,14 @@ function MiniTargetIcon({ disciplineId }: { disciplineId: DisciplineId }) {
   );
 }
 
-function TargetSvg({ discipline: d, holes }: { discipline: Discipline; holes: Hole[] }) {
+function TargetSvg({ discipline: d, holes, offsetX = 0 }: { discipline: Discipline; holes: Hole[]; offsetX?: number }) {
   const CENTER = d.targetPx / 2;
   const BULLET_PX = d.bulletMm * d.mmToPx;
-  // black starts at ringMm index blackRingFromIdx (so radius = ringMm[blackRingFromIdx])
   const blackR = d.ringMm[d.blackRingFromIdx] * d.mmToPx;
-  // Outer rings (white area) draw stroke only; inner rings on black draw white strokes
   return (
     <svg width={d.targetPx} height={d.targetPx} className="absolute inset-0">
+      <g transform={`translate(${offsetX} 0)`}>
+
       {/* white outer rings */}
       {d.ringMm.map((mm, idx) => {
         if (idx <= d.blackRingFromIdx) return null;
@@ -1182,6 +1466,7 @@ function TargetSvg({ discipline: d, holes }: { discipline: Discipline; holes: Ho
           <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 - 1.2} fill="#1a1a1a" />
         </g>
       ))}
+      </g>
     </svg>
   );
 }
