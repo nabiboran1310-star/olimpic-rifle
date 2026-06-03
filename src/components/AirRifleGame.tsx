@@ -1262,14 +1262,14 @@ function MiniTargetIcon({ disciplineId }: { disciplineId: DisciplineId }) {
   );
 }
 
-function TargetSvg({ discipline: d, holes }: { discipline: Discipline; holes: Hole[] }) {
+function TargetSvg({ discipline: d, holes, offsetX = 0 }: { discipline: Discipline; holes: Hole[]; offsetX?: number }) {
   const CENTER = d.targetPx / 2;
   const BULLET_PX = d.bulletMm * d.mmToPx;
-  // black starts at ringMm index blackRingFromIdx (so radius = ringMm[blackRingFromIdx])
   const blackR = d.ringMm[d.blackRingFromIdx] * d.mmToPx;
-  // Outer rings (white area) draw stroke only; inner rings on black draw white strokes
   return (
     <svg width={d.targetPx} height={d.targetPx} className="absolute inset-0">
+      <g transform={`translate(${offsetX} 0)`}>
+
       {/* white outer rings */}
       {d.ringMm.map((mm, idx) => {
         if (idx <= d.blackRingFromIdx) return null;
