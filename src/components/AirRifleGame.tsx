@@ -139,6 +139,49 @@ function computeDecimalScore(distPx: number, d: Discipline): number {
   return Math.max(0, Math.round(score * 10) / 10);
 }
 
+function computeIntegerScore(distPx: number, d: Discipline): number {
+  const distMm = distPx / d.mmToPx;
+  for (let i = 0; i < 10; i++) {
+    if (distMm <= d.ringMm[i]) return 10 - i;
+  }
+  return 0;
+}
+
+// ============================================================
+// Career Mode
+// ============================================================
+type CareerLevel = {
+  id: 1 | 2 | 3;
+  name: string;
+  short: string;
+  description: string;
+  disciplineId: DisciplineId;
+  shots: number;
+  winScore: number;
+  scoring: "integer" | "decimal";
+  moving: boolean;
+  hardcore: boolean;
+};
+
+const CAREER_LEVELS: CareerLevel[] = [
+  {
+    id: 1, name: "Клубный дебют", short: "L1 · INTEGER",
+    description: "Винтовка 10м. Только целые очки. 10 выстрелов. Цель: набрать 95+.",
+    disciplineId: "ar10", shots: 10, winScore: 95, scoring: "integer", moving: false, hardcore: false,
+  },
+  {
+    id: 2, name: "Олимпийский отбор · Бегущий кабан", short: "L2 · RUNNING TARGET",
+    description: "Движущаяся мишень. Десятые. 10 выстрелов. Цель: 96.0+.",
+    disciplineId: "boar", shots: 10, winScore: 96.0, scoring: "decimal", moving: true, hardcore: false,
+  },
+  {
+    id: 3, name: "Олимпийское Золото", short: "L3 · HARDCORE 50M",
+    description: "Винтовка 50м. Сильный ветер + макс. дрожание. 10 выстрелов. Цель: 104.5+.",
+    disciplineId: "rifle50", shots: 10, winScore: 104.5, scoring: "decimal", moving: false, hardcore: true,
+  },
+];
+const CAREER_WIN_BONUS = 2000;
+
 function timeBonusForShot(s: number): number {
   if (s === 10.9) return 8;
   if (s >= 10.0) return 4;
