@@ -801,6 +801,15 @@ export default function AirRifleGame() {
   }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode]);
 
   // ----- actions -----
+  const randomizeSightError = () => {
+    // Random scope drift in clicks: roughly ±5 rings worth (4 clicks per ring)
+    const rand = () => Math.round((Math.random() * 2 - 1) * 20);
+    setErrorX(rand());
+    setErrorY(rand());
+    setAdjX(0);
+    setAdjY(0);
+  };
+
   const startMatch = (d: Discipline) => {
     setMode("quick");
     setCareerLevel(null);
@@ -817,6 +826,9 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
+    setSessionMode("sighting");
+    setHasMatchShot(false);
+    randomizeSightError();
     if (d.id === "boar") {
       boarRunRef.current = -d.targetPx * 0.5;
       targetOffsetRef.current = boarRunRef.current;
@@ -845,6 +857,9 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
+    setSessionMode("sighting");
+    setHasMatchShot(false);
+    randomizeSightError();
     boarRunRef.current = -d.targetPx * 0.5;
     targetOffsetRef.current = boarRunRef.current;
     setTargetOffsetX(boarRunRef.current);
@@ -861,6 +876,30 @@ export default function AirRifleGame() {
   const resetTarget = () => {
     setHoles([]);
   };
+
+  // Sight turret correction. Rule: "click toward where the shot went".
+  const adjustSight = (dir: "up" | "down" | "left" | "right") => {
+    if (phase !== "playing") return;
+    playTurretClick();
+    if (dir === "left") setAdjX((v) => v - 1);
+    else if (dir === "right") setAdjX((v) => v + 1);
+    else if (dir === "up") setAdjY((v) => v - 1);
+    else if (dir === "down") setAdjY((v) => v + 1);
+  };
+
+  // Switch sighting -> match: clear target, reset shot counter, (re)start timer.
+  const switchToMatch = () => {
+    if (sessionMode === "match") return;
+    setSessionMode("match");
+    setHoles([]);
+    setShotHistory((h) => h.filter((s) => !s.sighting)); // keep clean slate
+    setTotalShots(0);
+    setScore(0);
+    setPerfectCount(0);
+    setLastShot(null);
+    if (mode === "quick") setTimeLeft(START_TIME);
+  };
+
 
 
   const buySkin = (s: Skin) => {
