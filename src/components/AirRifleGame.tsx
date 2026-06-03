@@ -864,7 +864,7 @@ export default function AirRifleGame() {
           </div>
 
           {/* Dashboard */}
-          <aside className="bg-[var(--navy-mid)] border-l border-border flex flex-col max-h-[calc(100vh-52px)]">
+          <aside className="bg-[var(--navy-mid)] border-l border-border flex flex-col lg:max-h-[calc(100svh-52px)]">
             <div className="px-5 py-4 border-b border-border bg-[var(--navy-deep)]">
               <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-3">LIVE DASHBOARD</div>
 
