@@ -61,9 +61,9 @@ const DISCIPLINES: Discipline[] = [
     jitter: 3,
     wind: 0,
     dampenFocus: 0.22,
-    targetPx: 520,
+    targetPx: 260,
     ringMm: [0.5, 5.5, 10.5, 15.5, 20.5, 25.5, 30.5, 35.5, 40.5, 45.5],
-    mmToPx: 520 / 2 / 45.5,
+    mmToPx: 260 / 2 / 45.5,
     bulletMm: 4.5,
     blackRingFromIdx: 6,
     shotSound: "air",
@@ -483,7 +483,7 @@ export default function AirRifleGame() {
     setReloading(true);
     playSfx(A.boltOpen);
     // On Running Boar: reloading instantly resets the target back to the left start
-    if (mode === "career" && careerLevel?.moving) {
+    if ((mode === "career" && careerLevel?.moving) || discipline.id === "boar") {
       const startX = -discipline.targetPx * 0.5;
       boarRunRef.current = startX;
       targetOffsetRef.current = startX;
@@ -545,7 +545,7 @@ export default function AirRifleGame() {
     let windTimer = 0;
     let windTargetX = 0, windTargetY = 0;
 
-    const moving = !!(mode === "career" && careerLevel?.moving);
+    const moving = !!(mode === "career" && careerLevel?.moving) || discipline.id === "boar";
     const hardcore = !!(mode === "career" && careerLevel?.hardcore);
 
     const loop = (now: number) => {
@@ -761,8 +761,14 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
-    targetOffsetRef.current = 0;
-    setTargetOffsetX(0);
+    if (d.id === "boar") {
+      boarRunRef.current = -d.targetPx * 0.5;
+      targetOffsetRef.current = boarRunRef.current;
+      setTargetOffsetX(boarRunRef.current);
+    } else {
+      targetOffsetRef.current = 0;
+      setTargetOffsetX(0);
+    }
   };
 
   const startCareerLevel = (lvl: CareerLevel) => {
