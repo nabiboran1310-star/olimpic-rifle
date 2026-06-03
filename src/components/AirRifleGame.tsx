@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/use-auth";
 // ============================================================
 // Disciplines
 // ============================================================
-type DisciplineId = "ar10" | "rifle50" | "ap10" | "rfp25";
+type DisciplineId = "ar10" | "rifle50" | "ap10" | "rfp25" | "boar";
 
 type Discipline = {
   id: DisciplineId;
