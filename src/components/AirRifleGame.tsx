@@ -665,7 +665,7 @@ export default function AirRifleGame() {
   return (
     <div className="min-h-screen bg-background text-foreground select-none overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-6 py-3">
+      <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-3 py-2 md:px-6 md:py-3 gap-2 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
           <span className="text-xs font-bold tracking-[0.3em] text-muted-foreground">LIVE</span>
