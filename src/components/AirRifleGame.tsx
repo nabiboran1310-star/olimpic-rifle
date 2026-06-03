@@ -1205,6 +1205,42 @@ function HomeScreen({
     onPrimary: "#101010",
   };
 
+  return (
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-6 py-8 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
+      {/* Header row with profile */}
+      <div className="w-full max-w-6xl flex items-center justify-between mb-6">
+        <div>
+          <div className="text-[10px] tracking-[0.5em] text-primary font-bold">OLYMPIC SHOOTING SIMULATOR</div>
+          <div className="text-xs text-muted-foreground mt-1">Добро пожаловать, стрелок{user?.email ? `, ${user.email.split("@")[0]}` : ""}!</div>
+        </div>
+        {mounted && (
+          <Link
+            to={user ? "/profile" : "/auth"}
+            className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
+          >
+            {user ? "ПРОФИЛЬ" : "ВОЙТИ"}
+          </Link>
+        )}
+      </div>
+
+      <h1 className="text-4xl md:text-6xl font-black tracking-tight text-center mb-2">ГЛАВНЫЙ ЭКРАН</h1>
+
+      {/* Player stats */}
+      <div className="w-full max-w-6xl grid grid-cols-3 gap-3 md:gap-4 my-6">
+        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
+          <div className="text-[10px] tracking-widest text-muted-foreground">КРЕДИТЫ</div>
+          <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{credits} <span className="text-sm text-muted-foreground">CR</span></div>
+        </div>
+        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
+          <div className="text-[10px] tracking-widest text-muted-foreground">ОБЩИЙ СЧЁТ</div>
+          <div className="text-2xl md:text-3xl font-black text-primary font-mono tabular-nums">{Number(progress.totalScore).toFixed(1)}</div>
+        </div>
+        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
+          <div className="text-[10px] tracking-widest text-muted-foreground">ИДЕАЛЬНЫХ 10.9</div>
+          <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{progress.perfectTens}</div>
+        </div>
+      </div>
+
       {/* 5 Discipline buttons — Quick Play (Voltagent-inspired) */}
       <div className="w-full max-w-6xl mt-2">
         <div className="flex items-baseline justify-between mb-3">
