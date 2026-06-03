@@ -545,7 +545,7 @@ export default function AirRifleGame() {
     let windTimer = 0;
     let windTargetX = 0, windTargetY = 0;
 
-    const moving = !!(mode === "career" && careerLevel?.moving);
+    const moving = !!(mode === "career" && careerLevel?.moving) || discipline.id === "boar";
     const hardcore = !!(mode === "career" && careerLevel?.hardcore);
 
     const loop = (now: number) => {
