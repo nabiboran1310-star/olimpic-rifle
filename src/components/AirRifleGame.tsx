@@ -356,6 +356,17 @@ export default function AirRifleGame() {
 
   const [timeLeft, setTimeLeft] = useState(START_TIME);
 
+  // Sight adjustment system: random bias per match + player corrections (in clicks).
+  // 1 ring (gabarit) = 4 clicks. Rule: "where the shot landed — turn that way".
+  const [errorX, setErrorX] = useState(0);
+  const [errorY, setErrorY] = useState(0);
+  const [adjX, setAdjX] = useState(0);
+  const [adjY, setAdjY] = useState(0);
+
+  // Sighting vs Match mode (per level). Default = sighting.
+  const [sessionMode, setSessionMode] = useState<SessionMode>("sighting");
+  const [hasMatchShot, setHasMatchShot] = useState(false);
+
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
   const [shopOpen, setShopOpen] = useState(false);
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
