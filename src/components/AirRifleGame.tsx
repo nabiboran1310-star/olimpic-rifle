@@ -343,6 +343,7 @@ export default function AirRifleGame() {
   const [careerResult, setCareerResult] = useState<{ won: boolean; score: number; level: CareerLevel } | null>(null);
   const [targetOffsetX, setTargetOffsetX] = useState(0);
   const targetOffsetRef = useRef(0);
+  const boarRunRef = useRef(-260); // starts off-screen left; set on level start
 
   const tRef = useRef(0);
   const holeIdRef = useRef(0);
