@@ -362,6 +362,16 @@ export default function AirRifleGame() {
   useEffect(() => { setMounted(true); }, []);
   const hydratedRef = useRef(false);
 
+  // Route-driven screen separation: '/' = Home, '/range' = Shooting
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    // If user lands on /range without an active session, send them home
+    if (pathname === "/range" && phase === "menu") {
+      navigate({ to: "/" });
+    }
+  }, [pathname, phase, navigate]);
+
   // Responsive arena scale (landscape phones / small heights)
   const [arenaScale, setArenaScale] = useState(1);
   useEffect(() => {
