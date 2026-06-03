@@ -343,6 +343,7 @@ export default function AirRifleGame() {
   const [careerResult, setCareerResult] = useState<{ won: boolean; score: number; level: CareerLevel } | null>(null);
   const [targetOffsetX, setTargetOffsetX] = useState(0);
   const targetOffsetRef = useRef(0);
+  const boarRunRef = useRef(-260); // starts off-screen left; set on level start
 
   const tRef = useRef(0);
   const holeIdRef = useRef(0);
@@ -481,6 +482,13 @@ export default function AirRifleGame() {
     if (loaded || reloading || phase !== "playing") return;
     setReloading(true);
     playSfx(A.boltOpen);
+    // On Running Boar: reloading instantly resets the target back to the left start
+    if (mode === "career" && careerLevel?.moving) {
+      const startX = -discipline.targetPx * 0.5;
+      boarRunRef.current = startX;
+      targetOffsetRef.current = startX;
+      setTargetOffsetX(startX);
+    }
     setTimeout(() => {
       playSfx(A.boltClose);
       setTimeout(() => {
@@ -488,7 +496,7 @@ export default function AirRifleGame() {
         setReloading(false);
       }, 180);
     }, 300);
-  }, [loaded, reloading, phase]);
+  }, [loaded, reloading, phase, mode, careerLevel, discipline]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -607,14 +615,20 @@ export default function AirRifleGame() {
       sightRef.current = next;
       setSight(next);
 
-      // Moving target (Running Boar): smooth horizontal sweep
+      // Running Boar: strictly horizontal left-to-right pass at constant velocity.
+      // Y axis is locked. On reaching the right edge target instantly resets to the left.
       if (moving) {
-        const range = size * 0.32; // ±~33% of arena
-        const speed = 0.55; // rad/s
-        const off = Math.sin(t * speed) * range;
+        const startX = -size * 0.5;
+        const endX = size * 0.5;
+        const duration = 4.5; // seconds to cross the arena
+        const speed = (endX - startX) / duration;
+        let off = boarRunRef.current + speed * dt;
+        if (off > endX) off = startX;
+        boarRunRef.current = off;
         targetOffsetRef.current = off;
         setTargetOffsetX(off);
       } else if (targetOffsetRef.current !== 0) {
+        boarRunRef.current = 0;
         targetOffsetRef.current = 0;
         setTargetOffsetX(0);
       }
@@ -768,8 +782,9 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
-    targetOffsetRef.current = 0;
-    setTargetOffsetX(0);
+    boarRunRef.current = -d.targetPx * 0.5;
+    targetOffsetRef.current = boarRunRef.current;
+    setTargetOffsetX(boarRunRef.current);
   };
 
   const backToMenu = () => {
