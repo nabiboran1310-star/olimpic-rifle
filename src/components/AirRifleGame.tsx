@@ -1175,10 +1175,11 @@ export default function AirRifleGame() {
 // ============================================================
 
 function HomeScreen({
-  onPickCareer, progress, careerCompleted, user, mounted,
+  onPickCareer, onPickQuick, progress, careerCompleted, user, mounted,
   buySkin, equipSkin, buyUpgrade, hasUpgrade,
 }: {
   onPickCareer: (lvl: CareerLevel) => void;
+  onPickQuick: (d: Discipline) => void;
   progress: Progress;
   careerCompleted: number;
   user: any;
@@ -1189,6 +1190,17 @@ function HomeScreen({
   hasUpgrade: (id: string) => boolean;
 }) {
   const credits = progress.credits;
+  const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
+
+  // Cohesive accent colors for the 5 discipline tiles
+  const disciplineAccents: Record<DisciplineId, { from: string; to: string; ring: string }> = {
+    ar10:    { from: "#0ea5e9", to: "#1e3a8a", ring: "#38bdf8" },
+    boar:    { from: "#dc2626", to: "#7f1d1d", ring: "#f87171" },
+    rifle50: { from: "#16a34a", to: "#14532d", ring: "#4ade80" },
+    ap10:    { from: "#a855f7", to: "#4c1d95", ring: "#c084fc" },
+    rfp25:   { from: "#f59e0b", to: "#78350f", ring: "#fbbf24" },
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-6 py-8 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
       {/* Header row with profile */}
@@ -1225,8 +1237,51 @@ function HomeScreen({
         </div>
       </div>
 
+      {/* 5 Discipline buttons — Quick Play */}
+      <div className="w-full max-w-6xl mt-2">
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-xl md:text-2xl font-black tracking-tight">ДИСЦИПЛИНЫ · БЫСТРАЯ ИГРА</h2>
+          <div className="text-[10px] text-muted-foreground">30 сек · точные выстрелы добавляют время</div>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          {DISCIPLINES.map((d) => {
+            const a = disciplineAccents[d.id];
+            return (
+              <button
+                key={d.id}
+                onClick={() => onPickQuick(d)}
+                className="group relative overflow-hidden text-left border border-border hover:border-[color:var(--ring)] transition-all duration-200 p-4 flex flex-col gap-3 min-h-[180px] hover:-translate-y-1 hover:shadow-2xl"
+                style={{
+                  background: `linear-gradient(140deg, ${a.from} 0%, ${a.to} 100%)`,
+                }}
+              >
+                {/* glossy overlay */}
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-black/40" />
+                {/* target glyph */}
+                <div className="relative flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.45)", border: `2px solid ${a.ring}` }}>
+                    <MiniTargetIcon disciplineId={d.id} />
+                  </div>
+                  <div className="text-[9px] tracking-[0.3em] font-bold text-white/90">{d.short}</div>
+                </div>
+                <div className="relative">
+                  <div className="text-lg font-black tracking-tight text-white leading-tight">{d.name}</div>
+                  <div className="text-[11px] text-white/70 mt-1 leading-snug line-clamp-2">{d.caption}</div>
+                </div>
+                <div className="relative mt-auto flex items-center justify-between text-[10px] font-mono text-white/80">
+                  <span>{d.sight === "diopter" ? "ДИОПТР" : "ОТКРЫТЫЙ"}</span>
+                  <span className="px-2 py-1 bg-black/40 border border-white/20 group-hover:bg-white group-hover:text-black transition-colors font-bold tracking-widest">
+                    ИГРАТЬ →
+                  </span>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Career levels */}
-      <div className="w-full max-w-6xl">
+      <div className="w-full max-w-6xl mt-10">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-xl md:text-2xl font-black tracking-tight">РЕЖИМ КАРЬЕРЫ</h2>
           <div className="text-[10px] text-muted-foreground">За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span></div>
@@ -1240,7 +1295,7 @@ function HomeScreen({
                 key={lvl.id}
                 disabled={!unlocked}
                 onClick={() => onPickCareer(lvl)}
-                className={`group text-left border p-4 flex flex-col gap-2 transition-colors min-h-[240px] ${
+                className={`group text-left border p-4 flex flex-col gap-2 transition-colors min-h-[220px] ${
                   !unlocked
                     ? "bg-[var(--navy-deep)]/60 border-border/40 opacity-50 cursor-not-allowed"
                     : done
@@ -1270,86 +1325,95 @@ function HomeScreen({
         </div>
       </div>
 
-      {/* Integrated shop */}
+      {/* Unified shop */}
       <div className="w-full max-w-6xl mt-10">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-xl md:text-2xl font-black tracking-tight">МАГАЗИН</h2>
           <div className="text-[10px] text-muted-foreground">10.9 = +500 CR · 10.x = +100 CR · 9.x = +50 CR</div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Upgrades */}
-          <div>
-            <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-2">УЛУЧШЕНИЯ</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {UPGRADES.map((u) => {
-                const owned = hasUpgrade(u.id);
-                const canAfford = credits >= u.price;
-                return (
-                  <div key={u.id} className="bg-[var(--navy-mid)] border border-border/60 p-3 flex flex-col gap-2">
-                    <div>
-                      <div className="text-sm font-bold tracking-wide">{u.name}</div>
-                      <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{u.desc}</div>
-                    </div>
-                    {owned ? (
-                      <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">✓ КУПЛЕНО</button>
-                    ) : (
-                      <button
-                        disabled={!canAfford} onClick={() => buyUpgrade(u)}
-                        className={`mt-auto font-bold tracking-widest py-1.5 text-xs transition-colors ${
-                          canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
-                          : "bg-muted text-muted-foreground cursor-not-allowed"
-                        }`}
-                      >КУПИТЬ · {u.price} CR</button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+        <div className="flex gap-2 mb-4 border-b border-border">
+          <button
+            onClick={() => setShopTab("upgrades")}
+            className={`px-4 py-2 text-xs font-bold tracking-widest border-b-2 -mb-px transition-colors ${
+              shopTab === "upgrades" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >УЛУЧШЕНИЯ</button>
+          <button
+            onClick={() => setShopTab("skins")}
+            className={`px-4 py-2 text-xs font-bold tracking-widest border-b-2 -mb-px transition-colors ${
+              shopTab === "skins" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+            }`}
+          >СКИНЫ ПРИЦЕЛА</button>
+        </div>
 
-          {/* Skins */}
-          <div>
-            <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-2">СКИНЫ ПРИЦЕЛА</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {SKINS.map((s) => {
-                const owned = progress.owned.includes(s.id);
-                const equipped = progress.equipped === s.id;
-                const canAfford = credits >= s.price;
-                return (
-                  <div key={s.id} className="bg-[var(--navy-mid)] border border-border/60 p-3 flex flex-col gap-2">
-                    <div className="flex items-center gap-3">
-                      <div className="rounded-full shrink-0" style={{
-                        width: 36, height: 36, borderStyle: "solid", borderWidth: 3,
-                        borderColor: s.ring,
-                        boxShadow: s.glow ?? "0 0 0 1px rgba(255,255,255,0.08)",
-                      }} />
-                      <div className="flex-1">
-                        <div className="text-sm font-bold tracking-wide">{s.name}</div>
-                        <div className="text-[11px] text-muted-foreground mt-0.5">
-                          {s.goldHalo ? "Золотой ореол." : s.id === "default" ? "Базовый прицел." : "Скин прицела."}
-                        </div>
+        {shopTab === "upgrades" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {UPGRADES.map((u) => {
+              const owned = hasUpgrade(u.id);
+              const canAfford = credits >= u.price;
+              return (
+                <div key={u.id} className="bg-[var(--navy-mid)] border border-border/60 p-3 flex flex-col gap-2">
+                  <div>
+                    <div className="text-sm font-bold tracking-wide">{u.name}</div>
+                    <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{u.desc}</div>
+                  </div>
+                  {owned ? (
+                    <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">✓ КУПЛЕНО</button>
+                  ) : (
+                    <button
+                      disabled={!canAfford} onClick={() => buyUpgrade(u)}
+                      className={`mt-auto font-bold tracking-widest py-1.5 text-xs transition-colors ${
+                        canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
+                        : "bg-muted text-muted-foreground cursor-not-allowed"
+                      }`}
+                    >КУПИТЬ · {u.price} CR</button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {shopTab === "skins" && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {SKINS.map((s) => {
+              const owned = progress.owned.includes(s.id);
+              const equipped = progress.equipped === s.id;
+              const canAfford = credits >= s.price;
+              return (
+                <div key={s.id} className="bg-[var(--navy-mid)] border border-border/60 p-3 flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <div className="rounded-full shrink-0" style={{
+                      width: 36, height: 36, borderStyle: "solid", borderWidth: 3,
+                      borderColor: s.ring,
+                      boxShadow: s.glow ?? "0 0 0 1px rgba(255,255,255,0.08)",
+                    }} />
+                    <div className="flex-1">
+                      <div className="text-sm font-bold tracking-wide">{s.name}</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {s.goldHalo ? "Золотой ореол." : s.id === "default" ? "Базовый прицел." : "Скин прицела."}
                       </div>
                     </div>
-                    {equipped ? (
-                      <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">✓ ЭКИПИРОВАН</button>
-                    ) : owned ? (
-                      <button onClick={() => equipSkin(s)} className="mt-auto bg-primary text-primary-foreground font-bold tracking-widest py-1.5 text-xs hover:bg-[var(--gold-bright)] transition-colors">ВЫБРАТЬ</button>
-                    ) : (
-                      <button
-                        disabled={!canAfford} onClick={() => buySkin(s)}
-                        className={`mt-auto font-bold tracking-widest py-1.5 text-xs transition-colors ${
-                          canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
-                          : "bg-muted text-muted-foreground cursor-not-allowed"
-                        }`}
-                      >КУПИТЬ · {s.price} CR</button>
-                    )}
                   </div>
-                );
-              })}
-            </div>
+                  {equipped ? (
+                    <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">✓ ЭКИПИРОВАН</button>
+                  ) : owned ? (
+                    <button onClick={() => equipSkin(s)} className="mt-auto bg-primary text-primary-foreground font-bold tracking-widest py-1.5 text-xs hover:bg-[var(--gold-bright)] transition-colors">ВЫБРАТЬ</button>
+                  ) : (
+                    <button
+                      disabled={!canAfford} onClick={() => buySkin(s)}
+                      className={`mt-auto font-bold tracking-widest py-1.5 text-xs transition-colors ${
+                        canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
+                        : "bg-muted text-muted-foreground cursor-not-allowed"
+                      }`}
+                    >КУПИТЬ · {s.price} CR</button>
+                  )}
+                </div>
+              );
+            })}
           </div>
-        </div>
+        )}
       </div>
 
       <div className="mt-8 text-[10px] tracking-widest text-muted-foreground text-center max-w-xl">
