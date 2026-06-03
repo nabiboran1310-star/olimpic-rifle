@@ -1706,8 +1706,8 @@ function TargetSvg({ discipline: d, holes, offsetX = 0 }: { discipline: Discipli
               <animate attributeName="r" from={BULLET_PX / 2 + 2} to={BULLET_PX / 2 + 14} dur="1s" fill="freeze" />
             </circle>
           )}
-          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2} fill="#fff" stroke="#000" strokeWidth={0.8} />
-          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 - 1.2} fill="#1a1a1a" />
+          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2} fill={h.sighting ? "#ffe5e5" : "#fff"} stroke={h.sighting ? "#d11" : "#000"} strokeWidth={h.sighting ? 1.2 : 0.8} />
+          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 - 1.2} fill={h.sighting ? "#e11d48" : "#1a1a1a"} />
         </g>
       ))}
       </g>
