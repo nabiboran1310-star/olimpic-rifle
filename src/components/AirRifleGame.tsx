@@ -725,7 +725,7 @@ export default function AirRifleGame() {
 
       {/* GAMEPLAY */}
       {phase !== "menu" && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] landscape-phone:lg:grid-cols-[1fr_220px] gap-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
           {/* Range */}
           <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
             <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10">
