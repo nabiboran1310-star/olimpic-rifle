@@ -779,6 +779,7 @@ export default function AirRifleGame() {
       targetOffsetRef.current = 0;
       setTargetOffsetX(0);
     }
+    navigate({ to: "/range" });
   };
 
   const startCareerLevel = (lvl: CareerLevel) => {
