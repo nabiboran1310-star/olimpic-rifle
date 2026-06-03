@@ -689,8 +689,15 @@ export default function AirRifleGame() {
     playSfx(d.shotSound === "air" ? A.shotAir : A.shotRim);
     setLoaded(false);
     const center = d.targetPx / 2;
-    const hitX = sightRef.current.x;
-    const hitY = sightRef.current.y;
+
+    // Sight bias: residual error (errorX - adjX) in clicks, 4 clicks = 1 ring.
+    const ringStepMm = d.ringMm[1] - d.ringMm[0];
+    const pxPerClick = (ringStepMm / 4) * d.mmToPx;
+    const biasX = (errorX - adjX) * pxPerClick;
+    const biasY = (errorY - adjY) * pxPerClick;
+
+    const hitX = sightRef.current.x + biasX;
+    const hitY = sightRef.current.y + biasY;
     const offX = targetOffsetRef.current;
     // hit relative to current target center
     const dx = hitX - (center + offX);
@@ -702,18 +709,30 @@ export default function AirRifleGame() {
     const sc = useInteger ? scRaw : +scRaw.toFixed(1);
 
     const id = ++holeIdRef.current;
-    const gold = !!equippedSkin.goldHalo;
+    const isSighting = sessionMode === "sighting";
+    const gold = !isSighting && !!equippedSkin.goldHalo;
     // store hole in target-local space so it moves with target
-    setHoles((h) => [...h, { x: hitX - offX, y: hitY, score: sc, id, gold }]);
+    setHoles((h) => [...h, { x: hitX - offX, y: hitY, score: sc, id, gold, sighting: isSighting }]);
     if (gold) {
       setTimeout(() => {
         setHoles((h) => h.map((hh) => (hh.id === id ? { ...hh, gold: false } : hh)));
       }, 1000);
     }
 
+    setLastShot(sc);
+    setHolding(false);
+    setHoldStart(null);
+
+    // --- Sighting mode: shot does not count toward level, credits, time, or score ---
+    if (isSighting) {
+      setShotHistory((h) => [...h, { n: 0, score: sc, discipline: d.short, id, sighting: true }]);
+      return;
+    }
+
+    // --- Match mode: counts for real ---
+    setHasMatchShot(true);
     const shotNum = totalShots + 1;
     setTotalShots(shotNum);
-    setLastShot(sc);
     setScore((s) => +(s + sc).toFixed(1));
     setShotHistory((h) => [...h, { n: shotNum, score: sc, discipline: d.short, id }]);
 
@@ -754,8 +773,6 @@ export default function AirRifleGame() {
         });
       }
     }
-    setHolding(false);
-    setHoldStart(null);
 
     // Career: end of level when shots limit reached
     if (mode === "career" && careerLevel && shotNum >= careerLevel.shots) {
@@ -781,7 +798,7 @@ export default function AirRifleGame() {
         }
       }, 600);
     }
-  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score]);
+  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode]);
 
   // ----- actions -----
   const startMatch = (d: Discipline) => {
