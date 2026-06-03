@@ -1254,39 +1254,118 @@ export default function AirRifleGame() {
 // Sub-components
 // ============================================================
 
-function DisciplineMenu({ onPick, credits }: { onPick: (d: Discipline) => void; credits: number }) {
+function DisciplineMenu({
+  onPick, onPickCareer, credits, careerCompleted,
+}: {
+  onPick: (d: Discipline) => void;
+  onPickCareer: (lvl: CareerLevel) => void;
+  credits: number;
+  careerCompleted: number;
+}) {
+  const [tab, setTab] = useState<"quick" | "career">("quick");
   return (
-    <div className="min-h-[calc(100vh-52px)] flex flex-col items-center justify-center px-6 py-10 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
+    <div className="min-h-[calc(100vh-52px)] flex flex-col items-center justify-start px-6 py-10 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
       <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-2">OLYMPIC SHOOTING SIMULATOR</div>
-      <h1 className="text-5xl md:text-6xl font-black tracking-tight text-center mb-2">ВЫБОР ДИСЦИПЛИНЫ</h1>
-      <div className="text-sm text-muted-foreground mb-2">
-        Старт: <span className="text-foreground font-mono">30 секунд</span>. Точные выстрелы добавляют время.
+      <h1 className="text-4xl md:text-6xl font-black tracking-tight text-center mb-2">
+        {tab === "quick" ? "ВЫБОР ДИСЦИПЛИНЫ" : "РЕЖИМ КАРЬЕРЫ"}
+      </h1>
+      <div className="text-xs text-muted-foreground mb-6 font-mono">
+        Баланс: <span className="text-[var(--gold-bright)] font-bold">{credits} CR</span>
       </div>
-      <div className="text-xs text-muted-foreground mb-8 font-mono">Баланс: <span className="text-[var(--gold-bright)] font-bold">{credits} CR</span></div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl w-full">
-        {DISCIPLINES.map((d) => (
-          <button
-            key={d.id}
-            onClick={() => onPick(d)}
-            className="group text-left bg-[var(--navy-mid)] border border-border hover:border-primary transition-colors p-5 flex gap-4 items-start"
-          >
-            <div className="shrink-0 w-20 h-20 rounded-full flex items-center justify-center bg-[var(--navy-deep)] border-2 border-primary/50 group-hover:border-primary">
-              <MiniTargetIcon disciplineId={d.id} />
-            </div>
-            <div className="flex-1">
-              <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{d.short}</div>
-              <div className="text-xl font-black tracking-tight">{d.name}</div>
-              <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{d.caption}</div>
-              <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] font-mono">
-                <MiniStat label="ПРИЦЕЛ" v={d.sight === "diopter" ? "ДИОПТР" : "ОТКР."} />
-                <MiniStat label="ТРЕМОР" v={d.amplitude < 30 ? "СРЕДН." : d.amplitude < 50 ? "СИЛЬН." : "ХАОС"} />
-                <MiniStat label="ВЕТЕР" v={d.wind > 0 ? "ДА" : "—"} />
-              </div>
-            </div>
-          </button>
-        ))}
+      <div className="flex gap-2 mb-8">
+        <button
+          onClick={() => setTab("quick")}
+          className={`px-5 py-2 font-bold tracking-widest text-xs transition-colors border ${
+            tab === "quick" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >БЫСТРАЯ ИГРА</button>
+        <button
+          onClick={() => setTab("career")}
+          className={`px-5 py-2 font-bold tracking-widest text-xs transition-colors border ${
+            tab === "career" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >КАРЬЕРА</button>
       </div>
+
+      {tab === "quick" && (
+        <>
+          <div className="text-sm text-muted-foreground mb-6 text-center">
+            Старт: <span className="text-foreground font-mono">30 секунд</span>. Точные выстрелы добавляют время.
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl w-full">
+            {DISCIPLINES.map((d) => (
+              <button
+                key={d.id}
+                onClick={() => onPick(d)}
+                className="group text-left bg-[var(--navy-mid)] border border-border hover:border-primary transition-colors p-5 flex gap-4 items-start"
+              >
+                <div className="shrink-0 w-20 h-20 rounded-full flex items-center justify-center bg-[var(--navy-deep)] border-2 border-primary/50 group-hover:border-primary">
+                  <MiniTargetIcon disciplineId={d.id} />
+                </div>
+                <div className="flex-1">
+                  <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{d.short}</div>
+                  <div className="text-xl font-black tracking-tight">{d.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{d.caption}</div>
+                  <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] font-mono">
+                    <MiniStat label="ПРИЦЕЛ" v={d.sight === "diopter" ? "ДИОПТР" : "ОТКР."} />
+                    <MiniStat label="ТРЕМОР" v={d.amplitude < 30 ? "СРЕДН." : d.amplitude < 50 ? "СИЛЬН." : "ХАОС"} />
+                    <MiniStat label="ВЕТЕР" v={d.wind > 0 ? "ДА" : "—"} />
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tab === "career" && (
+        <>
+          <div className="text-sm text-muted-foreground mb-6 text-center max-w-2xl">
+            Три уникальных уровня. У каждого свои правила подсчёта и механики. Уровни открываются последовательно. За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span>.
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl w-full">
+            {CAREER_LEVELS.map((lvl) => {
+              const unlocked = lvl.id === 1 || careerCompleted >= lvl.id - 1;
+              const done = careerCompleted >= lvl.id;
+              return (
+                <button
+                  key={lvl.id}
+                  disabled={!unlocked}
+                  onClick={() => onPickCareer(lvl)}
+                  className={`group text-left border p-5 flex flex-col gap-3 transition-colors min-h-[260px] ${
+                    !unlocked
+                      ? "bg-[var(--navy-deep)]/60 border-border/40 opacity-50 cursor-not-allowed"
+                      : done
+                        ? "bg-[var(--navy-mid)] border-[var(--gold-bright)] hover:border-primary"
+                        : "bg-[var(--navy-mid)] border-border hover:border-primary"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{lvl.short}</div>
+                    {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">✓ ПРОЙДЕН</div>}
+                    {!unlocked && <div className="text-[10px] font-bold text-muted-foreground tracking-widest">🔒 ЗАКРЫТ</div>}
+                  </div>
+                  <div className="text-xl font-black tracking-tight">УРОВЕНЬ {lvl.id}</div>
+                  <div className="text-base font-bold">{lvl.name}</div>
+                  <div className="text-xs text-muted-foreground leading-relaxed flex-1">{lvl.description}</div>
+                  <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-auto">
+                    <MiniStat label="ВЫСТРЕЛЫ" v={String(lvl.shots)} />
+                    <MiniStat label="ОЧКИ" v={lvl.scoring === "integer" ? "ЦЕЛЫЕ" : "10.x"} />
+                    <MiniStat label="ЦЕЛЬ" v={String(lvl.winScore)} />
+                  </div>
+                  {!unlocked && (
+                    <div className="text-[10px] text-muted-foreground text-center">
+                      Пройдите уровень {lvl.id - 1}
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+
       <div className="mt-8 text-[10px] tracking-widest text-muted-foreground text-center max-w-xl">
         [ПКМ] Задержка дыхания · [ЛКМ] Выстрел (1 патрон) · [R] Перезарядка
       </div>
