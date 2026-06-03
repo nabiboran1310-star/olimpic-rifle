@@ -1061,12 +1061,24 @@ export default function AirRifleGame() {
             <div className="px-5 py-4 border-b border-border bg-[var(--navy-deep)]">
               <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-3">LIVE DASHBOARD</div>
 
-              <div className={`mb-3 px-3 py-3 border ${timeCritical ? "border-destructive" : "border-primary/50"} bg-[var(--navy-mid)]/60`}>
-                <div className="text-[9px] tracking-widest text-muted-foreground">TIME REMAINING</div>
-                <div className={`text-4xl font-black font-mono tabular-nums leading-none ${timeCritical ? "text-destructive animate-pulse" : "text-primary"}`}>
-                  {timeLeft.toFixed(1)}<span className="text-base text-muted-foreground">s</span>
+              {mode === "career" && careerLevel ? (
+                <div className="mb-3 px-3 py-3 border border-primary/50 bg-[var(--navy-mid)]/60">
+                  <div className="text-[9px] tracking-widest text-muted-foreground">КАРЬЕРА · {careerLevel.short}</div>
+                  <div className="text-2xl font-black font-mono tabular-nums leading-tight text-primary mt-1">
+                    {totalShots}<span className="text-base text-muted-foreground">/{careerLevel.shots}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    Цель: <span className="text-[var(--gold-bright)] font-bold">{careerLevel.winScore}</span> · Текущий: <span className="text-foreground font-bold">{score.toFixed(1)}</span>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className={`mb-3 px-3 py-3 border ${timeCritical ? "border-destructive" : "border-primary/50"} bg-[var(--navy-mid)]/60`}>
+                  <div className="text-[9px] tracking-widest text-muted-foreground">TIME REMAINING</div>
+                  <div className={`text-4xl font-black font-mono tabular-nums leading-none ${timeCritical ? "text-destructive animate-pulse" : "text-primary"}`}>
+                    {timeLeft.toFixed(1)}<span className="text-base text-muted-foreground">s</span>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <Metric label="PERFECT 10.9s" value={perfectCount} color="text-[var(--gold-bright)]" />
