@@ -456,6 +456,7 @@ export default function AirRifleGame() {
 
   // Persist locally + to cloud (debounced)
   useEffect(() => {
+    if (isGuest) return; // Guest mode: no persistence
     saveProgress(progress);
     if (!user || !hydratedRef.current) return;
     const t = setTimeout(() => {
@@ -473,7 +474,7 @@ export default function AirRifleGame() {
         .then(() => {});
     }, 800);
     return () => clearTimeout(t);
-  }, [progress, user]);
+  }, [progress, user, isGuest]);
 
   // Mouse tracking
   useEffect(() => {
