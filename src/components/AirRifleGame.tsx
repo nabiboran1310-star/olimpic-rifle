@@ -1292,20 +1292,23 @@ export default function AirRifleGame() {
                 <div
                   key={h.id}
                   className={`flex items-center justify-between px-4 py-1.5 border-b border-border/30 ${
-                    h.score === 10.9 ? "bg-primary/10" : "bg-transparent"
+                    h.sighting ? "bg-destructive/10" : h.score === 10.9 ? "bg-primary/10" : "bg-transparent"
                   }`}
                 >
-                  <span className="text-muted-foreground text-xs">#{h.n}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {h.sighting ? <span className="text-destructive">[ПРБ]</span> : `#${h.n}`}
+                  </span>
                   <span className="text-[10px] text-muted-foreground/70 tracking-widest">{h.discipline}</span>
                   <span
                     className={`tabular-nums font-bold ${
-                      h.score === 10.9 ? "text-primary"
+                      h.sighting ? "text-destructive/80"
+                      : h.score === 10.9 ? "text-primary"
                       : h.score >= 9 ? "text-foreground"
                       : "text-muted-foreground"
                     }`}
                   >
                     {h.score.toFixed(1)}
-                    {timeBonusForShot(h.score) > 0 && (
+                    {!h.sighting && timeBonusForShot(h.score) > 0 && (
                       <span className="ml-2 text-[10px] text-[var(--gold-bright)]">+{timeBonusForShot(h.score)}s</span>
                     )}
                   </span>
