@@ -291,6 +291,31 @@ export default function AirRifleGame() {
   useEffect(() => { setMounted(true); }, []);
   const hydratedRef = useRef(false);
 
+  // Responsive arena scale (landscape phones / small heights)
+  const [arenaScale, setArenaScale] = useState(1);
+  useEffect(() => {
+    const recompute = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isLandscapePhone = vh <= 500 && vw > vh;
+      const topbarH = isLandscapePhone ? 40 : 52;
+      const sidebarW = vw >= 1024 ? (isLandscapePhone ? 220 : 360) : 0;
+      const padding = isLandscapePhone ? 24 : 64;
+      const availW = vw - sidebarW - padding;
+      const availH = vh - topbarH - padding;
+      const s = Math.min(1, availW / 520, availH / 520);
+      setArenaScale(Math.max(0.35, s));
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    window.addEventListener("orientationchange", recompute);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      window.removeEventListener("orientationchange", recompute);
+    };
+  }, []);
+
+
   // Load profile from cloud when user logs in
   useEffect(() => {
     if (!user) { hydratedRef.current = false; return; }
@@ -342,16 +367,34 @@ export default function AirRifleGame() {
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const rect = arenaRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      if (!rect || rect.width === 0) return;
+      const size = discipline.targetPx;
+      const scaleX = size / rect.width;
+      const scaleY = size / rect.height;
+      setMouse({
+        x: Math.max(0, Math.min(size, (e.clientX - rect.left) * scaleX)),
+        y: Math.max(0, Math.min(size, (e.clientY - rect.top) * scaleY)),
+      });
+    };
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      const rect = arenaRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) return;
       const size = discipline.targetPx;
       setMouse({
-        x: Math.max(0, Math.min(size, e.clientX - rect.left)),
-        y: Math.max(0, Math.min(size, e.clientY - rect.top)),
+        x: Math.max(0, Math.min(size, (t.clientX - rect.left) * (size / rect.width))),
+        y: Math.max(0, Math.min(size, (t.clientY - rect.top) * (size / rect.height))),
       });
     };
     window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("touchmove", onTouch, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("touchmove", onTouch);
+    };
   }, [discipline]);
+
 
   // RMB safety
   useEffect(() => {
@@ -622,7 +665,7 @@ export default function AirRifleGame() {
   return (
     <div className="min-h-screen bg-background text-foreground select-none overflow-hidden">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-6 py-3">
+      <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-3 py-2 md:px-6 md:py-3 gap-2 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
           <span className="text-xs font-bold tracking-[0.3em] text-muted-foreground">LIVE</span>
@@ -684,18 +727,18 @@ export default function AirRifleGame() {
       {phase !== "menu" && (
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
           {/* Range */}
-          <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-8 min-h-[calc(100vh-52px)] overflow-hidden">
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-xs font-mono pointer-events-auto z-10">
-              <div className="bg-[var(--navy-deep)]/90 px-3 py-1.5 text-foreground border-l-2 border-primary">
-                <span className="text-[9px] tracking-widest text-muted-foreground mr-2">ДИСЦИПЛИНА</span>
+          <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
+            <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10">
+              <div className="bg-[var(--navy-deep)]/90 px-2 py-1 md:px-3 md:py-1.5 text-foreground border-l-2 border-primary">
+                <span className="text-[9px] tracking-widest text-muted-foreground mr-2 hidden sm:inline">ДИСЦИПЛИНА</span>
                 <span className="font-bold">{discipline.short}</span>
               </div>
               <button
                 onClick={resetTarget}
                 title="Сбросить пробоины (счет и время сохраняются)"
-                className="bg-[var(--navy-deep)]/90 hover:bg-[var(--navy-mid)] px-3 py-1.5 border-r-2 border-primary text-foreground font-bold tracking-widest text-[11px] flex items-center gap-2"
+                className="bg-[var(--navy-deep)]/90 hover:bg-[var(--navy-mid)] px-2 py-1 md:px-3 md:py-1.5 border-r-2 border-primary text-foreground font-bold tracking-widest text-[10px] md:text-[11px] flex items-center gap-2"
               >
-                <span>👁</span> СБРОСИТЬ МИШЕНЬ
+                <span>👁</span> <span className="hidden sm:inline">СБРОСИТЬ МИШЕНЬ</span><span className="sm:hidden">СБРОС</span>
               </button>
             </div>
 
@@ -714,8 +757,24 @@ export default function AirRifleGame() {
               }}
               onContextMenu={(e) => e.preventDefault()}
               className="relative cursor-none shadow-2xl"
-              style={{ width: discipline.targetPx, height: discipline.targetPx, background: "#f4f4ef" }}
+              style={{
+                width: discipline.targetPx * arenaScale,
+                height: discipline.targetPx * arenaScale,
+                background: "#f4f4ef",
+              }}
             >
+              <div
+                style={{
+                  width: discipline.targetPx,
+                  height: discipline.targetPx,
+                  transform: `scale(${arenaScale})`,
+                  transformOrigin: "top left",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                }}
+              >
+
               <TargetSvg discipline={discipline} holes={holes} />
 
               {/* Sight */}
@@ -734,7 +793,9 @@ export default function AirRifleGame() {
                   />
                 )
               )}
+              </div>
             </div>
+
 
             {/* PERFECT overlay */}
             <AnimatePresence>
@@ -803,7 +864,7 @@ export default function AirRifleGame() {
           </div>
 
           {/* Dashboard */}
-          <aside className="bg-[var(--navy-mid)] border-l border-border flex flex-col max-h-[calc(100vh-52px)]">
+          <aside className="bg-[var(--navy-mid)] border-l border-border flex flex-col lg:max-h-[calc(100svh-52px)]">
             <div className="px-5 py-4 border-b border-border bg-[var(--navy-deep)]">
               <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-3">LIVE DASHBOARD</div>
 
