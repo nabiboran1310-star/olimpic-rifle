@@ -793,7 +793,9 @@ export default function AirRifleGame() {
                   />
                 )
               )}
+              </div>
             </div>
+
 
             {/* PERFECT overlay */}
             <AnimatePresence>
