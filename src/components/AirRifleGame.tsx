@@ -274,9 +274,10 @@ type Progress = {
   equipped: string;
   totalScore: number;
   perfectTens: number;
+  careerCompleted: number; // highest completed career level (0..3)
 };
 function loadProgress(): Progress {
-  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default", totalScore: 0, perfectTens: 0 };
+  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default", totalScore: 0, perfectTens: 0, careerCompleted: 0 };
   if (typeof window === "undefined") return def;
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -289,6 +290,7 @@ function loadProgress(): Progress {
       equipped: typeof p.equipped === "string" ? p.equipped : "default",
       totalScore: Number(p.totalScore) || 0,
       perfectTens: Number(p.perfectTens) || 0,
+      careerCompleted: Math.max(0, Math.min(3, Number(p.careerCompleted) || 0)),
     };
   } catch { return def; }
 }
