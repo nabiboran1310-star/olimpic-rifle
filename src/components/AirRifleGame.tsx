@@ -1323,6 +1323,7 @@ function TargetSvg({ discipline: d, holes, offsetX = 0 }: { discipline: Discipli
           <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 - 1.2} fill="#1a1a1a" />
         </g>
       ))}
+      </g>
     </svg>
   );
 }
