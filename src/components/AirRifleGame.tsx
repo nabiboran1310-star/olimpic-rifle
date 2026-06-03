@@ -886,6 +886,7 @@ export default function AirRifleGame() {
       {phase === "menu" && (
         <HomeScreen
           onPickCareer={startCareerLevel}
+          onPickQuick={startMatch}
           progress={progress}
           careerCompleted={progress.careerCompleted}
           user={user}
