@@ -986,27 +986,69 @@ export default function AirRifleGame() {
             {phase === "gameover" && (
               <div className="absolute inset-0 flex items-center justify-center bg-[var(--navy-deep)]/95 backdrop-blur-sm z-40">
                 <div className="text-center space-y-6 px-8 max-w-lg">
-                  <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">TIME UP</div>
-                  <div className="text-6xl font-black tracking-tight">GAME OVER</div>
-                  <div className="grid grid-cols-3 gap-4 text-sm font-mono">
-                    <Stat label="SCORE" value={score.toFixed(1)} />
-                    <Stat label="SHOTS" value={totalShots} />
-                    <Stat label="10.9s" value={perfectCount} />
-                  </div>
-                  <div className="flex gap-3 justify-center pt-2">
-                    <button
-                      onClick={() => startMatch(discipline)}
-                      className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
-                    >
-                      ПОВТОРИТЬ
-                    </button>
-                    <button
-                      onClick={backToMenu}
-                      className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
-                    >
-                      ДИСЦИПЛИНЫ
-                    </button>
-                  </div>
+                  {careerResult ? (
+                    <>
+                      <div className={`text-[10px] tracking-[0.5em] font-bold ${careerResult.won ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
+                        {careerResult.level.short}
+                      </div>
+                      <div className="text-5xl font-black tracking-tight">
+                        {careerResult.won ? "УРОВЕНЬ ПРОЙДЕН!" : "ПРОВАЛ"}
+                      </div>
+                      {careerResult.won && (
+                        <div className="text-lg text-[var(--gold-bright)] font-bold tracking-wide">
+                          + {CAREER_WIN_BONUS} КРЕДИТОВ БОНУСА
+                        </div>
+                      )}
+                      <div className="grid grid-cols-3 gap-4 text-sm font-mono">
+                        <Stat label="SCORE" value={careerResult.score.toFixed(1)} />
+                        <Stat label="ЦЕЛЬ" value={careerResult.level.winScore} />
+                        <Stat label="ВЫСТРЕЛОВ" value={totalShots} />
+                      </div>
+                      {!careerResult.won && (
+                        <div className="text-xs text-muted-foreground">
+                          Не хватило {(careerResult.level.winScore - careerResult.score).toFixed(1)} очка. Попробуйте ещё раз.
+                        </div>
+                      )}
+                      <div className="flex gap-3 justify-center pt-2 flex-wrap">
+                        <button
+                          onClick={() => startCareerLevel(careerResult.level)}
+                          className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
+                        >
+                          ПОВТОРИТЬ
+                        </button>
+                        <button
+                          onClick={backToMenu}
+                          className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
+                        >
+                          К МЕНЮ КАРЬЕРЫ
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">TIME UP</div>
+                      <div className="text-6xl font-black tracking-tight">GAME OVER</div>
+                      <div className="grid grid-cols-3 gap-4 text-sm font-mono">
+                        <Stat label="SCORE" value={score.toFixed(1)} />
+                        <Stat label="SHOTS" value={totalShots} />
+                        <Stat label="10.9s" value={perfectCount} />
+                      </div>
+                      <div className="flex gap-3 justify-center pt-2">
+                        <button
+                          onClick={() => startMatch(discipline)}
+                          className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
+                        >
+                          ПОВТОРИТЬ
+                        </button>
+                        <button
+                          onClick={backToMenu}
+                          className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
+                        >
+                          ДИСЦИПЛИНЫ
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             )}
