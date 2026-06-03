@@ -367,16 +367,34 @@ export default function AirRifleGame() {
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const rect = arenaRef.current?.getBoundingClientRect();
-      if (!rect) return;
+      if (!rect || rect.width === 0) return;
+      const size = discipline.targetPx;
+      const scaleX = size / rect.width;
+      const scaleY = size / rect.height;
+      setMouse({
+        x: Math.max(0, Math.min(size, (e.clientX - rect.left) * scaleX)),
+        y: Math.max(0, Math.min(size, (e.clientY - rect.top) * scaleY)),
+      });
+    };
+    const onTouch = (e: TouchEvent) => {
+      const t = e.touches[0];
+      if (!t) return;
+      const rect = arenaRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) return;
       const size = discipline.targetPx;
       setMouse({
-        x: Math.max(0, Math.min(size, e.clientX - rect.left)),
-        y: Math.max(0, Math.min(size, e.clientY - rect.top)),
+        x: Math.max(0, Math.min(size, (t.clientX - rect.left) * (size / rect.width))),
+        y: Math.max(0, Math.min(size, (t.clientY - rect.top) * (size / rect.height))),
       });
     };
     window.addEventListener("mousemove", onMove);
-    return () => window.removeEventListener("mousemove", onMove);
+    window.addEventListener("touchmove", onTouch, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("touchmove", onTouch);
+    };
   }, [discipline]);
+
 
   // RMB safety
   useEffect(() => {
