@@ -916,7 +916,7 @@ export default function AirRifleGame() {
                 }}
               >
 
-              <TargetSvg discipline={discipline} holes={holes} />
+              <TargetSvg discipline={discipline} holes={holes} offsetX={targetOffsetX} />
 
               {/* Sight */}
               {phase === "playing" && (
