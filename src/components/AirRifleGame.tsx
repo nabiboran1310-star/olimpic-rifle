@@ -239,6 +239,28 @@ function playSfx(a: HTMLAudioElement | null) {
   } catch {/* ignore */}
 }
 
+// Sight-turret click (synthesized — tiny metallic tick)
+let _audioCtx: AudioContext | null = null;
+function playTurretClick() {
+  if (typeof window === "undefined") return;
+  try {
+    const Ctor = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+    _audioCtx = _audioCtx ?? new Ctor();
+    const ctx = _audioCtx;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(2400, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.04);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.09, ctx.currentTime + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.06);
+  } catch {/* ignore */}
+}
+
 // ============================================================
 // Skins & Upgrades
 // ============================================================
