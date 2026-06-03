@@ -370,6 +370,7 @@ export default function AirRifleGame() {
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
   const [shopOpen, setShopOpen] = useState(false);
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
+  const [isGuest, setIsGuest] = useState(false);
 
   // Career mode
   const [mode, setMode] = useState<"quick" | "career">("quick");
