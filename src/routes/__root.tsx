@@ -124,11 +124,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isGame = pathname === "/" || pathname === "/range";
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      {/* Game stays mounted across / and /range so state persists. Other routes render via Outlet. */}
+      {isGame ? <AirRifleGame /> : <Outlet />}
     </QueryClientProvider>
   );
 }
