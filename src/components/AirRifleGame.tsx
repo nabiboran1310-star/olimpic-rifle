@@ -974,7 +974,11 @@ export default function AirRifleGame() {
             <div>
               <span className="text-muted-foreground mr-2">CR</span>
               <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits}</span>
+              {isGuest && (
+                <span className="ml-2 text-[10px] tracking-widest text-muted-foreground">• РЕЖИМ ГОСТЯ</span>
+              )}
             </div>
+
             <button
               onClick={backToMenu}
               className="border border-primary text-primary font-bold px-3 py-1.5 hover:bg-primary hover:text-primary-foreground transition-colors tracking-widest"
