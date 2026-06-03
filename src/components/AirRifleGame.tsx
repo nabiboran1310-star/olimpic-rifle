@@ -239,6 +239,28 @@ function playSfx(a: HTMLAudioElement | null) {
   } catch {/* ignore */}
 }
 
+// Sight-turret click (synthesized — tiny metallic tick)
+let _audioCtx: AudioContext | null = null;
+function playTurretClick() {
+  if (typeof window === "undefined") return;
+  try {
+    const Ctor = (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext);
+    _audioCtx = _audioCtx ?? new Ctor();
+    const ctx = _audioCtx;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.type = "square";
+    o.frequency.setValueAtTime(2400, ctx.currentTime);
+    o.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.04);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.09, ctx.currentTime + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
+    o.connect(g).connect(ctx.destination);
+    o.start();
+    o.stop(ctx.currentTime + 0.06);
+  } catch {/* ignore */}
+}
+
 // ============================================================
 // Skins & Upgrades
 // ============================================================
@@ -304,8 +326,9 @@ function saveProgress(p: Progress) {
 const START_TIME = 30;
 
 type Phase = "menu" | "playing" | "gameover";
-type ShotRecord = { n: number; score: number; discipline: string; id: number };
-type Hole = { x: number; y: number; score: number; id: number; gold: boolean };
+type SessionMode = "sighting" | "match";
+type ShotRecord = { n: number; score: number; discipline: string; id: number; sighting?: boolean };
+type Hole = { x: number; y: number; score: number; id: number; gold: boolean; sighting?: boolean };
 
 export default function AirRifleGame() {
   const arenaRef = useRef<HTMLDivElement>(null);
@@ -332,6 +355,17 @@ export default function AirRifleGame() {
   const [score, setScore] = useState(0);
 
   const [timeLeft, setTimeLeft] = useState(START_TIME);
+
+  // Sight adjustment system: random bias per match + player corrections (in clicks).
+  // 1 ring (gabarit) = 4 clicks. Rule: "where the shot landed — turn that way".
+  const [errorX, setErrorX] = useState(0);
+  const [errorY, setErrorY] = useState(0);
+  const [adjX, setAdjX] = useState(0);
+  const [adjY, setAdjY] = useState(0);
+
+  // Sighting vs Match mode (per level). Default = sighting.
+  const [sessionMode, setSessionMode] = useState<SessionMode>("sighting");
+  const [hasMatchShot, setHasMatchShot] = useState(false);
 
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
   const [shopOpen, setShopOpen] = useState(false);
@@ -518,9 +552,9 @@ export default function AirRifleGame() {
     }
   }, [shotHistory.length]);
 
-  // Game timer (only in quick mode)
+  // Game timer (only in quick mode AND match mode — paused during sighting)
   useEffect(() => {
-    if (phase !== "playing" || mode === "career") return;
+    if (phase !== "playing" || mode === "career" || sessionMode !== "match") return;
     const t = setInterval(() => {
       setTimeLeft((tl) => {
         if (tl <= 0.1) {
@@ -531,15 +565,15 @@ export default function AirRifleGame() {
       });
     }, 100);
     return () => clearInterval(t);
-  }, [phase, mode]);
+  }, [phase, mode, sessionMode]);
 
   // Game over trigger (quick mode only — by time)
   useEffect(() => {
-    if (phase === "playing" && mode === "quick" && timeLeft <= 0) {
+    if (phase === "playing" && mode === "quick" && sessionMode === "match" && timeLeft <= 0) {
       setPhase("gameover");
       playSfx(A.gameOver);
     }
-  }, [timeLeft, phase, mode]);
+  }, [timeLeft, phase, mode, sessionMode]);
 
   // Physics
   useEffect(() => {
@@ -655,8 +689,15 @@ export default function AirRifleGame() {
     playSfx(d.shotSound === "air" ? A.shotAir : A.shotRim);
     setLoaded(false);
     const center = d.targetPx / 2;
-    const hitX = sightRef.current.x;
-    const hitY = sightRef.current.y;
+
+    // Sight bias: residual error (errorX - adjX) in clicks, 4 clicks = 1 ring.
+    const ringStepMm = d.ringMm[1] - d.ringMm[0];
+    const pxPerClick = (ringStepMm / 4) * d.mmToPx;
+    const biasX = (errorX - adjX) * pxPerClick;
+    const biasY = (errorY - adjY) * pxPerClick;
+
+    const hitX = sightRef.current.x + biasX;
+    const hitY = sightRef.current.y + biasY;
     const offX = targetOffsetRef.current;
     // hit relative to current target center
     const dx = hitX - (center + offX);
@@ -668,18 +709,30 @@ export default function AirRifleGame() {
     const sc = useInteger ? scRaw : +scRaw.toFixed(1);
 
     const id = ++holeIdRef.current;
-    const gold = !!equippedSkin.goldHalo;
+    const isSighting = sessionMode === "sighting";
+    const gold = !isSighting && !!equippedSkin.goldHalo;
     // store hole in target-local space so it moves with target
-    setHoles((h) => [...h, { x: hitX - offX, y: hitY, score: sc, id, gold }]);
+    setHoles((h) => [...h, { x: hitX - offX, y: hitY, score: sc, id, gold, sighting: isSighting }]);
     if (gold) {
       setTimeout(() => {
         setHoles((h) => h.map((hh) => (hh.id === id ? { ...hh, gold: false } : hh)));
       }, 1000);
     }
 
+    setLastShot(sc);
+    setHolding(false);
+    setHoldStart(null);
+
+    // --- Sighting mode: shot does not count toward level, credits, time, or score ---
+    if (isSighting) {
+      setShotHistory((h) => [...h, { n: 0, score: sc, discipline: d.short, id, sighting: true }]);
+      return;
+    }
+
+    // --- Match mode: counts for real ---
+    setHasMatchShot(true);
     const shotNum = totalShots + 1;
     setTotalShots(shotNum);
-    setLastShot(sc);
     setScore((s) => +(s + sc).toFixed(1));
     setShotHistory((h) => [...h, { n: shotNum, score: sc, discipline: d.short, id }]);
 
@@ -720,8 +773,6 @@ export default function AirRifleGame() {
         });
       }
     }
-    setHolding(false);
-    setHoldStart(null);
 
     // Career: end of level when shots limit reached
     if (mode === "career" && careerLevel && shotNum >= careerLevel.shots) {
@@ -747,9 +798,18 @@ export default function AirRifleGame() {
         }
       }, 600);
     }
-  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score]);
+  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode]);
 
   // ----- actions -----
+  const randomizeSightError = () => {
+    // Random scope drift in clicks: roughly ±5 rings worth (4 clicks per ring)
+    const rand = () => Math.round((Math.random() * 2 - 1) * 20);
+    setErrorX(rand());
+    setErrorY(rand());
+    setAdjX(0);
+    setAdjY(0);
+  };
+
   const startMatch = (d: Discipline) => {
     setMode("quick");
     setCareerLevel(null);
@@ -766,6 +826,9 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
+    setSessionMode("sighting");
+    setHasMatchShot(false);
+    randomizeSightError();
     if (d.id === "boar") {
       boarRunRef.current = -d.targetPx * 0.5;
       targetOffsetRef.current = boarRunRef.current;
@@ -794,6 +857,9 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
+    setSessionMode("sighting");
+    setHasMatchShot(false);
+    randomizeSightError();
     boarRunRef.current = -d.targetPx * 0.5;
     targetOffsetRef.current = boarRunRef.current;
     setTargetOffsetX(boarRunRef.current);
@@ -810,6 +876,30 @@ export default function AirRifleGame() {
   const resetTarget = () => {
     setHoles([]);
   };
+
+  // Sight turret correction. Rule: "click toward where the shot went".
+  const adjustSight = (dir: "up" | "down" | "left" | "right") => {
+    if (phase !== "playing") return;
+    playTurretClick();
+    if (dir === "left") setAdjX((v) => v - 1);
+    else if (dir === "right") setAdjX((v) => v + 1);
+    else if (dir === "up") setAdjY((v) => v - 1);
+    else if (dir === "down") setAdjY((v) => v + 1);
+  };
+
+  // Switch sighting -> match: clear target, reset shot counter, (re)start timer.
+  const switchToMatch = () => {
+    if (sessionMode === "match") return;
+    setSessionMode("match");
+    setHoles([]);
+    setShotHistory((h) => h.filter((s) => !s.sighting)); // keep clean slate
+    setTotalShots(0);
+    setScore(0);
+    setPerfectCount(0);
+    setLastShot(null);
+    if (mode === "quick") setTimeLeft(START_TIME);
+  };
+
 
 
   const buySkin = (s: Skin) => {
@@ -898,10 +988,44 @@ export default function AirRifleGame() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
           {/* Range */}
           <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
-            <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10">
-              <div className="bg-[var(--navy-deep)]/90 px-2 py-1 md:px-3 md:py-1.5 text-foreground border-l-2 border-primary">
-                <span className="text-[9px] tracking-widest text-muted-foreground mr-2 hidden sm:inline">ДИСЦИПЛИНА</span>
-                <span className="font-bold">{discipline.short}</span>
+            <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10 gap-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-[var(--navy-deep)]/90 px-2 py-1 md:px-3 md:py-1.5 text-foreground border-l-2 border-primary">
+                  <span className="text-[9px] tracking-widest text-muted-foreground mr-2 hidden sm:inline">ДИСЦИПЛИНА</span>
+                  <span className="font-bold">{discipline.short}</span>
+                </div>
+                {/* Mode toggle: Sighting / Match */}
+                <div className="flex bg-[var(--navy-deep)]/90 border border-border overflow-hidden">
+                  <button
+                    type="button"
+                    disabled={hasMatchShot}
+                    onClick={() => {
+                      if (!hasMatchShot && sessionMode !== "sighting") {
+                        // Reverting from match back is blocked anyway, just no-op
+                      }
+                    }}
+                    title={hasMatchShot ? "Зачёт уже начался — возврат запрещён" : "Пробные выстрелы (без зачёта)"}
+                    className={`px-2 py-1 md:px-3 md:py-1.5 font-bold tracking-widest text-[10px] md:text-[11px] transition-colors ${
+                      sessionMode === "sighting"
+                        ? "bg-destructive/80 text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    } ${hasMatchShot ? "opacity-40 cursor-not-allowed" : ""}`}
+                  >
+                    ПРОБНЫЕ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={switchToMatch}
+                    title="Перейти в зачётный режим (мишень очистится, таймер запустится)"
+                    className={`px-2 py-1 md:px-3 md:py-1.5 font-bold tracking-widest text-[10px] md:text-[11px] transition-colors ${
+                      sessionMode === "match"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-primary hover:bg-primary/20"
+                    }`}
+                  >
+                    ЗАЧЁТ
+                  </button>
+                </div>
               </div>
               <button
                 onClick={resetTarget}
@@ -911,6 +1035,44 @@ export default function AirRifleGame() {
                 <span>👁</span> <span className="hidden sm:inline">СБРОСИТЬ МИШЕНЬ</span><span className="sm:hidden">СБРОС</span>
               </button>
             </div>
+
+            {/* Sight Adjustment turret — bottom-left of arena */}
+            <div className="absolute left-2 md:left-4 bottom-20 md:bottom-24 z-20 pointer-events-auto">
+              <div className="bg-[var(--navy-deep)]/95 border border-primary/60 px-2 py-2 font-mono text-foreground shadow-xl">
+                <div className="text-[9px] tracking-widest text-muted-foreground text-center mb-1">ПОПРАВКИ · 4 клика = 1 габарит</div>
+                <div className="grid grid-cols-3 gap-1 w-[120px] mx-auto">
+                  <div />
+                  <button
+                    onClick={() => adjustSight("up")}
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    title="Вверх (попал вверху)"
+                  >▲</button>
+                  <div />
+                  <button
+                    onClick={() => adjustSight("left")}
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    title="Влево (попал слева)"
+                  >◀</button>
+                  <div className="aspect-square bg-[var(--navy-deep)] border border-border flex flex-col items-center justify-center text-[8px] leading-none text-muted-foreground">
+                    <div>X:<span className="text-primary tabular-nums ml-0.5">{adjX > 0 ? `+${adjX}` : adjX}</span></div>
+                    <div className="mt-0.5">Y:<span className="text-primary tabular-nums ml-0.5">{adjY > 0 ? `+${adjY}` : adjY}</span></div>
+                  </div>
+                  <button
+                    onClick={() => adjustSight("right")}
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    title="Вправо (попал справа)"
+                  >▶</button>
+                  <div />
+                  <button
+                    onClick={() => adjustSight("down")}
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    title="Вниз (попал внизу)"
+                  >▼</button>
+                  <div />
+                </div>
+              </div>
+            </div>
+
 
             <div
               ref={arenaRef}
@@ -1130,20 +1292,23 @@ export default function AirRifleGame() {
                 <div
                   key={h.id}
                   className={`flex items-center justify-between px-4 py-1.5 border-b border-border/30 ${
-                    h.score === 10.9 ? "bg-primary/10" : "bg-transparent"
+                    h.sighting ? "bg-destructive/10" : h.score === 10.9 ? "bg-primary/10" : "bg-transparent"
                   }`}
                 >
-                  <span className="text-muted-foreground text-xs">#{h.n}</span>
+                  <span className="text-muted-foreground text-xs">
+                    {h.sighting ? <span className="text-destructive">[ПРБ]</span> : `#${h.n}`}
+                  </span>
                   <span className="text-[10px] text-muted-foreground/70 tracking-widest">{h.discipline}</span>
                   <span
                     className={`tabular-nums font-bold ${
-                      h.score === 10.9 ? "text-primary"
+                      h.sighting ? "text-destructive/80"
+                      : h.score === 10.9 ? "text-primary"
                       : h.score >= 9 ? "text-foreground"
                       : "text-muted-foreground"
                     }`}
                   >
                     {h.score.toFixed(1)}
-                    {timeBonusForShot(h.score) > 0 && (
+                    {!h.sighting && timeBonusForShot(h.score) > 0 && (
                       <span className="ml-2 text-[10px] text-[var(--gold-bright)]">+{timeBonusForShot(h.score)}s</span>
                     )}
                   </span>
@@ -1544,8 +1709,8 @@ function TargetSvg({ discipline: d, holes, offsetX = 0 }: { discipline: Discipli
               <animate attributeName="r" from={BULLET_PX / 2 + 2} to={BULLET_PX / 2 + 14} dur="1s" fill="freeze" />
             </circle>
           )}
-          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2} fill="#fff" stroke="#000" strokeWidth={0.8} />
-          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 - 1.2} fill="#1a1a1a" />
+          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2} fill={h.sighting ? "#ffe5e5" : "#fff"} stroke={h.sighting ? "#d11" : "#000"} strokeWidth={h.sighting ? 1.2 : 0.8} />
+          <circle cx={h.x} cy={h.y} r={BULLET_PX / 2 - 1.2} fill={h.sighting ? "#e11d48" : "#1a1a1a"} />
         </g>
       ))}
       </g>
