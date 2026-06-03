@@ -1002,7 +1002,10 @@ export default function AirRifleGame() {
           equipSkin={equipSkin}
           buyUpgrade={buyUpgrade}
           hasUpgrade={hasUpgrade}
+          isGuest={isGuest}
+          onStartGuest={startGuestSession}
         />
+
       )}
 
       {/* GAMEPLAY */}
