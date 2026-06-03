@@ -815,10 +815,18 @@ export default function AirRifleGame() {
           </span>
         </div>
         <div className="flex items-center gap-4 text-xs font-mono">
-          {phase === "playing" && (
+          {phase === "playing" && mode === "quick" && (
             <div className={`px-2 py-0.5 border ${timeCritical ? "border-destructive text-destructive animate-pulse" : "border-primary text-primary"}`}>
               <span className="text-muted-foreground mr-2">ВРЕМЯ</span>
               <span className="font-bold tabular-nums">{timeLeft.toFixed(1)}s</span>
+            </div>
+          )}
+          {phase === "playing" && mode === "career" && careerLevel && (
+            <div className="px-2 py-0.5 border border-primary text-primary">
+              <span className="text-muted-foreground mr-2">ВЫСТРЕЛ</span>
+              <span className="font-bold tabular-nums">{totalShots}/{careerLevel.shots}</span>
+              <span className="text-muted-foreground ml-2">ЦЕЛЬ</span>
+              <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
             </div>
           )}
           <div>
