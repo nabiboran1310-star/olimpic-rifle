@@ -801,12 +801,14 @@ export default function AirRifleGame() {
     boarRunRef.current = -d.targetPx * 0.5;
     targetOffsetRef.current = boarRunRef.current;
     setTargetOffsetX(boarRunRef.current);
+    navigate({ to: "/range" });
   };
 
   const backToMenu = () => {
     setPhase("menu");
     setHoles([]);
     setCareerResult(null);
+    navigate({ to: "/" });
   };
 
   const resetTarget = () => {
