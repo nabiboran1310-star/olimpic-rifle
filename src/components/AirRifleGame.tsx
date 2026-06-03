@@ -775,8 +775,9 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
-    targetOffsetRef.current = 0;
-    setTargetOffsetX(0);
+    boarRunRef.current = -d.targetPx * 0.5;
+    targetOffsetRef.current = boarRunRef.current;
+    setTargetOffsetX(boarRunRef.current);
   };
 
   const backToMenu = () => {
