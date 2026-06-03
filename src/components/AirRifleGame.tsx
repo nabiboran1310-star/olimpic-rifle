@@ -291,6 +291,31 @@ export default function AirRifleGame() {
   useEffect(() => { setMounted(true); }, []);
   const hydratedRef = useRef(false);
 
+  // Responsive arena scale (landscape phones / small heights)
+  const [arenaScale, setArenaScale] = useState(1);
+  useEffect(() => {
+    const recompute = () => {
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const isLandscapePhone = vh <= 500 && vw > vh;
+      const topbarH = isLandscapePhone ? 40 : 52;
+      const sidebarW = vw >= 1024 ? (isLandscapePhone ? 220 : 360) : 0;
+      const padding = isLandscapePhone ? 24 : 64;
+      const availW = vw - sidebarW - padding;
+      const availH = vh - topbarH - padding;
+      const s = Math.min(1, availW / 520, availH / 520);
+      setArenaScale(Math.max(0.35, s));
+    };
+    recompute();
+    window.addEventListener("resize", recompute);
+    window.addEventListener("orientationchange", recompute);
+    return () => {
+      window.removeEventListener("resize", recompute);
+      window.removeEventListener("orientationchange", recompute);
+    };
+  }, []);
+
+
   // Load profile from cloud when user logs in
   useEffect(() => {
     if (!user) { hydratedRef.current = false; return; }
