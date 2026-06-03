@@ -868,6 +868,22 @@ export default function AirRifleGame() {
     navigate({ to: "/range" });
   };
 
+  const startGuestSession = () => {
+    setIsGuest(true);
+    setProgress({
+      credits: 0,
+      owned: ["default"],
+      upgrades: [],
+      equipped: "default",
+      totalScore: 0,
+      perfectTens: 0,
+      careerCompleted: 0,
+    });
+    startCareerLevel(CAREER_LEVELS[0]);
+  };
+
+
+
   const backToMenu = () => {
     setPhase("menu");
     setHoles([]);
