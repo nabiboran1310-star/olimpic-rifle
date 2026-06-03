@@ -725,20 +725,20 @@ export default function AirRifleGame() {
 
       {/* GAMEPLAY */}
       {phase !== "menu" && (
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] landscape-phone:lg:grid-cols-[1fr_220px] gap-0">
           {/* Range */}
-          <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-8 min-h-[calc(100vh-52px)] overflow-hidden">
-            <div className="absolute top-4 left-4 right-4 flex items-center justify-between text-xs font-mono pointer-events-auto z-10">
-              <div className="bg-[var(--navy-deep)]/90 px-3 py-1.5 text-foreground border-l-2 border-primary">
-                <span className="text-[9px] tracking-widest text-muted-foreground mr-2">ДИСЦИПЛИНА</span>
+          <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
+            <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10">
+              <div className="bg-[var(--navy-deep)]/90 px-2 py-1 md:px-3 md:py-1.5 text-foreground border-l-2 border-primary">
+                <span className="text-[9px] tracking-widest text-muted-foreground mr-2 hidden sm:inline">ДИСЦИПЛИНА</span>
                 <span className="font-bold">{discipline.short}</span>
               </div>
               <button
                 onClick={resetTarget}
                 title="Сбросить пробоины (счет и время сохраняются)"
-                className="bg-[var(--navy-deep)]/90 hover:bg-[var(--navy-mid)] px-3 py-1.5 border-r-2 border-primary text-foreground font-bold tracking-widest text-[11px] flex items-center gap-2"
+                className="bg-[var(--navy-deep)]/90 hover:bg-[var(--navy-mid)] px-2 py-1 md:px-3 md:py-1.5 border-r-2 border-primary text-foreground font-bold tracking-widest text-[10px] md:text-[11px] flex items-center gap-2"
               >
-                <span>👁</span> СБРОСИТЬ МИШЕНЬ
+                <span>👁</span> <span className="hidden sm:inline">СБРОСИТЬ МИШЕНЬ</span><span className="sm:hidden">СБРОС</span>
               </button>
             </div>
 
@@ -757,8 +757,24 @@ export default function AirRifleGame() {
               }}
               onContextMenu={(e) => e.preventDefault()}
               className="relative cursor-none shadow-2xl"
-              style={{ width: discipline.targetPx, height: discipline.targetPx, background: "#f4f4ef" }}
+              style={{
+                width: discipline.targetPx * arenaScale,
+                height: discipline.targetPx * arenaScale,
+                background: "#f4f4ef",
+              }}
             >
+              <div
+                style={{
+                  width: discipline.targetPx,
+                  height: discipline.targetPx,
+                  transform: `scale(${arenaScale})`,
+                  transformOrigin: "top left",
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                }}
+              >
+
               <TargetSvg discipline={discipline} holes={holes} />
 
               {/* Sight */}
