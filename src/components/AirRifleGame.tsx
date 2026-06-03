@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -361,6 +361,16 @@ export default function AirRifleGame() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const hydratedRef = useRef(false);
+
+  // Route-driven screen separation: '/' = Home, '/range' = Shooting
+  const navigate = useNavigate();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  useEffect(() => {
+    // If user lands on /range without an active session, send them home
+    if (pathname === "/range" && phase === "menu") {
+      navigate({ to: "/" });
+    }
+  }, [pathname, phase, navigate]);
 
   // Responsive arena scale (landscape phones / small heights)
   const [arenaScale, setArenaScale] = useState(1);
@@ -769,6 +779,7 @@ export default function AirRifleGame() {
       targetOffsetRef.current = 0;
       setTargetOffsetX(0);
     }
+    navigate({ to: "/range" });
   };
 
   const startCareerLevel = (lvl: CareerLevel) => {
@@ -791,12 +802,14 @@ export default function AirRifleGame() {
     boarRunRef.current = -d.targetPx * 0.5;
     targetOffsetRef.current = boarRunRef.current;
     setTargetOffsetX(boarRunRef.current);
+    navigate({ to: "/range" });
   };
 
   const backToMenu = () => {
     setPhase("menu");
     setHoles([]);
     setCareerResult(null);
+    navigate({ to: "/" });
   };
 
   const resetTarget = () => {
