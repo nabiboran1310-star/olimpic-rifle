@@ -607,14 +607,20 @@ export default function AirRifleGame() {
       sightRef.current = next;
       setSight(next);
 
-      // Moving target (Running Boar): smooth horizontal sweep
+      // Running Boar: strictly horizontal left-to-right pass at constant velocity.
+      // Y axis is locked. On reaching the right edge target instantly resets to the left.
       if (moving) {
-        const range = size * 0.32; // ±~33% of arena
-        const speed = 0.55; // rad/s
-        const off = Math.sin(t * speed) * range;
+        const startX = -size * 0.5;
+        const endX = size * 0.5;
+        const duration = 4.5; // seconds to cross the arena
+        const speed = (endX - startX) / duration;
+        let off = boarRunRef.current + speed * dt;
+        if (off > endX) off = startX;
+        boarRunRef.current = off;
         targetOffsetRef.current = off;
         setTargetOffsetX(off);
       } else if (targetOffsetRef.current !== 0) {
+        boarRunRef.current = 0;
         targetOffsetRef.current = 0;
         setTargetOffsetX(0);
       }
