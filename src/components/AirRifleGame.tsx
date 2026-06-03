@@ -392,14 +392,15 @@ export default function AirRifleGame() {
       if (cancelled || !data) return;
       const skinsList = Array.isArray(data.skins) ? (data.skins as string[]) : ["default"];
       const upgradesList = Array.isArray(data.upgrades) ? (data.upgrades as string[]) : [];
-      setProgress({
+      setProgress((prev) => ({
         credits: data.credits ?? 0,
         owned: skinsList.includes("default") ? skinsList : ["default", ...skinsList],
         upgrades: upgradesList,
         equipped: data.equipped_skin ?? "default",
         totalScore: Number(data.total_score) || 0,
         perfectTens: data.perfect_tens ?? 0,
-      });
+        careerCompleted: prev.careerCompleted,
+      }));
       hydratedRef.current = true;
     })();
     return () => { cancelled = true; };
