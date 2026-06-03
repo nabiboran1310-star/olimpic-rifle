@@ -505,9 +505,9 @@ export default function AirRifleGame() {
     }
   }, [shotHistory.length]);
 
-  // Game timer
+  // Game timer (only in quick mode)
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (phase !== "playing" || mode === "career") return;
     const t = setInterval(() => {
       setTimeLeft((tl) => {
         if (tl <= 0.1) {
@@ -518,15 +518,15 @@ export default function AirRifleGame() {
       });
     }, 100);
     return () => clearInterval(t);
-  }, [phase]);
+  }, [phase, mode]);
 
-  // Game over trigger
+  // Game over trigger (quick mode only — by time)
   useEffect(() => {
-    if (phase === "playing" && timeLeft <= 0) {
+    if (phase === "playing" && mode === "quick" && timeLeft <= 0) {
       setPhase("gameover");
       playSfx(A.gameOver);
     }
-  }, [timeLeft, phase]);
+  }, [timeLeft, phase, mode]);
 
   // Physics
   useEffect(() => {
@@ -536,6 +536,9 @@ export default function AirRifleGame() {
     let windX = 0, windY = 0;
     let windTimer = 0;
     let windTargetX = 0, windTargetY = 0;
+
+    const moving = !!(mode === "career" && careerLevel?.moving);
+    const hardcore = !!(mode === "career" && careerLevel?.hardcore);
 
     const loop = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
@@ -554,25 +557,22 @@ export default function AirRifleGame() {
       const jacketMul = hasUpgrade("jacket") ? 0.8 : 1;
       const gloveMul  = hasUpgrade("glove")  ? 0.7 : 1;
 
-      const baseAmp = d.amplitude * jacketMul;
-      // figure-8 sway (rifle) or sharper chaotic sway (pistol)
+      const hardcoreAmpMul = hardcore ? 1.6 : 1;
+      const baseAmp = d.amplitude * jacketMul * hardcoreAmpMul;
       let swayX: number, swayY: number;
       if (d.sight === "diopter") {
         swayX = Math.sin(t * 1.8) * baseAmp + Math.sin(t * 4.2) * baseAmp * 0.35;
         swayY = Math.sin(t * 3.6) * baseAmp * 0.55 + Math.cos(t * 2.1) * baseAmp * 0.4;
       } else {
-        // pistol: bigger faster, less coherent
         swayX = Math.sin(t * 2.4) * baseAmp * 0.9 + Math.sin(t * 5.7) * baseAmp * 0.5;
         swayY = Math.cos(t * 2.9) * baseAmp * 0.9 + Math.sin(t * 6.3) * baseAmp * 0.4;
       }
 
-      // 25m rapid: hard kicks
       if (d.id === "rfp25" && Math.random() < 0.04) {
         swayX += (Math.random() - 0.5) * baseAmp * 1.2;
         swayY += (Math.random() - 0.5) * baseAmp * 1.2;
       }
 
-      // heartbeat micro-jerk
       const beatPhase = (t % 0.75) / 0.75;
       const pulse = Math.exp(-Math.pow((beatPhase - 0.1) * 9, 2)) * d.pulseAmp * gloveMul;
       const pulseX = pulse * Math.sin(t * 13);
@@ -582,14 +582,15 @@ export default function AirRifleGame() {
       const jx = (Math.random() - 0.5) * jitter;
       const jy = (Math.random() - 0.5) * jitter;
 
-      // Wind drift (50m / 25m)
-      if (d.wind > 0) {
+      // Wind drift (50m / 25m / hardcore L3)
+      const effectiveWind = hardcore ? Math.max(d.wind, 0.6) * 1.8 : d.wind;
+      if (effectiveWind > 0) {
         windTimer -= dt;
         if (windTimer <= 0) {
           windTimer = 1.5 + Math.random() * 2;
           const ang = Math.random() * Math.PI * 2;
-          windTargetX = Math.cos(ang) * d.wind * 14;
-          windTargetY = Math.sin(ang) * d.wind * 14;
+          windTargetX = Math.cos(ang) * effectiveWind * 14;
+          windTargetY = Math.sin(ang) * effectiveWind * 14;
         }
         windX += (windTargetX - windX) * dt * 1.2;
         windY += (windTargetY - windY) * dt * 1.2;
@@ -606,11 +607,23 @@ export default function AirRifleGame() {
       sightRef.current = next;
       setSight(next);
 
+      // Moving target (Running Boar): smooth horizontal sweep
+      if (moving) {
+        const range = size * 0.32; // ±~33% of arena
+        const speed = 0.55; // rad/s
+        const off = Math.sin(t * speed) * range;
+        targetOffsetRef.current = off;
+        setTargetOffsetX(off);
+      } else if (targetOffsetRef.current !== 0) {
+        targetOffsetRef.current = 0;
+        setTargetOffsetX(0);
+      }
+
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [phase, holding, holdStart, mouse, discipline, progress.upgrades, holdWindow]);
+  }, [phase, holding, holdStart, mouse, discipline, progress.upgrades, holdWindow, mode, careerLevel]);
 
   // Fire
   const fire = useCallback(() => {
@@ -625,13 +638,20 @@ export default function AirRifleGame() {
     const center = d.targetPx / 2;
     const hitX = sightRef.current.x;
     const hitY = sightRef.current.y;
-    const dx = hitX - center;
+    const offX = targetOffsetRef.current;
+    // hit relative to current target center
+    const dx = hitX - (center + offX);
     const dy = hitY - center;
     const distPx = Math.hypot(dx, dy);
-    const sc = computeDecimalScore(distPx, d);
+
+    const useInteger = mode === "career" && careerLevel?.scoring === "integer";
+    const scRaw = useInteger ? computeIntegerScore(distPx, d) : computeDecimalScore(distPx, d);
+    const sc = useInteger ? scRaw : +scRaw.toFixed(1);
+
     const id = ++holeIdRef.current;
     const gold = !!equippedSkin.goldHalo;
-    setHoles((h) => [...h, { x: hitX, y: hitY, score: sc, id, gold }]);
+    // store hole in target-local space so it moves with target
+    setHoles((h) => [...h, { x: hitX - offX, y: hitY, score: sc, id, gold }]);
     if (gold) {
       setTimeout(() => {
         setHoles((h) => h.map((hh) => (hh.id === id ? { ...hh, gold: false } : hh)));
@@ -644,11 +664,14 @@ export default function AirRifleGame() {
     setScore((s) => +(s + sc).toFixed(1));
     setShotHistory((h) => [...h, { n: shotNum, score: sc, discipline: d.short, id }]);
 
-    const bonus = timeBonusForShot(sc);
-    if (bonus > 0) setTimeLeft((t) => Math.min(120, +(t + bonus).toFixed(2)));
+    // Time bonus — only in quick mode
+    if (mode === "quick") {
+      const bonus = timeBonusForShot(sc);
+      if (bonus > 0) setTimeLeft((t) => Math.min(120, +(t + bonus).toFixed(2)));
+    }
 
     const earned = creditsForShot(sc);
-    const gotPerfect = sc === 10.9;
+    const gotPerfect = useInteger ? sc === 10 : sc === 10.9;
     setProgress((p) => ({
       ...p,
       credits: p.credits + earned,
@@ -662,23 +685,17 @@ export default function AirRifleGame() {
       playSfx(A.crowd);
       setPerfect(true);
       setTimeout(() => setPerfect(false), 1800);
-      // Confetti burst
       const rect = arenaRef.current?.getBoundingClientRect();
       if (rect) {
         const cx = (rect.left + hitX) / window.innerWidth;
         const cy = (rect.top + hitY) / window.innerHeight;
         confetti({
-          particleCount: 140,
-          spread: 110,
-          startVelocity: 55,
+          particleCount: 140, spread: 110, startVelocity: 55,
           origin: { x: cx, y: cy },
-          colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"],
-          ticks: 220,
+          colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"], ticks: 220,
         });
         confetti({
-          particleCount: 80,
-          spread: 70,
-          startVelocity: 35,
+          particleCount: 80, spread: 70, startVelocity: 35,
           origin: { x: cx, y: cy },
           colors: ["#f0c14a", "#ffffff"],
         });
@@ -686,10 +703,38 @@ export default function AirRifleGame() {
     }
     setHolding(false);
     setHoldStart(null);
-  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots]);
+
+    // Career: end of level when shots limit reached
+    if (mode === "career" && careerLevel && shotNum >= careerLevel.shots) {
+      const finalScore = +(score + sc).toFixed(1);
+      const won = finalScore >= careerLevel.winScore;
+      setTimeout(() => {
+        setCareerResult({ won, score: finalScore, level: careerLevel });
+        setPhase("gameover");
+        if (won) {
+          playSfx(A.crowd);
+          setProgress((p) => ({
+            ...p,
+            credits: p.credits + CAREER_WIN_BONUS,
+            careerCompleted: Math.max(p.careerCompleted, careerLevel.id),
+          }));
+          confetti({
+            particleCount: 220, spread: 140, startVelocity: 60,
+            origin: { x: 0.5, y: 0.5 },
+            colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"],
+          });
+        } else {
+          playSfx(A.gameOver);
+        }
+      }, 600);
+    }
+  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score]);
 
   // ----- actions -----
   const startMatch = (d: Discipline) => {
+    setMode("quick");
+    setCareerLevel(null);
+    setCareerResult(null);
     setDiscipline(d);
     setPhase("playing");
     setHoles([]);
@@ -702,16 +747,41 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
+    targetOffsetRef.current = 0;
+    setTargetOffsetX(0);
+  };
+
+  const startCareerLevel = (lvl: CareerLevel) => {
+    const d = DISCIPLINES.find((x) => x.id === lvl.disciplineId) ?? DISCIPLINES[0];
+    setMode("career");
+    setCareerLevel(lvl);
+    setCareerResult(null);
+    setDiscipline(d);
+    setPhase("playing");
+    setHoles([]);
+    setShotHistory([]);
+    setScore(0);
+    setPerfectCount(0);
+    setTotalShots(0);
+    setLastShot(null);
+    setTimeLeft(999);
+    setLoaded(true);
+    setReloading(false);
+    setShopOpen(false);
+    targetOffsetRef.current = 0;
+    setTargetOffsetX(0);
   };
 
   const backToMenu = () => {
     setPhase("menu");
     setHoles([]);
+    setCareerResult(null);
   };
 
   const resetTarget = () => {
     setHoles([]);
   };
+
 
   const buySkin = (s: Skin) => {
     if (progress.owned.includes(s.id) || progress.credits < s.price) return;
