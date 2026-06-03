@@ -826,64 +826,48 @@ export default function AirRifleGame() {
 
   return (
     <div className="min-h-screen bg-background text-foreground select-none overflow-hidden">
-      {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-3 py-2 md:px-6 md:py-3 gap-2 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
-          <span className="text-xs font-bold tracking-[0.3em] text-muted-foreground">LIVE</span>
-          <span className="text-xs font-semibold tracking-widest text-foreground">
-            {phase === "menu" ? "ОЛИМПИЙСКИЙ ТИР · ВЫБОР ДИСЦИПЛИНЫ" : discipline.short + " · OLYMPIC RANGE"}
-          </span>
-        </div>
-        <div className="flex items-center gap-4 text-xs font-mono">
-          {phase === "playing" && mode === "quick" && (
-            <div className={`px-2 py-0.5 border ${timeCritical ? "border-destructive text-destructive animate-pulse" : "border-primary text-primary"}`}>
-              <span className="text-muted-foreground mr-2">ВРЕМЯ</span>
-              <span className="font-bold tabular-nums">{timeLeft.toFixed(1)}s</span>
-            </div>
-          )}
-          {phase === "playing" && mode === "career" && careerLevel && (
-            <div className="px-2 py-0.5 border border-primary text-primary">
-              <span className="text-muted-foreground mr-2">ВЫСТРЕЛ</span>
-              <span className="font-bold tabular-nums">{totalShots}/{careerLevel.shots}</span>
-              <span className="text-muted-foreground ml-2">ЦЕЛЬ</span>
-              <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
-            </div>
-          )}
-          <div>
-            <span className="text-muted-foreground mr-2">SCORE</span>
-            <span className="font-bold text-primary tabular-nums">{score.toFixed(1)}</span>
+      {/* Top bar — visible only on Shooting Range screen */}
+      {phase !== "menu" && (
+        <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-3 py-2 md:px-6 md:py-3 gap-2 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
+            <span className="text-xs font-bold tracking-[0.3em] text-muted-foreground">LIVE</span>
+            <span className="text-xs font-semibold tracking-widest text-foreground">
+              {discipline.short} · OLYMPIC RANGE
+            </span>
           </div>
-          <div>
-            <span className="text-muted-foreground mr-2">CR</span>
-            <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits}</span>
-          </div>
-          {phase === "playing" && (
+          <div className="flex items-center gap-4 text-xs font-mono">
+            {phase === "playing" && mode === "quick" && (
+              <div className={`px-2 py-0.5 border ${timeCritical ? "border-destructive text-destructive animate-pulse" : "border-primary text-primary"}`}>
+                <span className="text-muted-foreground mr-2">ВРЕМЯ</span>
+                <span className="font-bold tabular-nums">{timeLeft.toFixed(1)}s</span>
+              </div>
+            )}
+            {phase === "playing" && mode === "career" && careerLevel && (
+              <div className="px-2 py-0.5 border border-primary text-primary">
+                <span className="text-muted-foreground mr-2">ВЫСТРЕЛ</span>
+                <span className="font-bold tabular-nums">{totalShots}/{careerLevel.shots}</span>
+                <span className="text-muted-foreground ml-2">ЦЕЛЬ</span>
+                <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
+              </div>
+            )}
+            <div>
+              <span className="text-muted-foreground mr-2">SCORE</span>
+              <span className="font-bold text-primary tabular-nums">{score.toFixed(1)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground mr-2">CR</span>
+              <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits}</span>
+            </div>
             <button
               onClick={backToMenu}
-              className="border border-border px-3 py-1.5 hover:bg-secondary transition-colors tracking-widest"
+              className="border border-primary text-primary font-bold px-3 py-1.5 hover:bg-primary hover:text-primary-foreground transition-colors tracking-widest"
             >
-              МЕНЮ
+              ← НАЗАД В МЕНЮ
             </button>
-          )}
-          <button
-            onClick={() => setShopOpen(true)}
-            className="bg-primary text-primary-foreground font-bold tracking-widest px-3 py-1.5 hover:bg-[var(--gold-bright)] transition-colors"
-          >
-            МАГАЗИН
-          </button>
-          {mounted ? (
-            <Link
-              to={user ? "/profile" : "/auth"}
-              className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-3 py-1.5 hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
-            >
-              {user ? "ПРОФИЛЬ" : "ВОЙТИ"}
-            </Link>
-          ) : (
-            <div className="w-20 h-7 border border-border/40" />
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* MENU */}
       {phase === "menu" && (
