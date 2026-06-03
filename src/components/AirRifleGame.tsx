@@ -868,7 +868,9 @@ export default function AirRifleGame() {
       {phase === "menu" && (
         <DisciplineMenu
           onPick={startMatch}
+          onPickCareer={startCareerLevel}
           credits={progress.credits}
+          careerCompleted={progress.careerCompleted}
         />
       )}
 
