@@ -988,10 +988,44 @@ export default function AirRifleGame() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
           {/* Range */}
           <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
-            <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10">
-              <div className="bg-[var(--navy-deep)]/90 px-2 py-1 md:px-3 md:py-1.5 text-foreground border-l-2 border-primary">
-                <span className="text-[9px] tracking-widest text-muted-foreground mr-2 hidden sm:inline">ДИСЦИПЛИНА</span>
-                <span className="font-bold">{discipline.short}</span>
+            <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10 gap-2">
+              <div className="flex items-center gap-2">
+                <div className="bg-[var(--navy-deep)]/90 px-2 py-1 md:px-3 md:py-1.5 text-foreground border-l-2 border-primary">
+                  <span className="text-[9px] tracking-widest text-muted-foreground mr-2 hidden sm:inline">ДИСЦИПЛИНА</span>
+                  <span className="font-bold">{discipline.short}</span>
+                </div>
+                {/* Mode toggle: Sighting / Match */}
+                <div className="flex bg-[var(--navy-deep)]/90 border border-border overflow-hidden">
+                  <button
+                    type="button"
+                    disabled={hasMatchShot}
+                    onClick={() => {
+                      if (!hasMatchShot && sessionMode !== "sighting") {
+                        // Reverting from match back is blocked anyway, just no-op
+                      }
+                    }}
+                    title={hasMatchShot ? "Зачёт уже начался — возврат запрещён" : "Пробные выстрелы (без зачёта)"}
+                    className={`px-2 py-1 md:px-3 md:py-1.5 font-bold tracking-widest text-[10px] md:text-[11px] transition-colors ${
+                      sessionMode === "sighting"
+                        ? "bg-destructive/80 text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
+                    } ${hasMatchShot ? "opacity-40 cursor-not-allowed" : ""}`}
+                  >
+                    ПРОБНЫЕ
+                  </button>
+                  <button
+                    type="button"
+                    onClick={switchToMatch}
+                    title="Перейти в зачётный режим (мишень очистится, таймер запустится)"
+                    className={`px-2 py-1 md:px-3 md:py-1.5 font-bold tracking-widest text-[10px] md:text-[11px] transition-colors ${
+                      sessionMode === "match"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-primary hover:bg-primary/20"
+                    }`}
+                  >
+                    ЗАЧЁТ
+                  </button>
+                </div>
               </div>
               <button
                 onClick={resetTarget}
@@ -1001,6 +1035,44 @@ export default function AirRifleGame() {
                 <span>👁</span> <span className="hidden sm:inline">СБРОСИТЬ МИШЕНЬ</span><span className="sm:hidden">СБРОС</span>
               </button>
             </div>
+
+            {/* Sight Adjustment turret — bottom-left of arena */}
+            <div className="absolute left-2 md:left-4 bottom-20 md:bottom-24 z-20 pointer-events-auto">
+              <div className="bg-[var(--navy-deep)]/95 border border-primary/60 px-2 py-2 font-mono text-foreground shadow-xl">
+                <div className="text-[9px] tracking-widest text-muted-foreground text-center mb-1">ПОПРАВКИ · 4 клика = 1 габарит</div>
+                <div className="grid grid-cols-3 gap-1 w-[120px] mx-auto">
+                  <div />
+                  <button
+                    onClick={() => adjustSight("up")}
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    title="Вверх (попал вверху)"
+                  >▲</button>
+                  <div />
+                  <button
+                    onClick={() => adjustSight("left")}
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    title="Влево (попал слева)"
+                  >◀</button>
+                  <div className="aspect-square bg-[var(--navy-deep)] border border-border flex flex-col items-center justify-center text-[8px] leading-none text-muted-foreground">
+                    <div>X:<span className="text-primary tabular-nums ml-0.5">{adjX > 0 ? `+${adjX}` : adjX}</span></div>
+                    <div className="mt-0.5">Y:<span className="text-primary tabular-nums ml-0.5">{adjY > 0 ? `+${adjY}` : adjY}</span></div>
+                  </div>
+                  <button
+                    onClick={() => adjustSight("right")}
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    title="Вправо (попал справа)"
+                  >▶</button>
+                  <div />
+                  <button
+                    onClick={() => adjustSight("down")}
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    title="Вниз (попал внизу)"
+                  >▼</button>
+                  <div />
+                </div>
+              </div>
+            </div>
+
 
             <div
               ref={arenaRef}
