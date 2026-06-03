@@ -869,13 +869,18 @@ export default function AirRifleGame() {
         </div>
       )}
 
-      {/* MENU */}
+      {/* HOME SCREEN */}
       {phase === "menu" && (
-        <DisciplineMenu
-          onPick={startMatch}
+        <HomeScreen
           onPickCareer={startCareerLevel}
-          credits={progress.credits}
+          progress={progress}
           careerCompleted={progress.careerCompleted}
+          user={user}
+          mounted={mounted}
+          buySkin={buySkin}
+          equipSkin={equipSkin}
+          buyUpgrade={buyUpgrade}
+          hasUpgrade={hasUpgrade}
         />
       )}
 
