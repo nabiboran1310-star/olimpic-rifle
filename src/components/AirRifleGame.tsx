@@ -337,6 +337,13 @@ export default function AirRifleGame() {
   const [shopOpen, setShopOpen] = useState(false);
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
 
+  // Career mode
+  const [mode, setMode] = useState<"quick" | "career">("quick");
+  const [careerLevel, setCareerLevel] = useState<CareerLevel | null>(null);
+  const [careerResult, setCareerResult] = useState<{ won: boolean; score: number; level: CareerLevel } | null>(null);
+  const [targetOffsetX, setTargetOffsetX] = useState(0);
+  const targetOffsetRef = useRef(0);
+
   const tRef = useRef(0);
   const holeIdRef = useRef(0);
   const historyListRef = useRef<HTMLDivElement>(null);
