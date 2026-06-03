@@ -761,8 +761,14 @@ export default function AirRifleGame() {
     setLoaded(true);
     setReloading(false);
     setShopOpen(false);
-    targetOffsetRef.current = 0;
-    setTargetOffsetX(0);
+    if (d.id === "boar") {
+      boarRunRef.current = -d.targetPx * 0.5;
+      targetOffsetRef.current = boarRunRef.current;
+      setTargetOffsetX(boarRunRef.current);
+    } else {
+      targetOffsetRef.current = 0;
+      setTargetOffsetX(0);
+    }
   };
 
   const startCareerLevel = (lvl: CareerLevel) => {
