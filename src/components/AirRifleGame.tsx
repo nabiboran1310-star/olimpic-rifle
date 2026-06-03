@@ -483,7 +483,7 @@ export default function AirRifleGame() {
     setReloading(true);
     playSfx(A.boltOpen);
     // On Running Boar: reloading instantly resets the target back to the left start
-    if (mode === "career" && careerLevel?.moving) {
+    if ((mode === "career" && careerLevel?.moving) || discipline.id === "boar") {
       const startX = -discipline.targetPx * 0.5;
       boarRunRef.current = startX;
       targetOffsetRef.current = startX;
