@@ -482,6 +482,13 @@ export default function AirRifleGame() {
     if (loaded || reloading || phase !== "playing") return;
     setReloading(true);
     playSfx(A.boltOpen);
+    // On Running Boar: reloading instantly resets the target back to the left start
+    if (mode === "career" && careerLevel?.moving) {
+      const startX = -discipline.targetPx * 0.5;
+      boarRunRef.current = startX;
+      targetOffsetRef.current = startX;
+      setTargetOffsetX(startX);
+    }
     setTimeout(() => {
       playSfx(A.boltClose);
       setTimeout(() => {
@@ -489,7 +496,7 @@ export default function AirRifleGame() {
         setReloading(false);
       }, 180);
     }, 300);
-  }, [loaded, reloading, phase]);
+  }, [loaded, reloading, phase, mode, careerLevel, discipline]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
