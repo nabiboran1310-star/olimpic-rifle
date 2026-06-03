@@ -826,72 +826,61 @@ export default function AirRifleGame() {
 
   return (
     <div className="min-h-screen bg-background text-foreground select-none overflow-hidden">
-      {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-3 py-2 md:px-6 md:py-3 gap-2 flex-wrap">
-        <div className="flex items-center gap-3">
-          <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
-          <span className="text-xs font-bold tracking-[0.3em] text-muted-foreground">LIVE</span>
-          <span className="text-xs font-semibold tracking-widest text-foreground">
-            {phase === "menu" ? "ОЛИМПИЙСКИЙ ТИР · ВЫБОР ДИСЦИПЛИНЫ" : discipline.short + " · OLYMPIC RANGE"}
-          </span>
-        </div>
-        <div className="flex items-center gap-4 text-xs font-mono">
-          {phase === "playing" && mode === "quick" && (
-            <div className={`px-2 py-0.5 border ${timeCritical ? "border-destructive text-destructive animate-pulse" : "border-primary text-primary"}`}>
-              <span className="text-muted-foreground mr-2">ВРЕМЯ</span>
-              <span className="font-bold tabular-nums">{timeLeft.toFixed(1)}s</span>
-            </div>
-          )}
-          {phase === "playing" && mode === "career" && careerLevel && (
-            <div className="px-2 py-0.5 border border-primary text-primary">
-              <span className="text-muted-foreground mr-2">ВЫСТРЕЛ</span>
-              <span className="font-bold tabular-nums">{totalShots}/{careerLevel.shots}</span>
-              <span className="text-muted-foreground ml-2">ЦЕЛЬ</span>
-              <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
-            </div>
-          )}
-          <div>
-            <span className="text-muted-foreground mr-2">SCORE</span>
-            <span className="font-bold text-primary tabular-nums">{score.toFixed(1)}</span>
+      {/* Top bar — visible only on Shooting Range screen */}
+      {phase !== "menu" && (
+        <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-3 py-2 md:px-6 md:py-3 gap-2 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
+            <span className="text-xs font-bold tracking-[0.3em] text-muted-foreground">LIVE</span>
+            <span className="text-xs font-semibold tracking-widest text-foreground">
+              {discipline.short} · OLYMPIC RANGE
+            </span>
           </div>
-          <div>
-            <span className="text-muted-foreground mr-2">CR</span>
-            <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits}</span>
-          </div>
-          {phase === "playing" && (
+          <div className="flex items-center gap-4 text-xs font-mono">
+            {phase === "playing" && mode === "quick" && (
+              <div className={`px-2 py-0.5 border ${timeCritical ? "border-destructive text-destructive animate-pulse" : "border-primary text-primary"}`}>
+                <span className="text-muted-foreground mr-2">ВРЕМЯ</span>
+                <span className="font-bold tabular-nums">{timeLeft.toFixed(1)}s</span>
+              </div>
+            )}
+            {phase === "playing" && mode === "career" && careerLevel && (
+              <div className="px-2 py-0.5 border border-primary text-primary">
+                <span className="text-muted-foreground mr-2">ВЫСТРЕЛ</span>
+                <span className="font-bold tabular-nums">{totalShots}/{careerLevel.shots}</span>
+                <span className="text-muted-foreground ml-2">ЦЕЛЬ</span>
+                <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
+              </div>
+            )}
+            <div>
+              <span className="text-muted-foreground mr-2">SCORE</span>
+              <span className="font-bold text-primary tabular-nums">{score.toFixed(1)}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground mr-2">CR</span>
+              <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits}</span>
+            </div>
             <button
               onClick={backToMenu}
-              className="border border-border px-3 py-1.5 hover:bg-secondary transition-colors tracking-widest"
+              className="border border-primary text-primary font-bold px-3 py-1.5 hover:bg-primary hover:text-primary-foreground transition-colors tracking-widest"
             >
-              МЕНЮ
+              ← НАЗАД В МЕНЮ
             </button>
-          )}
-          <button
-            onClick={() => setShopOpen(true)}
-            className="bg-primary text-primary-foreground font-bold tracking-widest px-3 py-1.5 hover:bg-[var(--gold-bright)] transition-colors"
-          >
-            МАГАЗИН
-          </button>
-          {mounted ? (
-            <Link
-              to={user ? "/profile" : "/auth"}
-              className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-3 py-1.5 hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
-            >
-              {user ? "ПРОФИЛЬ" : "ВОЙТИ"}
-            </Link>
-          ) : (
-            <div className="w-20 h-7 border border-border/40" />
-          )}
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* MENU */}
+      {/* HOME SCREEN */}
       {phase === "menu" && (
-        <DisciplineMenu
-          onPick={startMatch}
+        <HomeScreen
           onPickCareer={startCareerLevel}
-          credits={progress.credits}
+          progress={progress}
           careerCompleted={progress.careerCompleted}
+          user={user}
+          mounted={mounted}
+          buySkin={buySkin}
+          equipSkin={equipSkin}
+          buyUpgrade={buyUpgrade}
+          hasUpgrade={hasUpgrade}
         />
       )}
 
@@ -1164,121 +1153,6 @@ export default function AirRifleGame() {
         </div>
       )}
 
-      {/* SHOP MODAL */}
-      <AnimatePresence>
-        {shopOpen && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-[var(--navy-deep)]/95 backdrop-blur-md flex items-center justify-center p-6"
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
-              className="w-full max-w-4xl bg-[var(--navy-mid)] border border-border shadow-2xl"
-            >
-              <div className="flex items-center justify-between border-b border-border bg-[var(--navy-deep)] px-6 py-4">
-                <div className="flex items-center gap-4">
-                  <div className="text-2xl font-black tracking-tight">МАГАЗИН</div>
-                  <div className="text-xs tracking-[0.3em] text-muted-foreground">OLYMPIC SHOP</div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="font-mono text-sm">
-                    <span className="text-muted-foreground mr-2">БАЛАНС</span>
-                    <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits} CR</span>
-                  </div>
-                  <button onClick={() => setShopOpen(false)} className="text-muted-foreground hover:text-foreground text-xl px-2">✕</button>
-                </div>
-              </div>
-
-              <div className="flex border-b border-border bg-[var(--navy-deep)]">
-                <TabBtn active={shopTab === "upgrades"} onClick={() => setShopTab("upgrades")}>УЛУЧШЕНИЯ</TabBtn>
-                <TabBtn active={shopTab === "skins"} onClick={() => setShopTab("skins")}>СКИНЫ ПРИЦЕЛА</TabBtn>
-              </div>
-
-              <div className="p-6 max-h-[60vh] overflow-auto">
-                {shopTab === "upgrades" && (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {UPGRADES.map((u) => {
-                      const owned = hasUpgrade(u.id);
-                      const canAfford = progress.credits >= u.price;
-                      return (
-                        <div key={u.id} className="bg-[var(--navy-deep)] border border-border/60 p-4 flex flex-col gap-3">
-                          <div>
-                            <div className="text-base font-bold tracking-wide">{u.name}</div>
-                            <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{u.desc}</div>
-                          </div>
-                          {owned ? (
-                            <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-2">✓ КУПЛЕНО</button>
-                          ) : (
-                            <button
-                              disabled={!canAfford} onClick={() => buyUpgrade(u)}
-                              className={`mt-auto font-bold tracking-widest py-2 transition-colors ${
-                                canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
-                                : "bg-muted text-muted-foreground cursor-not-allowed"
-                              }`}
-                            >КУПИТЬ · {u.price} CR</button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {shopTab === "skins" && (
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {SKINS.map((s) => {
-                      const owned = progress.owned.includes(s.id);
-                      const equipped = progress.equipped === s.id;
-                      const canAfford = progress.credits >= s.price;
-                      return (
-                        <div key={s.id} className="bg-[var(--navy-deep)] border border-border/60 p-4 flex flex-col gap-3">
-                          <div className="flex items-center gap-4">
-                            <div className="rounded-full shrink-0" style={{
-                              width: 48, height: 48, borderStyle: "solid", borderWidth: 3,
-                              borderColor: s.ring,
-                              boxShadow: s.glow ?? "0 0 0 1px rgba(255,255,255,0.08)",
-                            }} />
-                            <div className="flex-1">
-                              <div className="text-base font-bold tracking-wide">{s.name}</div>
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {s.goldHalo ? "Золотой ореол вокруг каждой пробоины."
-                                  : s.id === "default" ? "Базовый прицел стрелка."
-                                  : "Косметический скин прицела."}
-                              </div>
-                            </div>
-                          </div>
-                          {equipped ? (
-                            <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-2">✓ ЭКИПИРОВАН</button>
-                          ) : owned ? (
-                            <button onClick={() => equipSkin(s)} className="mt-auto bg-primary text-primary-foreground font-bold tracking-widest py-2 hover:bg-[var(--gold-bright)] transition-colors">ВЫБРАТЬ</button>
-                          ) : (
-                            <button
-                              disabled={!canAfford} onClick={() => buySkin(s)}
-                              className={`mt-auto font-bold tracking-widest py-2 transition-colors ${
-                                canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
-                                : "bg-muted text-muted-foreground cursor-not-allowed"
-                              }`}
-                            >КУПИТЬ · {s.price} CR</button>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              <div className="border-t border-border px-6 py-3 bg-[var(--navy-deep)] flex justify-between items-center">
-                <div className="text-[10px] text-muted-foreground tracking-widest">
-                  10.9 = +500 CR / +8s · 10.x = +100 CR / +4s · 9.x = +50 CR / +2s
-                </div>
-                <button
-                  onClick={() => setShopOpen(false)}
-                  className="bg-primary text-primary-foreground font-bold tracking-widest px-6 py-2 hover:bg-[var(--gold-bright)] transition-colors"
-                >ЗАКРЫТЬ</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
@@ -1287,120 +1161,186 @@ export default function AirRifleGame() {
 // Sub-components
 // ============================================================
 
-function DisciplineMenu({
-  onPick, onPickCareer, credits, careerCompleted,
+function HomeScreen({
+  onPickCareer, progress, careerCompleted, user, mounted,
+  buySkin, equipSkin, buyUpgrade, hasUpgrade,
 }: {
-  onPick: (d: Discipline) => void;
   onPickCareer: (lvl: CareerLevel) => void;
-  credits: number;
+  progress: Progress;
   careerCompleted: number;
+  user: any;
+  mounted: boolean;
+  buySkin: (s: Skin) => void;
+  equipSkin: (s: Skin) => void;
+  buyUpgrade: (u: Upgrade) => void;
+  hasUpgrade: (id: string) => boolean;
 }) {
-  const [tab, setTab] = useState<"quick" | "career">("quick");
+  const credits = progress.credits;
   return (
-    <div className="min-h-[calc(100vh-52px)] flex flex-col items-center justify-start px-6 py-10 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
-      <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-2">OLYMPIC SHOOTING SIMULATOR</div>
-      <h1 className="text-4xl md:text-6xl font-black tracking-tight text-center mb-2">
-        {tab === "quick" ? "ВЫБОР ДИСЦИПЛИНЫ" : "РЕЖИМ КАРЬЕРЫ"}
-      </h1>
-      <div className="text-xs text-muted-foreground mb-6 font-mono">
-        Баланс: <span className="text-[var(--gold-bright)] font-bold">{credits} CR</span>
+    <div className="min-h-screen flex flex-col items-center px-4 md:px-6 py-8 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
+      {/* Header row with profile */}
+      <div className="w-full max-w-6xl flex items-center justify-between mb-6">
+        <div>
+          <div className="text-[10px] tracking-[0.5em] text-primary font-bold">OLYMPIC SHOOTING SIMULATOR</div>
+          <div className="text-xs text-muted-foreground mt-1">Добро пожаловать, стрелок{user?.email ? `, ${user.email.split("@")[0]}` : ""}!</div>
+        </div>
+        {mounted && (
+          <Link
+            to={user ? "/profile" : "/auth"}
+            className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
+          >
+            {user ? "ПРОФИЛЬ" : "ВОЙТИ"}
+          </Link>
+        )}
       </div>
 
-      <div className="flex gap-2 mb-8">
-        <button
-          onClick={() => setTab("quick")}
-          className={`px-5 py-2 font-bold tracking-widest text-xs transition-colors border ${
-            tab === "quick" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
-          }`}
-        >БЫСТРАЯ ИГРА</button>
-        <button
-          onClick={() => setTab("career")}
-          className={`px-5 py-2 font-bold tracking-widest text-xs transition-colors border ${
-            tab === "career" ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
-          }`}
-        >КАРЬЕРА</button>
+      <h1 className="text-4xl md:text-6xl font-black tracking-tight text-center mb-2">ГЛАВНЫЙ ЭКРАН</h1>
+
+      {/* Player stats */}
+      <div className="w-full max-w-6xl grid grid-cols-3 gap-3 md:gap-4 my-6">
+        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
+          <div className="text-[10px] tracking-widest text-muted-foreground">КРЕДИТЫ</div>
+          <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{credits} <span className="text-sm text-muted-foreground">CR</span></div>
+        </div>
+        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
+          <div className="text-[10px] tracking-widest text-muted-foreground">ОБЩИЙ СЧЁТ</div>
+          <div className="text-2xl md:text-3xl font-black text-primary font-mono tabular-nums">{Number(progress.totalScore).toFixed(1)}</div>
+        </div>
+        <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
+          <div className="text-[10px] tracking-widest text-muted-foreground">ИДЕАЛЬНЫХ 10.9</div>
+          <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{progress.perfectTens}</div>
+        </div>
       </div>
 
-      {tab === "quick" && (
-        <>
-          <div className="text-sm text-muted-foreground mb-6 text-center">
-            Старт: <span className="text-foreground font-mono">30 секунд</span>. Точные выстрелы добавляют время.
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl w-full">
-            {DISCIPLINES.map((d) => (
+      {/* Career levels */}
+      <div className="w-full max-w-6xl">
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-xl md:text-2xl font-black tracking-tight">РЕЖИМ КАРЬЕРЫ</h2>
+          <div className="text-[10px] text-muted-foreground">За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span></div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {CAREER_LEVELS.map((lvl) => {
+            const unlocked = lvl.id === 1 || careerCompleted >= lvl.id - 1;
+            const done = careerCompleted >= lvl.id;
+            return (
               <button
-                key={d.id}
-                onClick={() => onPick(d)}
-                className="group text-left bg-[var(--navy-mid)] border border-border hover:border-primary transition-colors p-5 flex gap-4 items-start"
+                key={lvl.id}
+                disabled={!unlocked}
+                onClick={() => onPickCareer(lvl)}
+                className={`group text-left border p-4 flex flex-col gap-2 transition-colors min-h-[240px] ${
+                  !unlocked
+                    ? "bg-[var(--navy-deep)]/60 border-border/40 opacity-50 cursor-not-allowed"
+                    : done
+                      ? "bg-[var(--navy-mid)] border-[var(--gold-bright)] hover:border-primary"
+                      : "bg-[var(--navy-mid)] border-border hover:border-primary"
+                }`}
               >
-                <div className="shrink-0 w-20 h-20 rounded-full flex items-center justify-center bg-[var(--navy-deep)] border-2 border-primary/50 group-hover:border-primary">
-                  <MiniTargetIcon disciplineId={d.id} />
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{lvl.short}</div>
+                  {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">✓ ПРОЙДЕН</div>}
+                  {!unlocked && <div className="text-[10px] font-bold text-muted-foreground tracking-widest">🔒 ЗАКРЫТ</div>}
                 </div>
-                <div className="flex-1">
-                  <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{d.short}</div>
-                  <div className="text-xl font-black tracking-tight">{d.name}</div>
-                  <div className="text-xs text-muted-foreground mt-1 leading-relaxed">{d.caption}</div>
-                  <div className="mt-3 grid grid-cols-3 gap-2 text-[10px] font-mono">
-                    <MiniStat label="ПРИЦЕЛ" v={d.sight === "diopter" ? "ДИОПТР" : "ОТКР."} />
-                    <MiniStat label="ТРЕМОР" v={d.amplitude < 30 ? "СРЕДН." : d.amplitude < 50 ? "СИЛЬН." : "ХАОС"} />
-                    <MiniStat label="ВЕТЕР" v={d.wind > 0 ? "ДА" : "—"} />
-                  </div>
+                <div className="text-lg font-black tracking-tight">УРОВЕНЬ {lvl.id}</div>
+                <div className="text-sm font-bold">{lvl.name}</div>
+                <div className="text-xs text-muted-foreground leading-relaxed flex-1">{lvl.description}</div>
+                <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-auto">
+                  <MiniStat label="ВЫСТРЕЛЫ" v={String(lvl.shots)} />
+                  <MiniStat label="ОЧКИ" v={lvl.scoring === "integer" ? "ЦЕЛЫЕ" : "10.x"} />
+                  <MiniStat label="ЦЕЛЬ" v={String(lvl.winScore)} />
                 </div>
+                {!unlocked && (
+                  <div className="text-[10px] text-muted-foreground text-center">Пройдите уровень {lvl.id - 1}</div>
+                )}
               </button>
-            ))}
-          </div>
-        </>
-      )}
+            );
+          })}
+        </div>
+      </div>
 
-      {tab === "career" && (
-        <>
-          <div className="text-sm text-muted-foreground mb-6 text-center max-w-2xl">
-            Три уникальных уровня. У каждого свои правила подсчёта и механики. Уровни открываются последовательно. За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span>.
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl w-full">
-            {CAREER_LEVELS.map((lvl) => {
-              const unlocked = lvl.id === 1 || careerCompleted >= lvl.id - 1;
-              const done = careerCompleted >= lvl.id;
-              return (
-                <button
-                  key={lvl.id}
-                  disabled={!unlocked}
-                  onClick={() => onPickCareer(lvl)}
-                  className={`group text-left border p-5 flex flex-col gap-3 transition-colors min-h-[260px] ${
-                    !unlocked
-                      ? "bg-[var(--navy-deep)]/60 border-border/40 opacity-50 cursor-not-allowed"
-                      : done
-                        ? "bg-[var(--navy-mid)] border-[var(--gold-bright)] hover:border-primary"
-                        : "bg-[var(--navy-mid)] border-border hover:border-primary"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{lvl.short}</div>
-                    {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">✓ ПРОЙДЕН</div>}
-                    {!unlocked && <div className="text-[10px] font-bold text-muted-foreground tracking-widest">🔒 ЗАКРЫТ</div>}
-                  </div>
-                  <div className="text-xl font-black tracking-tight">УРОВЕНЬ {lvl.id}</div>
-                  <div className="text-base font-bold">{lvl.name}</div>
-                  <div className="text-xs text-muted-foreground leading-relaxed flex-1">{lvl.description}</div>
-                  <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-auto">
-                    <MiniStat label="ВЫСТРЕЛЫ" v={String(lvl.shots)} />
-                    <MiniStat label="ОЧКИ" v={lvl.scoring === "integer" ? "ЦЕЛЫЕ" : "10.x"} />
-                    <MiniStat label="ЦЕЛЬ" v={String(lvl.winScore)} />
-                  </div>
-                  {!unlocked && (
-                    <div className="text-[10px] text-muted-foreground text-center">
-                      Пройдите уровень {lvl.id - 1}
+      {/* Integrated shop */}
+      <div className="w-full max-w-6xl mt-10">
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-xl md:text-2xl font-black tracking-tight">МАГАЗИН</h2>
+          <div className="text-[10px] text-muted-foreground">10.9 = +500 CR · 10.x = +100 CR · 9.x = +50 CR</div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Upgrades */}
+          <div>
+            <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-2">УЛУЧШЕНИЯ</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {UPGRADES.map((u) => {
+                const owned = hasUpgrade(u.id);
+                const canAfford = credits >= u.price;
+                return (
+                  <div key={u.id} className="bg-[var(--navy-mid)] border border-border/60 p-3 flex flex-col gap-2">
+                    <div>
+                      <div className="text-sm font-bold tracking-wide">{u.name}</div>
+                      <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{u.desc}</div>
                     </div>
-                  )}
-                </button>
-              );
-            })}
+                    {owned ? (
+                      <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">✓ КУПЛЕНО</button>
+                    ) : (
+                      <button
+                        disabled={!canAfford} onClick={() => buyUpgrade(u)}
+                        className={`mt-auto font-bold tracking-widest py-1.5 text-xs transition-colors ${
+                          canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
+                          : "bg-muted text-muted-foreground cursor-not-allowed"
+                        }`}
+                      >КУПИТЬ · {u.price} CR</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </>
-      )}
+
+          {/* Skins */}
+          <div>
+            <div className="text-[10px] tracking-[0.4em] text-muted-foreground mb-2">СКИНЫ ПРИЦЕЛА</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {SKINS.map((s) => {
+                const owned = progress.owned.includes(s.id);
+                const equipped = progress.equipped === s.id;
+                const canAfford = credits >= s.price;
+                return (
+                  <div key={s.id} className="bg-[var(--navy-mid)] border border-border/60 p-3 flex flex-col gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="rounded-full shrink-0" style={{
+                        width: 36, height: 36, borderStyle: "solid", borderWidth: 3,
+                        borderColor: s.ring,
+                        boxShadow: s.glow ?? "0 0 0 1px rgba(255,255,255,0.08)",
+                      }} />
+                      <div className="flex-1">
+                        <div className="text-sm font-bold tracking-wide">{s.name}</div>
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {s.goldHalo ? "Золотой ореол." : s.id === "default" ? "Базовый прицел." : "Скин прицела."}
+                        </div>
+                      </div>
+                    </div>
+                    {equipped ? (
+                      <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">✓ ЭКИПИРОВАН</button>
+                    ) : owned ? (
+                      <button onClick={() => equipSkin(s)} className="mt-auto bg-primary text-primary-foreground font-bold tracking-widest py-1.5 text-xs hover:bg-[var(--gold-bright)] transition-colors">ВЫБРАТЬ</button>
+                    ) : (
+                      <button
+                        disabled={!canAfford} onClick={() => buySkin(s)}
+                        className={`mt-auto font-bold tracking-widest py-1.5 text-xs transition-colors ${
+                          canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
+                          : "bg-muted text-muted-foreground cursor-not-allowed"
+                        }`}
+                      >КУПИТЬ · {s.price} CR</button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="mt-8 text-[10px] tracking-widest text-muted-foreground text-center max-w-xl">
-        [ПКМ] Задержка дыхания · [ЛКМ] Выстрел (1 патрон) · [R] Перезарядка
+        [ПКМ] Задержка дыхания · [ЛКМ] Выстрел · [R] Перезарядка
       </div>
     </div>
   );
