@@ -1362,7 +1362,7 @@ export default function AirRifleGame() {
 
 function HomeScreen({
   onPickCareer, onPickQuick, progress, careerCompleted, user, mounted,
-  buySkin, equipSkin, buyUpgrade, hasUpgrade,
+  buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest,
 }: {
   onPickCareer: (lvl: CareerLevel) => void;
   onPickQuick: (d: Discipline) => void;
@@ -1374,9 +1374,26 @@ function HomeScreen({
   equipSkin: (s: Skin) => void;
   buyUpgrade: (u: Upgrade) => void;
   hasUpgrade: (id: string) => boolean;
+  isGuest: boolean;
+  onStartGuest: () => void;
 }) {
   const credits = progress.credits;
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
+  const [signInOpen, setSignInOpen] = useState(false);
+  const [guestWarnOpen, setGuestWarnOpen] = useState(false);
+  const signInRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!signInOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (signInRef.current && !signInRef.current.contains(e.target as Node)) {
+        setSignInOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, [signInOpen]);
 
   // Voltagent-inspired tokens — near-black canvas, single electric-green accent
   const VOLT = {
@@ -1396,17 +1413,109 @@ function HomeScreen({
       <div className="w-full max-w-6xl flex items-center justify-between mb-6">
         <div>
           <div className="text-[10px] tracking-[0.5em] text-primary font-bold">OLYMPIC SHOOTING SIMULATOR</div>
-          <div className="text-xs text-muted-foreground mt-1">Добро пожаловать, стрелок{user?.email ? `, ${user.email.split("@")[0]}` : ""}!</div>
+          <div className="text-xs text-muted-foreground mt-1">
+            Добро пожаловать, стрелок{user?.email ? `, ${user.email.split("@")[0]}` : ""}!
+            {isGuest && <span className="ml-2 text-[var(--gold-bright)]">• Режим гостя</span>}
+          </div>
         </div>
         {mounted && (
-          <Link
-            to={user ? "/profile" : "/auth"}
-            className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
-          >
-            {user ? "ПРОФИЛЬ" : "ВОЙТИ"}
-          </Link>
+          user ? (
+            <Link
+              to="/profile"
+              className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
+            >
+              ПРОФИЛЬ
+            </Link>
+          ) : (
+            <div ref={signInRef} className="relative">
+              <button
+                type="button"
+                onClick={() => setSignInOpen((v) => !v)}
+                className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors flex items-center gap-2"
+                aria-haspopup="menu"
+                aria-expanded={signInOpen}
+              >
+                ВОЙТИ
+                <span className={`inline-block transition-transform ${signInOpen ? "rotate-180" : ""}`}>▾</span>
+              </button>
+              <AnimatePresence>
+                {signInOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 mt-2 w-56 border border-[var(--gold-bright)]/50 bg-[var(--navy-deep)] shadow-xl z-50"
+                    role="menu"
+                  >
+                    <Link
+                      to="/auth"
+                      onClick={() => setSignInOpen(false)}
+                      className="block px-4 py-3 text-xs tracking-widest text-foreground hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors border-b border-border"
+                      role="menuitem"
+                    >
+                      ОСНОВНОЙ ВХОД
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => { setSignInOpen(false); setGuestWarnOpen(true); }}
+                      className="block w-full text-left px-4 py-3 text-xs tracking-widest text-muted-foreground hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
+                      role="menuitem"
+                    >
+                      ВОЙТИ КАК ГОСТЬ
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          )
         )}
       </div>
+
+      {/* Guest warning modal */}
+      <AnimatePresence>
+        {guestWarnOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
+            onClick={() => setGuestWarnOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-md bg-[var(--navy-mid)] border border-[var(--gold-bright)] p-6"
+            >
+              <div className="text-lg font-bold tracking-widest text-[var(--gold-bright)] mb-3">⚠️ РЕЖИМ ГОСТЯ</div>
+              <p className="text-sm text-foreground leading-relaxed mb-6">
+                В этом режиме ваш прогресс (заработанные кредиты, рекорды и купленные скины) <b>НЕ сохраняется</b> в браузере. После закрытия страницы все достижения будут сброшены. Желаете продолжить?
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setGuestWarnOpen(false)}
+                  className="border border-border text-foreground font-bold tracking-widest px-4 py-2 text-xs hover:bg-secondary transition-colors"
+                >
+                  ОТМЕНА
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setGuestWarnOpen(false); onStartGuest(); }}
+                  className="bg-[var(--gold-bright)] text-[var(--navy-deep)] font-bold tracking-widest px-4 py-2 text-xs hover:opacity-90 transition-opacity"
+                >
+                  ДА, ПРОДОЛЖИТЬ
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+
 
       <h1 className="text-4xl md:text-6xl font-black tracking-tight text-center mb-2">ГЛАВНЫЙ ЭКРАН</h1>
 
