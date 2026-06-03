@@ -326,8 +326,9 @@ function saveProgress(p: Progress) {
 const START_TIME = 30;
 
 type Phase = "menu" | "playing" | "gameover";
-type ShotRecord = { n: number; score: number; discipline: string; id: number };
-type Hole = { x: number; y: number; score: number; id: number; gold: boolean };
+type SessionMode = "sighting" | "match";
+type ShotRecord = { n: number; score: number; discipline: string; id: number; sighting?: boolean };
+type Hole = { x: number; y: number; score: number; id: number; gold: boolean; sighting?: boolean };
 
 export default function AirRifleGame() {
   const arenaRef = useRef<HTMLDivElement>(null);
