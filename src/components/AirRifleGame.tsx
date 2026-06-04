@@ -1154,6 +1154,7 @@ export default function AirRifleGame() {
         <HomeScreen
           onPickCareer={startCareerLevel}
           onPickQuick={startMatch}
+          onStartOlympic={startOlympicFinals}
           progress={progress}
           careerCompleted={progress.careerCompleted}
           user={user}
@@ -1165,6 +1166,7 @@ export default function AirRifleGame() {
           isGuest={isGuest}
           onStartGuest={startGuestSession}
         />
+
 
       )}
 
