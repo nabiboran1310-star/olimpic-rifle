@@ -269,7 +269,8 @@ type Skin = {
   ring: string; dot: string; glow?: string; goldHalo?: boolean;
 };
 const SKINS: Skin[] = [
-  { id: "default", name: "Стандартный спорт", price: 0, ring: "rgba(10,10,10,0.9)", dot: "rgba(0,0,0,0.95)" },
+  { id: "default", name: "Стандартный спорт", price: 0, ring: "#1a202c", dot: "#1a202c",
+    glow: "0 0 0 1px rgba(255,255,255,0.55)" },
   { id: "carbon", name: "Спортивный Карбон", price: 1500, ring: "#3a3f47", dot: "#1a1d22",
     glow: "inset 0 0 0 1px rgba(120,130,140,0.4)" },
   { id: "chrome", name: "Олимпийский Хром", price: 3500, ring: "#e8edf2", dot: "#9aa3ad",
