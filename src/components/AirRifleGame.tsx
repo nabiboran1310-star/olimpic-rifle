@@ -1625,11 +1625,12 @@ export default function AirRifleGame() {
 // ============================================================
 
 function HomeScreen({
-  onPickCareer, onPickQuick, progress, careerCompleted, user, mounted,
+  onPickCareer, onPickQuick, onStartOlympic, progress, careerCompleted, user, mounted,
   buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest,
 }: {
   onPickCareer: (lvl: CareerLevel) => void;
   onPickQuick: (d: Discipline) => void;
+  onStartOlympic: () => void;
   progress: Progress;
   careerCompleted: number;
   user: any;
