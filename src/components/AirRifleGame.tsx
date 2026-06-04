@@ -182,6 +182,40 @@ const CAREER_LEVELS: CareerLevel[] = [
 ];
 const CAREER_WIN_BONUS = 2000;
 
+// ============================================================
+// Olympic Finals Mode
+// ============================================================
+type Bot = {
+  id: string;
+  name: string;
+  country: string;
+  score: number;
+  eliminated: boolean;
+  favorite?: boolean;
+};
+const OLYMPIC_BOTS_INIT: Bot[] = [
+  { id: "cooper",  name: "J. Cooper",  country: "USA", score: 0, eliminated: false, favorite: true  },
+  { id: "chang",   name: "L. Chang",   country: "CHN", score: 0, eliminated: false, favorite: true  },
+  { id: "rossi",   name: "M. Rossi",   country: "ITA", score: 0, eliminated: false },
+  { id: "schmidt", name: "A. Schmidt", country: "GER", score: 0, eliminated: false },
+  { id: "tanaka",  name: "K. Tanaka",  country: "JPN", score: 0, eliminated: false },
+];
+const OLYMPIC_TOTAL_SHOTS = 10;
+const OLYMPIC_GOLD_BONUS = 5000;
+// After shot N -> last-place participant is eliminated. (Player counts.)
+const OLYMPIC_ELIM_SHOTS = new Set<number>([4, 6, 8]);
+
+function rollBotShot(favorite: boolean): number {
+  // Realistic Olympic final shot: 9.6..10.9 step 0.1.
+  // Favorites lean toward 10.4..10.9 about ~65% of the time.
+  if (favorite && Math.random() < 0.65) {
+    const steps = Math.round((10.9 - 10.4) * 10);
+    return +(10.4 + Math.round(Math.random() * steps) / 10).toFixed(1);
+  }
+  const steps = Math.round((10.9 - 9.6) * 10);
+  return +(9.6 + Math.round(Math.random() * steps) / 10).toFixed(1);
+}
+
 function timeBonusForShot(s: number): number {
   if (s === 10.9) return 8;
   if (s >= 10.0) return 4;
