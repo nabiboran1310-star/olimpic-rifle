@@ -408,12 +408,18 @@ export default function AirRifleGame() {
   const [isGuest, setIsGuest] = useState(false);
 
   // Career mode
-  const [mode, setMode] = useState<"quick" | "career">("quick");
+  const [mode, setMode] = useState<"quick" | "career" | "olympic">("quick");
   const [careerLevel, setCareerLevel] = useState<CareerLevel | null>(null);
   const [careerResult, setCareerResult] = useState<{ won: boolean; score: number; level: CareerLevel } | null>(null);
   const [targetOffsetX, setTargetOffsetX] = useState(0);
   const targetOffsetRef = useRef(0);
   const boarRunRef = useRef(-260); // starts off-screen left; set on level start
+
+  // Olympic Finals
+  const [bots, setBots] = useState<Bot[]>([]);
+  const botsRef = useRef<Bot[]>([]);
+  useEffect(() => { botsRef.current = bots; }, [bots]);
+  const [olympicResult, setOlympicResult] = useState<{ place: number; score: number; medal: "gold" | "silver" | "bronze" | null; eliminated: boolean } | null>(null);
 
   const tRef = useRef(0);
   const holeIdRef = useRef(0);
