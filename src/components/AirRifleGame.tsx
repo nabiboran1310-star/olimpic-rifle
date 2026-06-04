@@ -1405,7 +1405,58 @@ export default function AirRifleGame() {
             {phase === "gameover" && (
               <div className="absolute inset-0 flex items-center justify-center bg-[var(--navy-deep)]/95 backdrop-blur-sm z-40">
                 <div className="text-center space-y-6 px-8 max-w-lg">
-                  {careerResult ? (
+                  {olympicResult ? (
+                    <>
+                      {olympicResult.eliminated ? (
+                        <>
+                          <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
+                          <div className="text-5xl font-black tracking-tight text-destructive">ВЫ ВЫБЫЛИ</div>
+                          <div className="text-sm text-muted-foreground">
+                            Вы выбыли из финала на <span className="text-foreground font-bold">{olympicResult.place}-м</span> месте.
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                            <Stat label="МЕСТО" value={olympicResult.place} />
+                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                          </div>
+                        </>
+                      ) : olympicResult.medal === "gold" ? (
+                        <>
+                          <div className="text-[10px] tracking-[0.5em] text-[var(--gold-bright)] font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
+                          <div className="text-5xl md:text-6xl font-black tracking-tight text-[var(--gold-bright)]">ЧЕМПИОН! 🥇</div>
+                          <div className="text-lg text-[var(--gold-bright)] font-bold tracking-wide">+ {OLYMPIC_GOLD_BONUS} КРЕДИТОВ СУПЕР-БОНУСА</div>
+                          <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                            <Stat label="МЕСТО" value="1" />
+                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[10px] tracking-[0.5em] text-primary font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
+                          <div className="text-5xl font-black tracking-tight">
+                            {olympicResult.medal === "silver" ? "СЕРЕБРО 🥈" : olympicResult.medal === "bronze" ? "БРОНЗА 🥉" : `${olympicResult.place}-е МЕСТО`}
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                            <Stat label="МЕСТО" value={olympicResult.place} />
+                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                          </div>
+                        </>
+                      )}
+                      <div className="flex gap-3 justify-center pt-2 flex-wrap">
+                        <button
+                          onClick={startOlympicFinals}
+                          className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
+                        >
+                          ПОПРОБОВАТЬ СНОВА
+                        </button>
+                        <button
+                          onClick={backToMenu}
+                          className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
+                        >
+                          В МЕНЮ
+                        </button>
+                      </div>
+                    </>
+                  ) : careerResult ? (
                     <>
                       <div className={`text-[10px] tracking-[0.5em] font-bold ${careerResult.won ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
                         {careerResult.level.short}
