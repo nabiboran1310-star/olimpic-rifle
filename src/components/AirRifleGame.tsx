@@ -1005,6 +1005,37 @@ export default function AirRifleGame() {
     startCareerLevel(CAREER_LEVELS[0]);
   };
 
+  const startOlympicFinals = () => {
+    const d = DISCIPLINES.find((x) => x.id === "ar10") ?? DISCIPLINES[0];
+    setMode("olympic");
+    setCareerLevel(null);
+    setCareerResult(null);
+    setOlympicResult(null);
+    const fresh = OLYMPIC_BOTS_INIT.map((b) => ({ ...b, score: 0, eliminated: false }));
+    setBots(fresh);
+    botsRef.current = fresh;
+    setDiscipline(d);
+    setPhase("playing");
+    setHoles([]);
+    setShotHistory([]);
+    setScore(0);
+    setPerfectCount(0);
+    setTotalShots(0);
+    setLastShot(null);
+    setTimeLeft(999);
+    setLoaded(true);
+    setReloading(false);
+    setShopOpen(false);
+    setSessionMode("sighting");
+    setHasMatchShot(false);
+    randomizeSightError();
+    targetOffsetRef.current = 0;
+    setTargetOffsetX(0);
+    navigate({ to: "/range" });
+  };
+
+
+
 
 
   const backToMenu = () => {
