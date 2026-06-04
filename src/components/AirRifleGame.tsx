@@ -269,7 +269,8 @@ type Skin = {
   ring: string; dot: string; glow?: string; goldHalo?: boolean;
 };
 const SKINS: Skin[] = [
-  { id: "default", name: "Стандартный спорт", price: 0, ring: "rgba(10,10,10,0.9)", dot: "rgba(0,0,0,0.95)" },
+  { id: "default", name: "Стандартный спорт", price: 0, ring: "#1a202c", dot: "#1a202c",
+    glow: "0 0 0 1px rgba(255,255,255,0.55)" },
   { id: "carbon", name: "Спортивный Карбон", price: 1500, ring: "#3a3f47", dot: "#1a1d22",
     glow: "inset 0 0 0 1px rgba(120,130,140,0.4)" },
   { id: "chrome", name: "Олимпийский Хром", price: 3500, ring: "#e8edf2", dot: "#9aa3ad",
@@ -1856,7 +1857,7 @@ function DiopterSight({ x, y, inFocus, overHold, skin }:
   { x: number; y: number; inFocus: boolean; overHold: boolean; skin: Skin }) {
   const size = 38;
   return (
-    <div className="absolute pointer-events-none" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
+    <div className="absolute pointer-events-none z-50" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
       <div className="rounded-full" style={{
         width: size, height: size, borderStyle: "solid", borderWidth: 2.5,
         borderColor: inFocus ? "var(--gold)" : overHold ? "oklch(0.6 0.24 27)" : skin.ring,
@@ -1873,7 +1874,7 @@ function OpenSight({ x, y, inFocus, overHold, skin }:
   { x: number; y: number; inFocus: boolean; overHold: boolean; skin: Skin }) {
   const color = inFocus ? "var(--gold)" : overHold ? "oklch(0.6 0.24 27)" : skin.ring;
   return (
-    <div className="absolute pointer-events-none" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
+    <div className="absolute pointer-events-none z-50" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
       {/* front post */}
       <div style={{
         position: "absolute", left: -2, top: -16, width: 4, height: 22,
