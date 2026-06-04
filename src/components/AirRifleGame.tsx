@@ -841,7 +841,89 @@ export default function AirRifleGame() {
         }
       }, 600);
     }
+
+    // Olympic Finals: bot turn + eliminations
+    if (mode === "olympic") {
+      const playerScore = +(score + sc).toFixed(1);
+      setTimeout(() => runOlympicRound(shotNum, playerScore), 550);
+    }
   }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode]);
+
+  // ----- Olympic round helper -----
+  const runOlympicRound = (shotNum: number, playerScore: number) => {
+    // 1) Every active bot shoots.
+    const updatedBots = botsRef.current.map((b) =>
+      b.eliminated
+        ? b
+        : { ...b, score: +(b.score + rollBotShot(!!b.favorite)).toFixed(1) }
+    );
+
+    // 2) Elimination check after shots 4, 6, 8.
+    let nextBots = updatedBots;
+    let playerOut = false;
+    if (OLYMPIC_ELIM_SHOTS.has(shotNum)) {
+      const active = [
+        { id: "player", isPlayer: true, score: playerScore },
+        ...updatedBots.filter((b) => !b.eliminated).map((b) => ({ id: b.id, isPlayer: false, score: b.score })),
+      ];
+      active.sort((a, b) => a.score - b.score);
+      const loser = active[0];
+      if (loser.isPlayer) {
+        playerOut = true;
+      } else {
+        nextBots = updatedBots.map((b) => (b.id === loser.id ? { ...b, eliminated: true } : b));
+        playSfx(A.crowd); // bot dropped, player advances — short applause
+      }
+    }
+    setBots(nextBots);
+    botsRef.current = nextBots;
+
+    // 3) Player eliminated -> stop the match.
+    if (playerOut) {
+      playSfx(A.gameOver);
+      const standings = [
+        { id: "player", score: playerScore },
+        ...nextBots.map((b) => ({ id: b.id, score: b.score })),
+      ].sort((a, b) => b.score - a.score);
+      const place = standings.findIndex((p) => p.id === "player") + 1;
+      setOlympicResult({ place, score: playerScore, medal: null, eliminated: true });
+      setPhase("gameover");
+      return;
+    }
+
+    // 4) Finals after shot 10.
+    if (shotNum >= OLYMPIC_TOTAL_SHOTS) {
+      const finalists = [
+        { id: "player", score: playerScore },
+        ...nextBots.filter((b) => !b.eliminated).map((b) => ({ id: b.id, score: b.score })),
+      ].sort((a, b) => b.score - a.score);
+      const place = finalists.findIndex((p) => p.id === "player") + 1;
+      const medal = place === 1 ? "gold" : place === 2 ? "silver" : place === 3 ? "bronze" : null;
+      setOlympicResult({ place, score: playerScore, medal, eliminated: false });
+      setPhase("gameover");
+      if (place === 1) {
+        playSfx(A.crowd);
+        setProgress((p) => ({ ...p, credits: p.credits + OLYMPIC_GOLD_BONUS }));
+        confetti({
+          particleCount: 320, spread: 160, startVelocity: 70,
+          origin: { x: 0.5, y: 0.5 },
+          colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"],
+        });
+        setTimeout(() => confetti({
+          particleCount: 200, spread: 120, startVelocity: 55,
+          origin: { x: 0.3, y: 0.6 }, colors: ["#f0c14a", "#ffffff"],
+        }), 250);
+        setTimeout(() => confetti({
+          particleCount: 200, spread: 120, startVelocity: 55,
+          origin: { x: 0.7, y: 0.6 }, colors: ["#f0c14a", "#ffffff"],
+        }), 500);
+      } else if (place <= 3) {
+        playSfx(A.chime);
+      } else {
+        playSfx(A.gameOver);
+      }
+    }
+  };
 
   // ----- actions -----
   const randomizeSightError = () => {
