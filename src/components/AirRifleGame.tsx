@@ -1121,6 +1121,12 @@ export default function AirRifleGame() {
                 <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
               </div>
             )}
+            {phase === "playing" && mode === "olympic" && (
+              <div className="px-2 py-0.5 border border-[var(--gold-bright)] text-[var(--gold-bright)]">
+                <span className="text-muted-foreground mr-2">🏅 ФИНАЛ</span>
+                <span className="font-bold tabular-nums">{totalShots}/{OLYMPIC_TOTAL_SHOTS}</span>
+              </div>
+            )}
             <div>
               <span className="text-muted-foreground mr-2">SCORE</span>
               <span className="font-bold text-primary tabular-nums">{score.toFixed(1)}</span>
