@@ -1857,7 +1857,7 @@ function DiopterSight({ x, y, inFocus, overHold, skin }:
   { x: number; y: number; inFocus: boolean; overHold: boolean; skin: Skin }) {
   const size = 38;
   return (
-    <div className="absolute pointer-events-none" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
+    <div className="absolute pointer-events-none z-50" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
       <div className="rounded-full" style={{
         width: size, height: size, borderStyle: "solid", borderWidth: 2.5,
         borderColor: inFocus ? "var(--gold)" : overHold ? "oklch(0.6 0.24 27)" : skin.ring,
