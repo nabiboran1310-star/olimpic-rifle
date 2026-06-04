@@ -1221,6 +1221,57 @@ export default function AirRifleGame() {
               </button>
             </div>
 
+            {/* Olympic Finals — live leaderboard */}
+            {mode === "olympic" && (
+              <div className="absolute top-16 right-2 md:right-4 z-20 pointer-events-auto w-[200px] md:w-[230px]">
+                <div className="bg-[var(--navy-deep)]/95 border border-[var(--gold-bright)]/70 shadow-xl">
+                  <div className="px-3 py-2 border-b border-border bg-[var(--navy-mid)] flex items-center justify-between">
+                    <div className="text-[10px] tracking-widest text-[var(--gold-bright)] font-bold">🏅 ОЛИМП. ФИНАЛ</div>
+                    <div className="text-[9px] font-mono text-muted-foreground">{totalShots}/{OLYMPIC_TOTAL_SHOTS}</div>
+                  </div>
+                  <ul className="divide-y divide-border/60">
+                    {[
+                      { id: "player", name: "ВЫ", country: "PLR", score: score, eliminated: olympicResult?.eliminated ?? false, isPlayer: true, favorite: false },
+                      ...bots.map((b) => ({ id: b.id, name: b.name, country: b.country, score: b.score, eliminated: b.eliminated, isPlayer: false, favorite: !!b.favorite })),
+                    ]
+                      .slice()
+                      .sort((a, b) => {
+                        if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+                        return b.score - a.score;
+                      })
+                      .map((p, idx) => (
+                        <li
+                          key={p.id}
+                          className={`flex items-center gap-2 px-3 py-1.5 text-[11px] font-mono ${
+                            p.eliminated ? "opacity-40" : ""
+                          } ${p.isPlayer ? "bg-primary/10" : ""}`}
+                        >
+                          <span className={`w-4 text-center font-bold ${idx === 0 ? "text-[var(--gold-bright)]" : "text-muted-foreground"}`}>
+                            {idx + 1}
+                          </span>
+                          <span className="flex-1 truncate">
+                            <span className={p.isPlayer ? "text-primary font-bold" : "text-foreground"}>
+                              {p.name}
+                            </span>
+                            <span className="text-muted-foreground ml-1 text-[9px]">{p.country}</span>
+                            {p.favorite && !p.eliminated && <span className="ml-1 text-[var(--gold-bright)]">★</span>}
+                          </span>
+                          {p.eliminated ? (
+                            <span className="text-destructive font-bold text-[10px]">❌</span>
+                          ) : (
+                            <span className="tabular-nums font-bold text-foreground">{p.score.toFixed(1)}</span>
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                  <div className="px-3 py-1.5 border-t border-border text-[9px] text-muted-foreground tracking-wider">
+                    Выбывание: 4 · 6 · 8 выстрелы
+                  </div>
+                </div>
+              </div>
+            )}
+
+
             {/* Sight Adjustment turret — bottom-left of arena */}
             <div className="absolute left-2 md:left-4 bottom-20 md:bottom-24 z-20 pointer-events-auto">
               <div className="bg-[var(--navy-deep)]/95 border border-primary/60 px-2 py-2 font-mono text-foreground shadow-xl">
