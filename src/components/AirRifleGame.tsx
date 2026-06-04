@@ -597,7 +597,7 @@ export default function AirRifleGame() {
 
   // Game timer (only in quick mode AND match mode — paused during sighting)
   useEffect(() => {
-    if (phase !== "playing" || mode === "career" || sessionMode !== "match") return;
+    if (phase !== "playing" || mode !== "quick" || sessionMode !== "match") return;
     const t = setInterval(() => {
       setTimeLeft((tl) => {
         if (tl <= 0.1) {
