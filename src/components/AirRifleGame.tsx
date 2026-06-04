@@ -1888,8 +1888,36 @@ function HomeScreen({
         </div>
       </div>
 
+      {/* Olympic Finals — hardcore vs AI */}
+      <div className="w-full max-w-6xl mt-10">
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-xl md:text-2xl font-black tracking-tight">ОЛИМПИЙСКИЙ ФИНАЛ</h2>
+          <div className="text-[10px] text-muted-foreground">
+            За золото: <span className="text-[var(--gold-bright)] font-bold">+5000 CR</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onStartOlympic}
+          className="group relative w-full overflow-hidden border border-[var(--gold-bright)]/60 bg-gradient-to-r from-[var(--navy-deep)] via-[var(--navy-mid)] to-[var(--navy-deep)] hover:border-[var(--gold-bright)] transition-colors text-left p-5 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center"
+        >
+          <div className="text-5xl md:text-6xl shrink-0">🏅</div>
+          <div className="flex-1">
+            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-bold mb-1">HARDCORE · vs 5 AI</div>
+            <div className="text-xl md:text-2xl font-black tracking-tight">Olympic Finals · 10 выстрелов на выбывание</div>
+            <div className="text-xs md:text-sm text-muted-foreground mt-1 leading-relaxed max-w-2xl">
+              Винтовка 10м. После 4, 6 и 8 выстрелов слабейший участник выбывает. Дойдите до конца и заберите Олимпийское Золото у Cooper (USA), Chang (CHN), Rossi (ITA), Schmidt (GER) и Tanaka (JPN).
+            </div>
+          </div>
+          <div className="shrink-0 bg-[var(--gold-bright)] text-[var(--navy-deep)] font-bold tracking-widest px-5 py-3 text-xs md:text-sm group-hover:opacity-90">
+            ▶ ВЫЙТИ В ФИНАЛ
+          </div>
+        </button>
+      </div>
+
       {/* Career levels */}
       <div className="w-full max-w-6xl mt-10">
+
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-xl md:text-2xl font-black tracking-tight">РЕЖИМ КАРЬЕРЫ</h2>
           <div className="text-[10px] text-muted-foreground">За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span></div>
