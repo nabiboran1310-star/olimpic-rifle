@@ -182,6 +182,40 @@ const CAREER_LEVELS: CareerLevel[] = [
 ];
 const CAREER_WIN_BONUS = 2000;
 
+// ============================================================
+// Olympic Finals Mode
+// ============================================================
+type Bot = {
+  id: string;
+  name: string;
+  country: string;
+  score: number;
+  eliminated: boolean;
+  favorite?: boolean;
+};
+const OLYMPIC_BOTS_INIT: Bot[] = [
+  { id: "cooper",  name: "J. Cooper",  country: "USA", score: 0, eliminated: false, favorite: true  },
+  { id: "chang",   name: "L. Chang",   country: "CHN", score: 0, eliminated: false, favorite: true  },
+  { id: "rossi",   name: "M. Rossi",   country: "ITA", score: 0, eliminated: false },
+  { id: "schmidt", name: "A. Schmidt", country: "GER", score: 0, eliminated: false },
+  { id: "tanaka",  name: "K. Tanaka",  country: "JPN", score: 0, eliminated: false },
+];
+const OLYMPIC_TOTAL_SHOTS = 10;
+const OLYMPIC_GOLD_BONUS = 5000;
+// After shot N -> last-place participant is eliminated. (Player counts.)
+const OLYMPIC_ELIM_SHOTS = new Set<number>([4, 6, 8]);
+
+function rollBotShot(favorite: boolean): number {
+  // Realistic Olympic final shot: 9.6..10.9 step 0.1.
+  // Favorites lean toward 10.4..10.9 about ~65% of the time.
+  if (favorite && Math.random() < 0.65) {
+    const steps = Math.round((10.9 - 10.4) * 10);
+    return +(10.4 + Math.round(Math.random() * steps) / 10).toFixed(1);
+  }
+  const steps = Math.round((10.9 - 9.6) * 10);
+  return +(9.6 + Math.round(Math.random() * steps) / 10).toFixed(1);
+}
+
 function timeBonusForShot(s: number): number {
   if (s === 10.9) return 8;
   if (s >= 10.0) return 4;
@@ -374,12 +408,18 @@ export default function AirRifleGame() {
   const [isGuest, setIsGuest] = useState(false);
 
   // Career mode
-  const [mode, setMode] = useState<"quick" | "career">("quick");
+  const [mode, setMode] = useState<"quick" | "career" | "olympic">("quick");
   const [careerLevel, setCareerLevel] = useState<CareerLevel | null>(null);
   const [careerResult, setCareerResult] = useState<{ won: boolean; score: number; level: CareerLevel } | null>(null);
   const [targetOffsetX, setTargetOffsetX] = useState(0);
   const targetOffsetRef = useRef(0);
   const boarRunRef = useRef(-260); // starts off-screen left; set on level start
+
+  // Olympic Finals
+  const [bots, setBots] = useState<Bot[]>([]);
+  const botsRef = useRef<Bot[]>([]);
+  useEffect(() => { botsRef.current = bots; }, [bots]);
+  const [olympicResult, setOlympicResult] = useState<{ place: number; score: number; medal: "gold" | "silver" | "bronze" | null; eliminated: boolean } | null>(null);
 
   const tRef = useRef(0);
   const holeIdRef = useRef(0);
@@ -557,7 +597,7 @@ export default function AirRifleGame() {
 
   // Game timer (only in quick mode AND match mode — paused during sighting)
   useEffect(() => {
-    if (phase !== "playing" || mode === "career" || sessionMode !== "match") return;
+    if (phase !== "playing" || mode !== "quick" || sessionMode !== "match") return;
     const t = setInterval(() => {
       setTimeLeft((tl) => {
         if (tl <= 0.1) {
@@ -801,7 +841,89 @@ export default function AirRifleGame() {
         }
       }, 600);
     }
+
+    // Olympic Finals: bot turn + eliminations
+    if (mode === "olympic") {
+      const playerScore = +(score + sc).toFixed(1);
+      setTimeout(() => runOlympicRound(shotNum, playerScore), 550);
+    }
   }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode]);
+
+  // ----- Olympic round helper -----
+  const runOlympicRound = (shotNum: number, playerScore: number) => {
+    // 1) Every active bot shoots.
+    const updatedBots = botsRef.current.map((b) =>
+      b.eliminated
+        ? b
+        : { ...b, score: +(b.score + rollBotShot(!!b.favorite)).toFixed(1) }
+    );
+
+    // 2) Elimination check after shots 4, 6, 8.
+    let nextBots = updatedBots;
+    let playerOut = false;
+    if (OLYMPIC_ELIM_SHOTS.has(shotNum)) {
+      const active = [
+        { id: "player", isPlayer: true, score: playerScore },
+        ...updatedBots.filter((b) => !b.eliminated).map((b) => ({ id: b.id, isPlayer: false, score: b.score })),
+      ];
+      active.sort((a, b) => a.score - b.score);
+      const loser = active[0];
+      if (loser.isPlayer) {
+        playerOut = true;
+      } else {
+        nextBots = updatedBots.map((b) => (b.id === loser.id ? { ...b, eliminated: true } : b));
+        playSfx(A.crowd); // bot dropped, player advances — short applause
+      }
+    }
+    setBots(nextBots);
+    botsRef.current = nextBots;
+
+    // 3) Player eliminated -> stop the match.
+    if (playerOut) {
+      playSfx(A.gameOver);
+      const standings = [
+        { id: "player", score: playerScore },
+        ...nextBots.map((b) => ({ id: b.id, score: b.score })),
+      ].sort((a, b) => b.score - a.score);
+      const place = standings.findIndex((p) => p.id === "player") + 1;
+      setOlympicResult({ place, score: playerScore, medal: null, eliminated: true });
+      setPhase("gameover");
+      return;
+    }
+
+    // 4) Finals after shot 10.
+    if (shotNum >= OLYMPIC_TOTAL_SHOTS) {
+      const finalists = [
+        { id: "player", score: playerScore },
+        ...nextBots.filter((b) => !b.eliminated).map((b) => ({ id: b.id, score: b.score })),
+      ].sort((a, b) => b.score - a.score);
+      const place = finalists.findIndex((p) => p.id === "player") + 1;
+      const medal = place === 1 ? "gold" : place === 2 ? "silver" : place === 3 ? "bronze" : null;
+      setOlympicResult({ place, score: playerScore, medal, eliminated: false });
+      setPhase("gameover");
+      if (place === 1) {
+        playSfx(A.crowd);
+        setProgress((p) => ({ ...p, credits: p.credits + OLYMPIC_GOLD_BONUS }));
+        confetti({
+          particleCount: 320, spread: 160, startVelocity: 70,
+          origin: { x: 0.5, y: 0.5 },
+          colors: ["#f0c14a", "#ffe28a", "#ffffff", "#3b6fa0"],
+        });
+        setTimeout(() => confetti({
+          particleCount: 200, spread: 120, startVelocity: 55,
+          origin: { x: 0.3, y: 0.6 }, colors: ["#f0c14a", "#ffffff"],
+        }), 250);
+        setTimeout(() => confetti({
+          particleCount: 200, spread: 120, startVelocity: 55,
+          origin: { x: 0.7, y: 0.6 }, colors: ["#f0c14a", "#ffffff"],
+        }), 500);
+      } else if (place <= 3) {
+        playSfx(A.chime);
+      } else {
+        playSfx(A.gameOver);
+      }
+    }
+  };
 
   // ----- actions -----
   const randomizeSightError = () => {
@@ -882,6 +1004,37 @@ export default function AirRifleGame() {
     });
     startCareerLevel(CAREER_LEVELS[0]);
   };
+
+  const startOlympicFinals = () => {
+    const d = DISCIPLINES.find((x) => x.id === "ar10") ?? DISCIPLINES[0];
+    setMode("olympic");
+    setCareerLevel(null);
+    setCareerResult(null);
+    setOlympicResult(null);
+    const fresh = OLYMPIC_BOTS_INIT.map((b) => ({ ...b, score: 0, eliminated: false }));
+    setBots(fresh);
+    botsRef.current = fresh;
+    setDiscipline(d);
+    setPhase("playing");
+    setHoles([]);
+    setShotHistory([]);
+    setScore(0);
+    setPerfectCount(0);
+    setTotalShots(0);
+    setLastShot(null);
+    setTimeLeft(999);
+    setLoaded(true);
+    setReloading(false);
+    setShopOpen(false);
+    setSessionMode("sighting");
+    setHasMatchShot(false);
+    randomizeSightError();
+    targetOffsetRef.current = 0;
+    setTargetOffsetX(0);
+    navigate({ to: "/range" });
+  };
+
+
 
 
 
@@ -968,6 +1121,12 @@ export default function AirRifleGame() {
                 <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
               </div>
             )}
+            {phase === "playing" && mode === "olympic" && (
+              <div className="px-2 py-0.5 border border-[var(--gold-bright)] text-[var(--gold-bright)]">
+                <span className="text-muted-foreground mr-2">🏅 ФИНАЛ</span>
+                <span className="font-bold tabular-nums">{totalShots}/{OLYMPIC_TOTAL_SHOTS}</span>
+              </div>
+            )}
             <div>
               <span className="text-muted-foreground mr-2">SCORE</span>
               <span className="font-bold text-primary tabular-nums">{score.toFixed(1)}</span>
@@ -995,6 +1154,7 @@ export default function AirRifleGame() {
         <HomeScreen
           onPickCareer={startCareerLevel}
           onPickQuick={startMatch}
+          onStartOlympic={startOlympicFinals}
           progress={progress}
           careerCompleted={progress.careerCompleted}
           user={user}
@@ -1006,6 +1166,7 @@ export default function AirRifleGame() {
           isGuest={isGuest}
           onStartGuest={startGuestSession}
         />
+
 
       )}
 
@@ -1061,6 +1222,57 @@ export default function AirRifleGame() {
                 <span>👁</span> <span className="hidden sm:inline">СБРОСИТЬ МИШЕНЬ</span><span className="sm:hidden">СБРОС</span>
               </button>
             </div>
+
+            {/* Olympic Finals — live leaderboard */}
+            {mode === "olympic" && (
+              <div className="absolute top-16 right-2 md:right-4 z-20 pointer-events-auto w-[200px] md:w-[230px]">
+                <div className="bg-[var(--navy-deep)]/95 border border-[var(--gold-bright)]/70 shadow-xl">
+                  <div className="px-3 py-2 border-b border-border bg-[var(--navy-mid)] flex items-center justify-between">
+                    <div className="text-[10px] tracking-widest text-[var(--gold-bright)] font-bold">🏅 ОЛИМП. ФИНАЛ</div>
+                    <div className="text-[9px] font-mono text-muted-foreground">{totalShots}/{OLYMPIC_TOTAL_SHOTS}</div>
+                  </div>
+                  <ul className="divide-y divide-border/60">
+                    {[
+                      { id: "player", name: "ВЫ", country: "PLR", score: score, eliminated: olympicResult?.eliminated ?? false, isPlayer: true, favorite: false },
+                      ...bots.map((b) => ({ id: b.id, name: b.name, country: b.country, score: b.score, eliminated: b.eliminated, isPlayer: false, favorite: !!b.favorite })),
+                    ]
+                      .slice()
+                      .sort((a, b) => {
+                        if (a.eliminated !== b.eliminated) return a.eliminated ? 1 : -1;
+                        return b.score - a.score;
+                      })
+                      .map((p, idx) => (
+                        <li
+                          key={p.id}
+                          className={`flex items-center gap-2 px-3 py-1.5 text-[11px] font-mono ${
+                            p.eliminated ? "opacity-40" : ""
+                          } ${p.isPlayer ? "bg-primary/10" : ""}`}
+                        >
+                          <span className={`w-4 text-center font-bold ${idx === 0 ? "text-[var(--gold-bright)]" : "text-muted-foreground"}`}>
+                            {idx + 1}
+                          </span>
+                          <span className="flex-1 truncate">
+                            <span className={p.isPlayer ? "text-primary font-bold" : "text-foreground"}>
+                              {p.name}
+                            </span>
+                            <span className="text-muted-foreground ml-1 text-[9px]">{p.country}</span>
+                            {p.favorite && !p.eliminated && <span className="ml-1 text-[var(--gold-bright)]">★</span>}
+                          </span>
+                          {p.eliminated ? (
+                            <span className="text-destructive font-bold text-[10px]">❌</span>
+                          ) : (
+                            <span className="tabular-nums font-bold text-foreground">{p.score.toFixed(1)}</span>
+                          )}
+                        </li>
+                      ))}
+                  </ul>
+                  <div className="px-3 py-1.5 border-t border-border text-[9px] text-muted-foreground tracking-wider">
+                    Выбывание: 4 · 6 · 8 выстрелы
+                  </div>
+                </div>
+              </div>
+            )}
+
 
             {/* Sight Adjustment turret — bottom-left of arena */}
             <div className="absolute left-2 md:left-4 bottom-20 md:bottom-24 z-20 pointer-events-auto">
@@ -1195,7 +1407,58 @@ export default function AirRifleGame() {
             {phase === "gameover" && (
               <div className="absolute inset-0 flex items-center justify-center bg-[var(--navy-deep)]/95 backdrop-blur-sm z-40">
                 <div className="text-center space-y-6 px-8 max-w-lg">
-                  {careerResult ? (
+                  {olympicResult ? (
+                    <>
+                      {olympicResult.eliminated ? (
+                        <>
+                          <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
+                          <div className="text-5xl font-black tracking-tight text-destructive">ВЫ ВЫБЫЛИ</div>
+                          <div className="text-sm text-muted-foreground">
+                            Вы выбыли из финала на <span className="text-foreground font-bold">{olympicResult.place}-м</span> месте.
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                            <Stat label="МЕСТО" value={olympicResult.place} />
+                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                          </div>
+                        </>
+                      ) : olympicResult.medal === "gold" ? (
+                        <>
+                          <div className="text-[10px] tracking-[0.5em] text-[var(--gold-bright)] font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
+                          <div className="text-5xl md:text-6xl font-black tracking-tight text-[var(--gold-bright)]">ЧЕМПИОН! 🥇</div>
+                          <div className="text-lg text-[var(--gold-bright)] font-bold tracking-wide">+ {OLYMPIC_GOLD_BONUS} КРЕДИТОВ СУПЕР-БОНУСА</div>
+                          <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                            <Stat label="МЕСТО" value="1" />
+                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-[10px] tracking-[0.5em] text-primary font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
+                          <div className="text-5xl font-black tracking-tight">
+                            {olympicResult.medal === "silver" ? "СЕРЕБРО 🥈" : olympicResult.medal === "bronze" ? "БРОНЗА 🥉" : `${olympicResult.place}-е МЕСТО`}
+                          </div>
+                          <div className="grid grid-cols-2 gap-4 text-sm font-mono">
+                            <Stat label="МЕСТО" value={olympicResult.place} />
+                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                          </div>
+                        </>
+                      )}
+                      <div className="flex gap-3 justify-center pt-2 flex-wrap">
+                        <button
+                          onClick={startOlympicFinals}
+                          className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
+                        >
+                          ПОПРОБОВАТЬ СНОВА
+                        </button>
+                        <button
+                          onClick={backToMenu}
+                          className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
+                        >
+                          В МЕНЮ
+                        </button>
+                      </div>
+                    </>
+                  ) : careerResult ? (
                     <>
                       <div className={`text-[10px] tracking-[0.5em] font-bold ${careerResult.won ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
                         {careerResult.level.short}
@@ -1362,11 +1625,12 @@ export default function AirRifleGame() {
 // ============================================================
 
 function HomeScreen({
-  onPickCareer, onPickQuick, progress, careerCompleted, user, mounted,
+  onPickCareer, onPickQuick, onStartOlympic, progress, careerCompleted, user, mounted,
   buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest,
 }: {
   onPickCareer: (lvl: CareerLevel) => void;
   onPickQuick: (d: Discipline) => void;
+  onStartOlympic: () => void;
   progress: Progress;
   careerCompleted: number;
   user: any;
@@ -1624,8 +1888,36 @@ function HomeScreen({
         </div>
       </div>
 
+      {/* Olympic Finals — hardcore vs AI */}
+      <div className="w-full max-w-6xl mt-10">
+        <div className="flex items-baseline justify-between mb-3">
+          <h2 className="text-xl md:text-2xl font-black tracking-tight">ОЛИМПИЙСКИЙ ФИНАЛ</h2>
+          <div className="text-[10px] text-muted-foreground">
+            За золото: <span className="text-[var(--gold-bright)] font-bold">+5000 CR</span>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onStartOlympic}
+          className="group relative w-full overflow-hidden border border-[var(--gold-bright)]/60 bg-gradient-to-r from-[var(--navy-deep)] via-[var(--navy-mid)] to-[var(--navy-deep)] hover:border-[var(--gold-bright)] transition-colors text-left p-5 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center"
+        >
+          <div className="text-5xl md:text-6xl shrink-0">🏅</div>
+          <div className="flex-1">
+            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-bold mb-1">HARDCORE · vs 5 AI</div>
+            <div className="text-xl md:text-2xl font-black tracking-tight">Olympic Finals · 10 выстрелов на выбывание</div>
+            <div className="text-xs md:text-sm text-muted-foreground mt-1 leading-relaxed max-w-2xl">
+              Винтовка 10м. После 4, 6 и 8 выстрелов слабейший участник выбывает. Дойдите до конца и заберите Олимпийское Золото у Cooper (USA), Chang (CHN), Rossi (ITA), Schmidt (GER) и Tanaka (JPN).
+            </div>
+          </div>
+          <div className="shrink-0 bg-[var(--gold-bright)] text-[var(--navy-deep)] font-bold tracking-widest px-5 py-3 text-xs md:text-sm group-hover:opacity-90">
+            ▶ ВЫЙТИ В ФИНАЛ
+          </div>
+        </button>
+      </div>
+
       {/* Career levels */}
       <div className="w-full max-w-6xl mt-10">
+
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-xl md:text-2xl font-black tracking-tight">РЕЖИМ КАРЬЕРЫ</h2>
           <div className="text-[10px] text-muted-foreground">За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span></div>
