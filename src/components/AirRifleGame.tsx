@@ -1874,7 +1874,7 @@ function OpenSight({ x, y, inFocus, overHold, skin }:
   { x: number; y: number; inFocus: boolean; overHold: boolean; skin: Skin }) {
   const color = inFocus ? "var(--gold)" : overHold ? "oklch(0.6 0.24 27)" : skin.ring;
   return (
-    <div className="absolute pointer-events-none" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
+    <div className="absolute pointer-events-none z-50" style={{ left: x, top: y, transform: "translate(-50%,-50%)" }}>
       {/* front post */}
       <div style={{
         position: "absolute", left: -2, top: -16, width: 4, height: 22,
