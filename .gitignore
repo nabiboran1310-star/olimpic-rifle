@@ -26,6 +26,9 @@ VERCEL_ENV_VALUES.local.md
 .wrangler/
 .dev.vars
 
+# Supabase CLI local state
+supabase/.temp/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
