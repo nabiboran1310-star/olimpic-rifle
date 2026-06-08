@@ -5,9 +5,28 @@ import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/auth")({
-  head: () => ({ meta: [{ title: "Вход — Olympic Rifle Simulator" }] }),
+  head: () => ({ meta: [{ title: "Вход - Olympic Rifle Simulator" }] }),
   component: AuthPage,
 });
+
+function getAuthErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("email not confirmed")) {
+    return "Email еще не подтвержден. Откройте письмо от Supabase и подтвердите аккаунт, затем войдите снова.";
+  }
+
+  if (normalized.includes("invalid login credentials")) {
+    return "Неверный email или пароль. Проверьте данные и попробуйте снова.";
+  }
+
+  if (normalized.includes("signup disabled")) {
+    return "Регистрация отключена в настройках Supabase Auth.";
+  }
+
+  return message || "Ошибка авторизации";
+}
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -29,9 +48,10 @@ function AuthPage() {
     setErr(null);
     setMsg(null);
     setBusy(true);
+
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -39,15 +59,23 @@ function AuthPage() {
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
+
         if (error) throw error;
-        setMsg("Аккаунт создан. Проверьте почту для подтверждения, затем войдите.");
+
+        if (data.session) {
+          navigate({ to: "/profile" });
+          return;
+        }
+
+        setMsg("Аккаунт создан. Подтвердите email через письмо от Supabase, затем войдите.");
+        setMode("signin");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate({ to: "/profile" });
       }
-    } catch (e: any) {
-      setErr(e.message || "Ошибка");
+    } catch (error) {
+      setErr(getAuthErrorMessage(error));
     } finally {
       setBusy(false);
     }
@@ -56,15 +84,17 @@ function AuthPage() {
   const signInWithGoogle = async () => {
     setErr(null);
     setBusy(true);
+
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
         redirect_uri: window.location.origin,
       });
+
       if (result.error) throw result.error;
       if (result.redirected) return;
       navigate({ to: "/profile" });
-    } catch (e: any) {
-      setErr(e.message || "Ошибка Google входа");
+    } catch (error) {
+      setErr(getAuthErrorMessage(error));
     } finally {
       setBusy(false);
     }
