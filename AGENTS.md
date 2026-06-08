@@ -32,6 +32,8 @@
   browser.
 - `VITE_SUPABASE_PROJECT_ID` is the project ref, the part before
   `.supabase.co`.
+- `VITE_AUTH_REDIRECT_URL` is the public app URL used for Supabase email/OAuth
+  redirects in deployed environments. It must not be `localhost` on Vercel.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only. Never put it in frontend code,
   `VITE_*`, `.env.example` values, or public docs.
 - Only require a service role key when a real backend admin action must bypass

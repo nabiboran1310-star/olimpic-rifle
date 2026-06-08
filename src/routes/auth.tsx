@@ -31,6 +31,7 @@ function getAuthErrorMessage(error: unknown) {
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
+  const authRedirectUrl = import.meta.env.VITE_AUTH_REDIRECT_URL || window.location.origin;
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -55,7 +56,7 @@ function AuthPage() {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
+            emailRedirectTo: authRedirectUrl,
             data: { display_name: displayName || email.split("@")[0] },
           },
         });
@@ -87,7 +88,7 @@ function AuthPage() {
 
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: authRedirectUrl,
       });
 
       if (result.error) throw result.error;

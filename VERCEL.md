@@ -23,6 +23,7 @@ SUPABASE_PUBLISHABLE_KEY=
 VITE_SUPABASE_PROJECT_ID=
 VITE_SUPABASE_URL=
 VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_AUTH_REDIRECT_URL=
 ```
 
 Where to get each value:
@@ -38,6 +39,9 @@ Where to get each value:
 - `VITE_SUPABASE_PUBLISHABLE_KEY`: same anon/public key as
   `SUPABASE_PUBLISHABLE_KEY`; this is public because it is exposed to the
   browser.
+- `VITE_AUTH_REDIRECT_URL`: the public Vercel app URL, for example
+  `https://your-project.vercel.app`. Supabase email confirmations and OAuth
+  redirects should return users to this URL, not `localhost`.
 
 `SUPABASE_SERVICE_ROLE_KEY` is not required by the current app because no server
 route imports the admin Supabase client. Only add it for real backend admin
