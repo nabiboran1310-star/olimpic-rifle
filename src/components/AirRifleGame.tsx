@@ -4,6 +4,9 @@ import confetti from "canvas-confetti";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import { CoachPanel } from "@/components/CoachPanel";
+import { useTelemetryCoach } from "@/hooks/useTelemetryCoach";
+import type { CoachMessage, CoachMessageType, CoachShotTelemetry } from "@/types/coach";
 
 // ============================================================
 // Disciplines
@@ -387,6 +390,9 @@ export default function AirRifleGame() {
   const [perfectCount, setPerfectCount] = useState(0);
   const [totalShots, setTotalShots] = useState(0);
   const [lastShot, setLastShot] = useState<number | null>(null);
+  const [lastCoachShot, setLastCoachShot] = useState<CoachShotTelemetry | null>(null);
+  const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
+  const [coachSessionId, setCoachSessionId] = useState(0);
   const [score, setScore] = useState(0);
 
   const [timeLeft, setTimeLeft] = useState(START_TIME);
@@ -423,12 +429,25 @@ export default function AirRifleGame() {
 
   const tRef = useRef(0);
   const holeIdRef = useRef(0);
+  const coachMessageIdRef = useRef(0);
   const historyListRef = useRef<HTMLDivElement>(null);
 
   const equippedSkin = useMemo(
     () => SKINS.find((s) => s.id === progress.equipped) ?? SKINS[0],
     [progress.equipped],
   );
+
+  const addCoachMessage = useCallback((text: string, type: CoachMessageType) => {
+    setCoachMessages((messages) => [
+      ...messages,
+      {
+        id: `${Date.now()}-${++coachMessageIdRef.current}`,
+        text,
+        type,
+        timestamp: Date.now(),
+      },
+    ].slice(-3));
+  }, []);
   const hasUpgrade = (id: string) => progress.upgrades.includes(id);
   const holdWindow = hasUpgrade("premium") ? 5 : 3;
 
@@ -728,6 +747,7 @@ export default function AirRifleGame() {
       playSfx(A.emptyClick);
       return;
     }
+    const shotHoldTime = holding && holdStart ? (performance.now() - holdStart) / 1000 : 0;
     const d = discipline;
     playSfx(d.shotSound === "air" ? A.shotAir : A.shotRim);
     setLoaded(false);
@@ -754,6 +774,15 @@ export default function AirRifleGame() {
     const id = ++holeIdRef.current;
     const isSighting = sessionMode === "sighting";
     const gold = !isSighting && !!equippedSkin.goldHalo;
+    setLastCoachShot({
+      id,
+      score: sc,
+      deltaX: dx,
+      deltaY: dy,
+      isSightingMode: isSighting,
+      holdBreathTime: shotHoldTime,
+      levelId: careerLevel?.id ?? null,
+    });
     // store hole in target-local space so it moves with target
     setHoles((h) => [...h, { x: hitX - offX, y: hitY, score: sc, id, gold, sighting: isSighting }]);
     if (gold) {
@@ -847,7 +876,7 @@ export default function AirRifleGame() {
       const playerScore = +(score + sc).toFixed(1);
       setTimeout(() => runOlympicRound(shotNum, playerScore), 550);
     }
-  }, [phase, loaded, reloading, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode]);
+  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode]);
 
   // ----- Olympic round helper -----
   const runOlympicRound = (shotNum: number, playerScore: number) => {
@@ -947,6 +976,9 @@ export default function AirRifleGame() {
     setPerfectCount(0);
     setTotalShots(0);
     setLastShot(null);
+    setLastCoachShot(null);
+    setCoachMessages([]);
+    setCoachSessionId((id) => id + 1);
     setTimeLeft(START_TIME);
     setLoaded(true);
     setReloading(false);
@@ -978,6 +1010,9 @@ export default function AirRifleGame() {
     setPerfectCount(0);
     setTotalShots(0);
     setLastShot(null);
+    setLastCoachShot(null);
+    setCoachMessages([]);
+    setCoachSessionId((id) => id + 1);
     setTimeLeft(999);
     setLoaded(true);
     setReloading(false);
@@ -1022,6 +1057,9 @@ export default function AirRifleGame() {
     setPerfectCount(0);
     setTotalShots(0);
     setLastShot(null);
+    setLastCoachShot(null);
+    setCoachMessages([]);
+    setCoachSessionId((id) => id + 1);
     setTimeLeft(999);
     setLoaded(true);
     setReloading(false);
@@ -1041,6 +1079,8 @@ export default function AirRifleGame() {
   const backToMenu = () => {
     setPhase("menu");
     setHoles([]);
+    setLastCoachShot(null);
+    setCoachMessages([]);
     setCareerResult(null);
     navigate({ to: "/" });
   };
@@ -1093,6 +1133,16 @@ export default function AirRifleGame() {
   const inFocus = holding && holdTime < holdWindow;
   const overHold = holding && holdTime >= holdWindow;
   const timeCritical = timeLeft <= 10;
+
+  useTelemetryCoach({
+    levelId: careerLevel?.id ?? null,
+    sessionId: coachSessionId,
+    isSightingMode: sessionMode === "sighting",
+    lastShot: lastCoachShot,
+    holdBreathTime: holdTime,
+    isHoldingBreath: holding,
+    addCoachMessage,
+  });
 
   return (
     <div className="min-h-screen bg-background text-foreground select-none overflow-hidden">
@@ -1175,6 +1225,8 @@ export default function AirRifleGame() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
           {/* Range */}
           <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
+            {phase === "playing" && <CoachPanel messages={coachMessages} />}
+
             <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10 gap-2">
               <div className="flex items-center gap-2">
                 <div className="bg-[var(--navy-deep)]/90 px-2 py-1 md:px-3 md:py-1.5 text-foreground border-l-2 border-primary">
