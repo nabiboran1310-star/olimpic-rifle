@@ -21,6 +21,20 @@ type GeminiResponse = {
   }>;
 };
 
+function cleanCoachText(text: string | undefined, fallback: string) {
+  const cleaned = (text ?? "")
+    .replace(/[`*_#]/g, "")
+    .replace(/[«»"]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (cleaned.length < 10) return fallback;
+  if (/^(.)\1{2,}$/.test(cleaned)) return fallback;
+  if (/^(ок|да|нет|отлично)$/i.test(cleaned)) return fallback;
+
+  return cleaned;
+}
+
 export const getAiCoachFeedback = createServerFn({ method: "POST" })
   .inputValidator(coachInputSchema)
   .handler(async ({ data }) => {
@@ -38,6 +52,7 @@ export const getAiCoachFeedback = createServerFn({ method: "POST" })
       "Не говори, что ты ИИ, модель, ассистент или API.",
       "Если режим пробный, можно советовать клики поправок строго по базовому расчету.",
       "Если режим зачетный, не считай клики, оцени только технику выстрела.",
+      "Начинай сразу с полной фразы. Не ставь кавычки вокруг ответа.",
       "Не длиннее 140 символов. Без markdown. Без кавычек.",
       "",
       `Данные: score=${data.score}, deltaX=${data.deltaX.toFixed(2)}, deltaY=${data.deltaY.toFixed(2)}, isSightingMode=${data.isSightingMode}, holdBreathTime=${data.holdBreathTime.toFixed(2)}, levelId=${data.levelId ?? "none"}.`,
@@ -74,11 +89,14 @@ export const getAiCoachFeedback = createServerFn({ method: "POST" })
       }
 
       const payload = (await response.json()) as GeminiResponse;
-      const text = payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join("").trim();
+      const text = cleanCoachText(
+        payload.candidates?.[0]?.content?.parts?.map((part) => part.text ?? "").join(""),
+        data.fallback,
+      );
 
       return {
-        text: text || data.fallback,
-        source: text ? ("gemini" as const) : ("fallback" as const),
+        text,
+        source: text === data.fallback ? ("fallback" as const) : ("gemini" as const),
       };
     } catch {
       return { text: data.fallback, source: "fallback" as const };

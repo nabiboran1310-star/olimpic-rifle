@@ -14,23 +14,38 @@ const TYPE_CLASS: Record<CoachMessage["type"], string> = {
 
 export function CoachPanel({ messages }: CoachPanelProps) {
   const latest = messages[messages.length - 1];
-  const [typedText, setTypedText] = useState("");
+  const [typedMessage, setTypedMessage] = useState({ id: "", text: "" });
 
   useEffect(() => {
     if (!latest) {
-      setTypedText("");
+      setTypedMessage({ id: "", text: "" });
       return;
     }
 
-    setTypedText("");
+    const chars = Array.from(latest.text);
     let index = 0;
-    const timer = window.setInterval(() => {
-      index += 1;
-      setTypedText(latest.text.slice(0, index));
-      if (index >= latest.text.length) window.clearInterval(timer);
-    }, 16);
+    let timeoutId = 0;
+    let active = true;
 
-    return () => window.clearInterval(timer);
+    setTypedMessage({ id: latest.id, text: "" });
+
+    const typeNext = () => {
+      if (!active) return;
+
+      index += 1;
+      setTypedMessage({ id: latest.id, text: chars.slice(0, index).join("") });
+
+      if (index < chars.length) {
+        timeoutId = window.setTimeout(typeNext, 18);
+      }
+    };
+
+    timeoutId = window.setTimeout(typeNext, 40);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeoutId);
+    };
   }, [latest?.id, latest?.text]);
 
   return (
@@ -46,7 +61,8 @@ export function CoachPanel({ messages }: CoachPanelProps) {
             </div>
           ) : (
             messages.map((message) => {
-              const text = message.id === latest?.id ? typedText : message.text;
+              const isTyping = message.id === latest?.id && typedMessage.id === message.id;
+              const text = isTyping ? typedMessage.text : message.text;
 
               return (
                 <div
@@ -54,7 +70,7 @@ export function CoachPanel({ messages }: CoachPanelProps) {
                   className={`border-l-2 bg-slate-950/35 px-2 py-2 text-[11px] leading-relaxed ${TYPE_CLASS[message.type]}`}
                 >
                   {text}
-                  {message.id === latest?.id && typedText.length < message.text.length && (
+                  {isTyping && typedMessage.text.length < message.text.length && (
                     <span className="ml-0.5 animate-pulse text-cyan-200">_</span>
                   )}
                 </div>
