@@ -154,7 +154,7 @@ function computeIntegerScore(distPx: number, d: Discipline): number {
 // Career Mode
 // ============================================================
 type CareerLevel = {
-  id: 1 | 2 | 3;
+  id: 1 | 2 | 3 | 4 | 5;
   name: string;
   short: string;
   description: string;
@@ -165,6 +165,8 @@ type CareerLevel = {
   moving: boolean;
   hardcore: boolean;
 };
+
+const CAREER_LEVEL_COUNT = 5;
 
 const CAREER_LEVELS: CareerLevel[] = [
   {
@@ -178,9 +180,19 @@ const CAREER_LEVELS: CareerLevel[] = [
     disciplineId: "boar", shots: 10, winScore: 96.0, scoring: "decimal", moving: true, hardcore: false,
   },
   {
-    id: 3, name: "Олимпийское Золото", short: "L3 · HARDCORE 50M",
-    description: "Винтовка 50м. Сильный ветер + макс. дрожание. 10 выстрелов. Цель: 104.5+.",
-    disciplineId: "rifle50", shots: 10, winScore: 104.5, scoring: "decimal", moving: false, hardcore: true,
+    id: 3, name: "Пневматический пистолет", short: "L3 · AIR PISTOL",
+    description: "Пистолет 10м. Открытый прицел. 10 выстрелов. Цель: 96.5+.",
+    disciplineId: "ap10", shots: 10, winScore: 96.5, scoring: "decimal", moving: false, hardcore: false,
+  },
+  {
+    id: 4, name: "Малокалиберная винтовка 50м", short: "L4 · 50M WIND",
+    description: "Винтовка 50м. Ветер и инерция. 10 выстрелов. Цель: 103.5+.",
+    disciplineId: "rifle50", shots: 10, winScore: 103.5, scoring: "decimal", moving: false, hardcore: true,
+  },
+  {
+    id: 5, name: "Скоростной пистолет", short: "L5 · RAPID FIRE",
+    description: "Пистолет 25м. Жесткий темп и открытый прицел. 10 выстрелов. Цель: 101.0+.",
+    disciplineId: "rfp25", shots: 10, winScore: 101.0, scoring: "decimal", moving: false, hardcore: true,
   },
 ];
 const CAREER_WIN_BONUS = 2000;
@@ -334,7 +346,7 @@ type Progress = {
   equipped: string;
   totalScore: number;
   perfectTens: number;
-  careerCompleted: number; // highest completed career level (0..3)
+  careerCompleted: number; // highest completed career level (0..5)
 };
 function loadProgress(): Progress {
   const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default", totalScore: 0, perfectTens: 0, careerCompleted: 0 };
@@ -350,7 +362,7 @@ function loadProgress(): Progress {
       equipped: typeof p.equipped === "string" ? p.equipped : "default",
       totalScore: Number(p.totalScore) || 0,
       perfectTens: Number(p.perfectTens) || 0,
-      careerCompleted: Math.max(0, Math.min(3, Number(p.careerCompleted) || 0)),
+      careerCompleted: Math.max(0, Math.min(CAREER_LEVEL_COUNT, Number(p.careerCompleted) || 0)),
     };
   } catch { return def; }
 }
@@ -1043,6 +1055,7 @@ export default function AirRifleGame() {
   };
 
   const startOlympicFinals = () => {
+    if (progress.careerCompleted < CAREER_LEVEL_COUNT) return;
     const d = DISCIPLINES.find((x) => x.id === "ar10") ?? DISCIPLINES[0];
     setMode("olympic");
     setCareerLevel(null);
@@ -1725,6 +1738,8 @@ function HomeScreen({
     );
   }
 
+  const olympicUnlocked = careerCompleted >= CAREER_LEVEL_COUNT;
+
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-6 py-8 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
       {/* Header row with profile */}
@@ -1913,19 +1928,34 @@ function HomeScreen({
         </div>
         <button
           type="button"
+          disabled={!olympicUnlocked}
           onClick={onStartOlympic}
-          className="group relative w-full overflow-hidden border border-[var(--gold-bright)]/60 bg-gradient-to-r from-[var(--navy-deep)] via-[var(--navy-mid)] to-[var(--navy-deep)] hover:border-[var(--gold-bright)] transition-colors text-left p-5 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center"
+          className={`group relative w-full overflow-hidden border transition-colors text-left p-5 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center ${
+            olympicUnlocked
+              ? "border-[var(--gold-bright)]/60 bg-gradient-to-r from-[var(--navy-deep)] via-[var(--navy-mid)] to-[var(--navy-deep)] hover:border-[var(--gold-bright)]"
+              : "border-border/50 bg-[var(--navy-deep)]/70 opacity-60 cursor-not-allowed"
+          }`}
         >
-          <div className="text-5xl md:text-6xl shrink-0">🏅</div>
+          <div className="text-2xl md:text-3xl font-black tracking-widest shrink-0 text-[var(--gold-bright)]">
+            {olympicUnlocked ? "ФИНАЛ" : "ЗАКРЫТ"}
+          </div>
           <div className="flex-1">
-            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-bold mb-1">HARDCORE · vs 5 AI</div>
+            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-bold mb-1">
+              {olympicUnlocked ? "HARDCORE · vs 5 AI" : `ЗАКРЫТО · ПРОЙДЕНО ${careerCompleted}/${CAREER_LEVEL_COUNT}`}
+            </div>
             <div className="text-xl md:text-2xl font-black tracking-tight">Olympic Finals · 10 выстрелов на выбывание</div>
             <div className="text-xs md:text-sm text-muted-foreground mt-1 leading-relaxed max-w-2xl">
-              Винтовка 10м. После 4, 6 и 8 выстрелов слабейший участник выбывает. Дойдите до конца и заберите Олимпийское Золото у Cooper (USA), Chang (CHN), Rossi (ITA), Schmidt (GER) и Tanaka (JPN).
+              {olympicUnlocked
+                ? "Винтовка 10м. После 4, 6 и 8 выстрелов слабейший участник выбывает. Дойдите до конца и заберите Олимпийское Золото у Cooper (USA), Chang (CHN), Rossi (ITA), Schmidt (GER) и Tanaka (JPN)."
+                : "Финал откроется только после прохождения всех пяти уровней карьеры. Сначала закрой всю лестницу дисциплин."}
             </div>
           </div>
-          <div className="shrink-0 bg-[var(--gold-bright)] text-[var(--navy-deep)] font-bold tracking-widest px-5 py-3 text-xs md:text-sm group-hover:opacity-90">
-            ▶ ВЫЙТИ В ФИНАЛ
+          <div className={`shrink-0 font-bold tracking-widest px-5 py-3 text-xs md:text-sm ${
+            olympicUnlocked
+              ? "bg-[var(--gold-bright)] text-[var(--navy-deep)] group-hover:opacity-90"
+              : "border border-border text-muted-foreground"
+          }`}>
+            {olympicUnlocked ? "▶ ВЫЙТИ В ФИНАЛ" : "НУЖНО 5 УРОВНЕЙ"}
           </div>
         </button>
       </div>
@@ -1937,16 +1967,17 @@ function HomeScreen({
           <h2 className="text-xl md:text-2xl font-black tracking-tight">РЕЖИМ КАРЬЕРЫ</h2>
           <div className="text-[10px] text-muted-foreground">За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span></div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="relative flex flex-col gap-5 md:gap-7">
           {CAREER_LEVELS.map((lvl) => {
             const unlocked = lvl.id === 1 || careerCompleted >= lvl.id - 1;
             const done = careerCompleted >= lvl.id;
+            const alignClass = lvl.id % 2 === 1 ? "md:self-start" : "md:self-end";
             return (
               <button
                 key={lvl.id}
                 disabled={!unlocked}
                 onClick={() => onPickCareer(lvl)}
-                className={`group text-left border p-4 flex flex-col gap-2 transition-colors min-h-[220px] ${
+                className={`group relative w-full md:w-[58%] ${alignClass} text-left border p-4 flex flex-col gap-2 transition-colors min-h-[220px] ${
                   !unlocked
                     ? "bg-[var(--navy-deep)]/60 border-border/40 opacity-50 cursor-not-allowed"
                     : done
@@ -1954,6 +1985,13 @@ function HomeScreen({
                       : "bg-[var(--navy-mid)] border-border hover:border-primary"
                 }`}
               >
+                {lvl.id < CAREER_LEVEL_COUNT && (
+                  <div className={`hidden md:block absolute top-full h-7 w-24 border-b border-primary/35 ${
+                    lvl.id % 2 === 1
+                      ? "left-[calc(100%-3rem)] rotate-[16deg] origin-left border-r"
+                      : "right-[calc(100%-3rem)] -rotate-[16deg] origin-right border-l"
+                  }`} />
+                )}
                 <div className="flex items-center justify-between">
                   <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{lvl.short}</div>
                   {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">✓ ПРОЙДЕН</div>}
