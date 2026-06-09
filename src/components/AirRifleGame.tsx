@@ -233,6 +233,7 @@ const LEADERBOARD_RANKS: Array<{ id: LeaderboardRankId; name: string; subtitle: 
   { id: "pro", name: "Профи", subtitle: "почти без срывов", min: 102.0, max: 106.8 },
   { id: "champion", name: "Олимпийский чемпион", subtitle: "уровень финала", min: 105.0, max: 109.0 },
 ];
+const LEADERBOARD_SHOTS = 10;
 
 const CAREER_RANK_BY_LEVEL: Record<CareerLevel["id"], LeaderboardRankId> = {
   1: "rookie",
@@ -526,9 +527,11 @@ export default function AirRifleGame() {
   const [isGuest, setIsGuest] = useState(false);
 
   // Career mode
-  const [mode, setMode] = useState<"quick" | "career" | "olympic">("quick");
+  const [mode, setMode] = useState<"quick" | "career" | "olympic" | "leaderboard">("quick");
   const [careerLevel, setCareerLevel] = useState<CareerLevel | null>(null);
   const [careerResult, setCareerResult] = useState<{ won: boolean; score: number; level: CareerLevel } | null>(null);
+  const [leaderboardRank, setLeaderboardRank] = useState<LeaderboardRankId>("rookie");
+  const [leaderboardResult, setLeaderboardResult] = useState<{ score: number; disciplineId: DisciplineId; rankId: LeaderboardRankId } | null>(null);
   const [targetOffsetX, setTargetOffsetX] = useState(0);
   const targetOffsetRef = useRef(0);
   const boarRunRef = useRef(-260); // starts off-screen left; set on level start
@@ -1013,12 +1016,23 @@ export default function AirRifleGame() {
       }, 600);
     }
 
+    // Daily leaderboard challenge: exactly 10 match shots, no timer.
+    if (mode === "leaderboard" && shotNum >= LEADERBOARD_SHOTS) {
+      const finalScore = +(score + sc).toFixed(1);
+      recordDailyLeaderboardScore(d.id, leaderboardRank, finalScore);
+      setTimeout(() => {
+        setLeaderboardResult({ score: finalScore, disciplineId: d.id, rankId: leaderboardRank });
+        setPhase("gameover");
+        playSfx(finalScore >= 100 ? A.chime : A.gameOver);
+      }, 600);
+    }
+
     // Olympic Finals: bot turn + eliminations
     if (mode === "olympic") {
       const playerScore = +(score + sc).toFixed(1);
       setTimeout(() => runOlympicRound(shotNum, playerScore), 550);
     }
-  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore]);
+  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore, leaderboardRank]);
 
   // ----- Olympic round helper -----
   const runOlympicRound = (shotNum: number, playerScore: number) => {
@@ -1111,6 +1125,7 @@ export default function AirRifleGame() {
     setMode("quick");
     setCareerLevel(null);
     setCareerResult(null);
+    setLeaderboardResult(null);
     setDiscipline(d);
     setPhase("playing");
     setHoles([]);
@@ -1140,11 +1155,48 @@ export default function AirRifleGame() {
     navigate({ to: "/range" });
   };
 
+  const startLeaderboardMatch = (d: Discipline, rankId: LeaderboardRankId) => {
+    setMode("leaderboard");
+    setCareerLevel(null);
+    setCareerResult(null);
+    setOlympicResult(null);
+    setLeaderboardRank(rankId);
+    setLeaderboardResult(null);
+    setDiscipline(d);
+    setPhase("playing");
+    setHoles([]);
+    setShotHistory([]);
+    setScore(0);
+    setPerfectCount(0);
+    setTotalShots(0);
+    setLastShot(null);
+    setLastCoachShot(null);
+    setCoachMessages([]);
+    setCoachSessionId((id) => id + 1);
+    setTimeLeft(999);
+    setLoaded(true);
+    setReloading(false);
+    setShopOpen(false);
+    setSessionMode("sighting");
+    setHasMatchShot(false);
+    randomizeSightError();
+    if (d.id === "boar") {
+      boarRunRef.current = -d.targetPx * 0.5;
+      targetOffsetRef.current = boarRunRef.current;
+      setTargetOffsetX(boarRunRef.current);
+    } else {
+      targetOffsetRef.current = 0;
+      setTargetOffsetX(0);
+    }
+    navigate({ to: "/range" });
+  };
+
   const startCareerLevel = (lvl: CareerLevel) => {
     const d = DISCIPLINES.find((x) => x.id === lvl.disciplineId) ?? DISCIPLINES[0];
     setMode("career");
     setCareerLevel(lvl);
     setCareerResult(null);
+    setLeaderboardResult(null);
     setDiscipline(d);
     setPhase("playing");
     setHoles([]);
@@ -1191,6 +1243,7 @@ export default function AirRifleGame() {
     setMode("olympic");
     setCareerLevel(null);
     setCareerResult(null);
+    setLeaderboardResult(null);
     setOlympicResult(null);
     const fresh = OLYMPIC_BOTS_INIT.map((b) => ({ ...b, score: 0, eliminated: false }));
     setBots(fresh);
@@ -1228,6 +1281,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCareerResult(null);
+    setLeaderboardResult(null);
     navigate({ to: "/" });
   };
 
@@ -1317,6 +1371,12 @@ export default function AirRifleGame() {
                 <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
               </div>
             )}
+            {phase === "playing" && mode === "leaderboard" && (
+              <div className="px-2 py-0.5 border border-[var(--gold-bright)] text-[var(--gold-bright)]">
+                <span className="text-muted-foreground mr-2">ТАБЛИЦА</span>
+                <span className="font-bold tabular-nums">{totalShots}/{LEADERBOARD_SHOTS}</span>
+              </div>
+            )}
             {phase === "playing" && mode === "olympic" && (
               <div className="px-2 py-0.5 border border-[var(--gold-bright)] text-[var(--gold-bright)]">
                 <span className="text-muted-foreground mr-2">🏅 ФИНАЛ</span>
@@ -1347,10 +1407,11 @@ export default function AirRifleGame() {
 
       {/* HOME SCREEN */}
       {phase === "menu" && (
-        <HomeScreen
-          onPickCareer={startCareerLevel}
-          onPickQuick={startMatch}
-          onStartOlympic={startOlympicFinals}
+          <HomeScreen
+            onPickCareer={startCareerLevel}
+            onPickQuick={startMatch}
+            onPickLeaderboard={startLeaderboardMatch}
+            onStartOlympic={startOlympicFinals}
           progress={progress}
           careerCompleted={progress.careerCompleted}
           user={user}
@@ -1694,6 +1755,36 @@ export default function AirRifleGame() {
                         </button>
                       </div>
                     </>
+                  ) : leaderboardResult ? (
+                    <>
+                      <div className="text-[10px] tracking-[0.5em] text-[var(--gold-bright)] font-bold">ТАБЛИЦА ДНЯ</div>
+                      <div className="text-5xl font-black tracking-tight">СЕРИЯ ЗАВЕРШЕНА</div>
+                      <div className="text-sm text-muted-foreground">
+                        Результат записан в ежедневную таблицу выбранной дисциплины.
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-sm font-mono">
+                        <Stat label="SCORE" value={leaderboardResult.score.toFixed(1)} />
+                        <Stat label="ВЫСТРЕЛОВ" value={LEADERBOARD_SHOTS} />
+                        <Stat label="РАНГ" value={LEADERBOARD_RANKS.find((rank) => rank.id === leaderboardResult.rankId)?.name ?? "—"} />
+                      </div>
+                      <div className="flex gap-3 justify-center pt-2 flex-wrap">
+                        <button
+                          onClick={() => {
+                            const selected = DISCIPLINES.find((d) => d.id === leaderboardResult.disciplineId) ?? discipline;
+                            startLeaderboardMatch(selected, leaderboardResult.rankId);
+                          }}
+                          className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
+                        >
+                          ПОВТОРИТЬ 10 ВЫСТРЕЛОВ
+                        </button>
+                        <button
+                          onClick={backToMenu}
+                          className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
+                        >
+                          К ТАБЛИЦАМ
+                        </button>
+                      </div>
+                    </>
                   ) : (
                     <>
                       <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">TIME UP</div>
@@ -1737,6 +1828,16 @@ export default function AirRifleGame() {
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-1">
                     Цель: <span className="text-[var(--gold-bright)] font-bold">{careerLevel.winScore}</span> · Текущий: <span className="text-foreground font-bold">{score.toFixed(1)}</span>
+                  </div>
+                </div>
+              ) : mode === "leaderboard" ? (
+                <div className="mb-3 px-3 py-3 border border-[var(--gold-bright)]/60 bg-[var(--navy-mid)]/60">
+                  <div className="text-[9px] tracking-widest text-muted-foreground">ТАБЛИЦА ДНЯ · {LEADERBOARD_RANKS.find((rank) => rank.id === leaderboardRank)?.name}</div>
+                  <div className="text-2xl font-black font-mono tabular-nums leading-tight text-[var(--gold-bright)] mt-1">
+                    {totalShots}<span className="text-base text-muted-foreground">/{LEADERBOARD_SHOTS}</span>
+                  </div>
+                  <div className="text-[10px] text-muted-foreground mt-1">
+                    Формат: <span className="text-foreground font-bold">10 зачетных выстрелов</span> · Таймера нет
                   </div>
                 </div>
               ) : (
@@ -1823,11 +1924,12 @@ export default function AirRifleGame() {
 // ============================================================
 
 function HomeScreen({
-  onPickCareer, onPickQuick, onStartOlympic, progress, careerCompleted, user, mounted,
+  onPickCareer, onPickQuick, onPickLeaderboard, onStartOlympic, progress, careerCompleted, user, mounted,
   buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest,
 }: {
   onPickCareer: (lvl: CareerLevel) => void;
   onPickQuick: (d: Discipline) => void;
+  onPickLeaderboard: (d: Discipline, rankId: LeaderboardRankId) => void;
   onStartOlympic: () => void;
   progress: Progress;
   careerCompleted: number;
@@ -1845,6 +1947,7 @@ function HomeScreen({
   const [signInOpen, setSignInOpen] = useState(false);
   const [guestWarnOpen, setGuestWarnOpen] = useState(false);
   const [briefingDiscipline, setBriefingDiscipline] = useState<Discipline | null>(null);
+  const [briefingLeaderboardRank, setBriefingLeaderboardRank] = useState<LeaderboardRankId | null>(null);
   const signInRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -1863,8 +1966,14 @@ function HomeScreen({
     return (
       <DisciplineBriefing
         discipline={briefingDiscipline}
-        onBack={() => setBriefingDiscipline(null)}
-        onStart={() => onPickQuick(briefingDiscipline)}
+        onBack={() => {
+          setBriefingDiscipline(null);
+          setBriefingLeaderboardRank(null);
+        }}
+        onStart={() => {
+          if (briefingLeaderboardRank) onPickLeaderboard(briefingDiscipline, briefingLeaderboardRank);
+          else onPickQuick(briefingDiscipline);
+        }}
       />
     );
   }
@@ -2010,7 +2119,10 @@ function HomeScreen({
               <button
                 key={d.id}
                 type="button"
-                onClick={() => setBriefingDiscipline(d)}
+                onClick={() => {
+                  setBriefingLeaderboardRank(null);
+                  setBriefingDiscipline(d);
+                }}
                 className="group text-left border border-border/70 bg-slate-950/45 hover:border-primary transition-colors p-3 grid grid-cols-[92px_1fr] gap-3 min-h-[132px]"
               >
                 <div className="h-full border border-border/50 bg-slate-900/70 flex items-center justify-center overflow-hidden">
@@ -2170,9 +2282,12 @@ function HomeScreen({
 
       <DailyLeaderboards
         progress={progress}
-        onPlayDiscipline={(disciplineId) => {
+        onPlayDiscipline={(disciplineId, rankId) => {
           const selected = DISCIPLINES.find((d) => d.id === disciplineId);
-          if (selected) setBriefingDiscipline(selected);
+          if (selected) {
+            setBriefingLeaderboardRank(rankId);
+            setBriefingDiscipline(selected);
+          }
         }}
       />
 
@@ -2279,7 +2394,7 @@ function DailyLeaderboards({
   onPlayDiscipline,
 }: {
   progress: Progress;
-  onPlayDiscipline: (disciplineId: DisciplineId) => void;
+  onPlayDiscipline: (disciplineId: DisciplineId, rankId: LeaderboardRankId) => void;
 }) {
   const [selectedDiscipline, setSelectedDiscipline] = useState<DisciplineId>("ar10");
   const [selectedRank, setSelectedRank] = useState<LeaderboardRankId>("rookie");
@@ -2361,7 +2476,7 @@ function DailyLeaderboards({
               </div>
               <button
                 type="button"
-                onClick={() => onPlayDiscipline(selectedDiscipline)}
+                onClick={() => onPlayDiscipline(selectedDiscipline, selectedRank)}
                 className="bg-primary text-primary-foreground px-4 py-2 text-[10px] font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
               >
                 ИГРАТЬ
