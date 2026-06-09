@@ -19,4 +19,7 @@ export interface CoachShotTelemetry {
   levelId: number | null;
 }
 
-export type TelemetryFeedbackInput = Omit<CoachShotTelemetry, "id">;
+export type TelemetryFeedbackInput = Omit<CoachShotTelemetry, "id"> & {
+  id?: number;
+  recentMessages?: readonly string[];
+};

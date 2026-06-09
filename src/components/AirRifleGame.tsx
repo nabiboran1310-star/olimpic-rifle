@@ -220,6 +220,92 @@ const OLYMPIC_GOLD_BONUS = 5000;
 // After shot N -> last-place participant is eliminated. (Player counts.)
 const OLYMPIC_ELIM_SHOTS = new Set<number>([4, 6, 8]);
 
+// ============================================================
+// Daily Leaderboards
+// ============================================================
+type LeaderboardRankId = "rookie" | "starter" | "solid" | "pro" | "champion";
+type DailyLeaderboardScore = { date: string; score: number };
+
+const LEADERBOARD_RANKS: Array<{ id: LeaderboardRankId; name: string; subtitle: string; min: number; max: number }> = [
+  { id: "rookie", name: "Новичок", subtitle: "первые стабильные серии", min: 88.0, max: 97.5 },
+  { id: "starter", name: "Начинающий стрелок", subtitle: "уже держит темп", min: 94.0, max: 101.5 },
+  { id: "solid", name: "Неплохой стрелок", subtitle: "борется за десятки", min: 98.0, max: 104.0 },
+  { id: "pro", name: "Профи", subtitle: "почти без срывов", min: 102.0, max: 106.8 },
+  { id: "champion", name: "Олимпийский чемпион", subtitle: "уровень финала", min: 105.0, max: 109.0 },
+];
+
+const CAREER_RANK_BY_LEVEL: Record<CareerLevel["id"], LeaderboardRankId> = {
+  1: "rookie",
+  2: "starter",
+  3: "solid",
+  4: "pro",
+  5: "champion",
+};
+
+const SIM_PLAYER_NAMES = [
+  "A. Volkov", "M. Sokolov", "D. Kim", "L. Novak", "S. Petrov", "K. Tanaka", "R. Weiss", "I. Morozov",
+  "N. Orlov", "P. Jensen", "T. Larsen", "E. Rossi", "V. Smirnov", "H. Becker", "Y. Chen", "O. Koval",
+] as const;
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function leaderboardKey(date: string, disciplineId: DisciplineId, rankId: LeaderboardRankId) {
+  return `${date}:${disciplineId}:${rankId}`;
+}
+
+function badgeIdFor(disciplineId: DisciplineId, rankId: LeaderboardRankId) {
+  return `daily-1-${disciplineId}-${rankId}`;
+}
+
+function hashString(input: string) {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function seededUnit(seed: string) {
+  const x = Math.sin(hashString(seed)) * 10000;
+  return x - Math.floor(x);
+}
+
+function dailySimScore(date: string, disciplineId: DisciplineId, rank: LeaderboardRankId, index: number) {
+  const rankInfo = LEADERBOARD_RANKS.find((r) => r.id === rank) ?? LEADERBOARD_RANKS[0];
+  const spread = rankInfo.max - rankInfo.min;
+  const raw = rankInfo.min + seededUnit(`${date}:${disciplineId}:${rank}:${index}:score`) * spread;
+  return +raw.toFixed(1);
+}
+
+function makeDailyLeaderboard(date: string, disciplineId: DisciplineId, rank: LeaderboardRankId, playerScore?: number) {
+  const entries = Array.from({ length: 10 }, (_, index) => {
+    const nameIndex = Math.floor(seededUnit(`${date}:${disciplineId}:${rank}:${index}:name`) * SIM_PLAYER_NAMES.length);
+    return {
+      id: `sim-${index}`,
+      name: SIM_PLAYER_NAMES[(nameIndex + index) % SIM_PLAYER_NAMES.length],
+      score: dailySimScore(date, disciplineId, rank, index),
+      simulated: true,
+    };
+  });
+
+  if (typeof playerScore === "number") {
+    entries.push({ id: "player", name: "Вы", score: playerScore, simulated: false });
+  }
+
+  return entries.sort((a, b) => b.score - a.score).map((entry, index) => ({ ...entry, place: index + 1 }));
+}
+
+function badgeLabel(id: string) {
+  const [, , disciplineId, rankId] = id.split("-");
+  const discipline = DISCIPLINES.find((d) => d.id === disciplineId);
+  const rank = LEADERBOARD_RANKS.find((r) => r.id === rankId);
+  if (!discipline || !rank) return "Значок мастера";
+  return `${rank.name} · ${discipline.name}`;
+}
+
 function rollBotShot(favorite: boolean): number {
   // Realistic Olympic final shot: 9.6..10.9 step 0.1.
   // Favorites lean toward 10.4..10.9 about ~65% of the time.
@@ -347,9 +433,21 @@ type Progress = {
   totalScore: number;
   perfectTens: number;
   careerCompleted: number; // highest completed career level (0..5)
+  dailyScores: Record<string, DailyLeaderboardScore>;
+  badges: string[];
 };
 function loadProgress(): Progress {
-  const def: Progress = { credits: 0, owned: ["default"], upgrades: [], equipped: "default", totalScore: 0, perfectTens: 0, careerCompleted: 0 };
+  const def: Progress = {
+    credits: 0,
+    owned: ["default"],
+    upgrades: [],
+    equipped: "default",
+    totalScore: 0,
+    perfectTens: 0,
+    careerCompleted: 0,
+    dailyScores: {},
+    badges: [],
+  };
   if (typeof window === "undefined") return def;
   try {
     const raw = localStorage.getItem(LS_KEY);
@@ -363,6 +461,8 @@ function loadProgress(): Progress {
       totalScore: Number(p.totalScore) || 0,
       perfectTens: Number(p.perfectTens) || 0,
       careerCompleted: Math.max(0, Math.min(CAREER_LEVEL_COUNT, Number(p.careerCompleted) || 0)),
+      dailyScores: p.dailyScores && typeof p.dailyScores === "object" ? p.dailyScores : {},
+      badges: Array.isArray(p.badges) ? p.badges : [],
     };
   } catch { return def; }
 }
@@ -463,6 +563,31 @@ export default function AirRifleGame() {
   const hasUpgrade = (id: string) => progress.upgrades.includes(id);
   const holdWindow = hasUpgrade("premium") ? 5 : 3;
 
+  const recordDailyLeaderboardScore = useCallback((disciplineId: DisciplineId, rankId: LeaderboardRankId, resultScore: number) => {
+    const date = todayKey();
+    const key = leaderboardKey(date, disciplineId, rankId);
+    const badge = badgeIdFor(disciplineId, rankId);
+
+    setProgress((prev) => {
+      const previous = prev.dailyScores[key]?.score;
+      const bestScore = typeof previous === "number" ? Math.max(previous, resultScore) : resultScore;
+      const board = makeDailyLeaderboard(date, disciplineId, rankId, bestScore);
+      const playerEntry = board.find((entry) => entry.id === "player");
+      const earnedBadge = !!playerEntry && playerEntry.place === 1;
+
+      return {
+        ...prev,
+        dailyScores: {
+          ...prev.dailyScores,
+          [key]: { date, score: bestScore },
+        },
+        badges: earnedBadge && !prev.badges.includes(badge)
+          ? [...prev.badges, badge]
+          : prev.badges,
+      };
+    });
+  }, []);
+
   // Auth + Cloud sync
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
@@ -520,6 +645,8 @@ export default function AirRifleGame() {
         totalScore: Number(data.total_score) || 0,
         perfectTens: data.perfect_tens ?? 0,
         careerCompleted: prev.careerCompleted,
+        dailyScores: prev.dailyScores,
+        badges: prev.badges,
       }));
       hydratedRef.current = true;
     })();
@@ -864,6 +991,7 @@ export default function AirRifleGame() {
     if (mode === "career" && careerLevel && shotNum >= careerLevel.shots) {
       const finalScore = +(score + sc).toFixed(1);
       const won = finalScore >= careerLevel.winScore;
+      recordDailyLeaderboardScore(careerLevel.disciplineId, CAREER_RANK_BY_LEVEL[careerLevel.id], finalScore);
       setTimeout(() => {
         setCareerResult({ won, score: finalScore, level: careerLevel });
         setPhase("gameover");
@@ -890,7 +1018,7 @@ export default function AirRifleGame() {
       const playerScore = +(score + sc).toFixed(1);
       setTimeout(() => runOlympicRound(shotNum, playerScore), 550);
     }
-  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode]);
+  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore]);
 
   // ----- Olympic round helper -----
   const runOlympicRound = (shotNum: number, playerScore: number) => {
@@ -942,6 +1070,7 @@ export default function AirRifleGame() {
       ].sort((a, b) => b.score - a.score);
       const place = finalists.findIndex((p) => p.id === "player") + 1;
       const medal = place === 1 ? "gold" : place === 2 ? "silver" : place === 3 ? "bronze" : null;
+      recordDailyLeaderboardScore("ar10", "champion", playerScore);
       setOlympicResult({ place, score: playerScore, medal, eliminated: false });
       setPhase("gameover");
       if (place === 1) {
@@ -1050,6 +1179,8 @@ export default function AirRifleGame() {
       totalScore: 0,
       perfectTens: 0,
       careerCompleted: 0,
+      dailyScores: {},
+      badges: [],
     });
     startCareerLevel(CAREER_LEVELS[0]);
   };
@@ -2037,6 +2168,8 @@ function HomeScreen({
         </div>
       </div>
 
+      <DailyLeaderboards progress={progress} />
+
       {/* Unified shop */}
       <div className="w-full max-w-6xl mt-10">
         <div className="flex items-baseline justify-between mb-3">
@@ -2132,6 +2265,127 @@ function HomeScreen({
         [ПКМ] Задержка дыхания · [ЛКМ] Выстрел · [R] Перезарядка
       </div>
     </div>
+  );
+}
+
+function DailyLeaderboards({ progress }: { progress: Progress }) {
+  const [selectedDiscipline, setSelectedDiscipline] = useState<DisciplineId>("ar10");
+  const [selectedRank, setSelectedRank] = useState<LeaderboardRankId>("rookie");
+  const date = todayKey();
+  const key = leaderboardKey(date, selectedDiscipline, selectedRank);
+  const playerScore = progress.dailyScores[key]?.score;
+  const board = makeDailyLeaderboard(date, selectedDiscipline, selectedRank, playerScore).slice(0, 8);
+  const selectedRankInfo = LEADERBOARD_RANKS.find((rank) => rank.id === selectedRank) ?? LEADERBOARD_RANKS[0];
+  const playerPlace = makeDailyLeaderboard(date, selectedDiscipline, selectedRank, playerScore).find((entry) => entry.id === "player")?.place;
+  const earnedBadges = progress.badges.filter((badge) => badge.startsWith("daily-1-"));
+
+  return (
+    <section className="w-full max-w-6xl mt-10 border border-border/70 bg-[var(--navy-mid)]/65 p-4 md:p-5">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
+        <div>
+          <div className="text-[10px] tracking-[0.45em] text-primary font-bold">ЕЖЕДНЕВНЫЕ ТАБЛИЦЫ</div>
+          <h2 className="mt-1 text-xl md:text-2xl font-black tracking-tight">Соревнование дня</h2>
+          <p className="mt-1 text-xs text-muted-foreground max-w-2xl">
+            Каждый день появляются новые соперники. Твой лучший результат за сегодня попадает в таблицу, первое место открывает значок мастерства.
+          </p>
+        </div>
+        <div className="text-[10px] font-mono text-muted-foreground">ДАТА: {date}</div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[270px_1fr] gap-4">
+        <div className="space-y-4">
+          <div>
+            <div className="text-[10px] tracking-widest text-muted-foreground mb-2">ДИСЦИПЛИНА</div>
+            <div className="grid grid-cols-1 gap-2">
+              {DISCIPLINES.map((disciplineItem) => (
+                <button
+                  key={disciplineItem.id}
+                  type="button"
+                  onClick={() => setSelectedDiscipline(disciplineItem.id)}
+                  className={`text-left border px-3 py-2 transition-colors ${
+                    selectedDiscipline === disciplineItem.id
+                      ? "border-primary bg-primary/10 text-foreground"
+                      : "border-border/60 bg-slate-950/35 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <div className="text-xs font-bold">{disciplineItem.name}</div>
+                  <div className="text-[10px] font-mono mt-0.5">{disciplineItem.short}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-[10px] tracking-widest text-muted-foreground mb-2">УРОВЕНЬ</div>
+            <div className="grid grid-cols-1 gap-2">
+              {LEADERBOARD_RANKS.map((rank) => (
+                <button
+                  key={rank.id}
+                  type="button"
+                  onClick={() => setSelectedRank(rank.id)}
+                  className={`text-left border px-3 py-2 transition-colors ${
+                    selectedRank === rank.id
+                      ? "border-[var(--gold-bright)] bg-[var(--gold-bright)]/10 text-foreground"
+                      : "border-border/60 bg-slate-950/35 text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <div className="text-xs font-bold">{rank.name}</div>
+                  <div className="text-[10px] mt-0.5">{rank.subtitle}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="border border-border/60 bg-slate-950/45">
+          <div className="border-b border-border/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div>
+              <div className="text-[10px] tracking-[0.35em] text-[var(--gold-bright)] font-bold">{selectedRankInfo.name}</div>
+              <div className="text-sm font-black mt-1">{DISCIPLINES.find((d) => d.id === selectedDiscipline)?.name}</div>
+            </div>
+            <div className="text-[10px] text-muted-foreground font-mono">
+              {typeof playerScore === "number" ? `ВАШЕ МЕСТО: ${playerPlace}` : "ВАШ РЕЗУЛЬТАТ ЕЩЕ НЕ ЗАПИСАН"}
+            </div>
+          </div>
+
+          <div className="divide-y divide-border/45">
+            {board.map((entry) => (
+              <div
+                key={entry.id}
+                className={`grid grid-cols-[48px_1fr_82px] gap-3 items-center px-4 py-3 ${
+                  entry.id === "player" ? "bg-primary/10 text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                <div className="font-mono text-sm font-black tabular-nums">{entry.place}</div>
+                <div>
+                  <div className="text-sm font-bold">{entry.name}</div>
+                  <div className="text-[10px] tracking-widest">{entry.simulated ? "АКТИВЕН СЕГОДНЯ" : "ВАШ ЛУЧШИЙ РЕЗУЛЬТАТ"}</div>
+                </div>
+                <div className="text-right font-mono text-lg font-black text-[var(--gold-bright)]">{entry.score.toFixed(1)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 border-t border-border/60 pt-4">
+        <div className="text-[10px] tracking-[0.35em] text-primary font-bold mb-3">ЗНАЧКИ МАСТЕРСТВА</div>
+        {earnedBadges.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {earnedBadges.map((badge) => (
+              <div key={badge} className="border border-[var(--gold-bright)]/55 bg-[var(--gold-bright)]/10 px-3 py-3">
+                <div className="text-[10px] tracking-widest text-[var(--gold-bright)] font-bold">ПЕРВОЕ МЕСТО</div>
+                <div className="text-sm font-black mt-1">{badgeLabel(badge)}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground border border-border/50 bg-slate-950/35 px-3 py-3">
+            Значков пока нет. Займи первое место в ежедневной таблице, и здесь появится отметка твоего уровня.
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
