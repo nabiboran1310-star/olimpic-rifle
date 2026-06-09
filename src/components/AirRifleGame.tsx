@@ -1700,6 +1700,7 @@ function HomeScreen({
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
   const [signInOpen, setSignInOpen] = useState(false);
   const [guestWarnOpen, setGuestWarnOpen] = useState(false);
+  const [briefingDiscipline, setBriefingDiscipline] = useState<Discipline | null>(null);
   const signInRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -1714,17 +1715,15 @@ function HomeScreen({
     return () => document.removeEventListener("mousedown", onDocClick);
   }, [signInOpen]);
 
-  // Voltagent-inspired tokens — near-black canvas, single electric-green accent
-  const VOLT = {
-    canvas: "#101010",
-    canvasSoft: "#1a1a1a",
-    hairline: "#3d3a39",
-    ink: "#f2f2f2",
-    body: "#bdbdbd",
-    mute: "#8b949e",
-    primary: "#00d992",
-    onPrimary: "#101010",
-  };
+  if (briefingDiscipline) {
+    return (
+      <DisciplineBriefing
+        discipline={briefingDiscipline}
+        onBack={() => setBriefingDiscipline(null)}
+        onStart={() => onPickQuick(briefingDiscipline)}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-6 py-8 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
@@ -1834,9 +1833,59 @@ function HomeScreen({
         )}
       </AnimatePresence>
 
+      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 items-stretch">
+        <section className="border border-border/70 bg-[var(--navy-mid)]/70 p-6 md:p-8 flex flex-col justify-between min-h-[360px]">
+          <div>
+            <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-4">OLYMPIC SHOOTING RANGE</div>
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none">
+              Olympic<br />Shooting<br />Simulator
+            </h1>
+            <p className="mt-5 max-w-md text-sm md:text-base leading-relaxed text-muted-foreground">
+              Выбери дисциплину, посмотри разбор тренера и выходи на рубеж уже с понятным планом: стойка, дыхание, прицел и спуск.
+            </p>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mt-8 text-center">
+            <MiniStat label="КОНТРОЛЬ" v="ДЫХАНИЕ" />
+            <MiniStat label="ПРИЦЕЛ" v="ДИОПТР" />
+            <MiniStat label="ТЕМП" v="СПУСК" />
+          </div>
+        </section>
 
-
-      <h1 className="text-4xl md:text-6xl font-black tracking-tight text-center mb-2">ГЛАВНЫЙ ЭКРАН</h1>
+        <section className="border border-[var(--gold-bright)]/35 bg-[var(--navy-deep)]/80 p-4 md:p-5">
+          <div className="flex items-baseline justify-between gap-3 mb-4">
+            <div>
+              <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">ВЫБЕРИТЕ ДИСЦИПЛИНУ</div>
+              <div className="text-xs text-muted-foreground mt-1">После выбора откроется тренерский разбор.</div>
+            </div>
+            <div className="text-[10px] text-muted-foreground font-mono">5 НАПРАВЛЕНИЙ</div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {DISCIPLINES.map((d) => (
+              <button
+                key={d.id}
+                type="button"
+                onClick={() => setBriefingDiscipline(d)}
+                className="group text-left border border-border/70 bg-slate-950/45 hover:border-primary transition-colors p-3 grid grid-cols-[92px_1fr] gap-3 min-h-[132px]"
+              >
+                <div className="h-full border border-border/50 bg-slate-900/70 flex items-center justify-center overflow-hidden">
+                  <WeaponIllustration disciplineId={d.id} />
+                </div>
+                <div className="min-w-0 flex flex-col">
+                  <div className="text-[10px] tracking-[0.22em] text-primary font-mono">{d.short}</div>
+                  <div className="mt-1 font-black leading-tight text-foreground">{d.name}</div>
+                  <div className="mt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">{d.caption}</div>
+                  <div className="mt-auto flex items-center justify-between gap-2 pt-3">
+                    <span className={`px-2 py-1 text-[10px] font-bold tracking-widest border ${difficultyStyle(d.id)}`}>
+                      {difficultyLabel(d.id)}
+                    </span>
+                    <span className="text-[10px] font-bold tracking-widest text-primary group-hover:text-[var(--gold-bright)]">ДАЛЕЕ</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
 
       {/* Player stats */}
       <div className="w-full max-w-6xl grid grid-cols-3 gap-3 md:gap-4 my-6">
@@ -1851,94 +1900,6 @@ function HomeScreen({
         <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
           <div className="text-[10px] tracking-widest text-muted-foreground">ИДЕАЛЬНЫХ 10.9</div>
           <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{progress.perfectTens}</div>
-        </div>
-      </div>
-
-      {/* 5 Discipline buttons — Quick Play (Voltagent-inspired) */}
-      <div className="w-full max-w-6xl mt-2">
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-xl md:text-2xl font-black tracking-tight" style={{ color: VOLT.ink }}>ДИСЦИПЛИНЫ · БЫСТРАЯ ИГРА</h2>
-          <div className="text-[10px]" style={{ color: VOLT.mute }}>30 сек · точные выстрелы добавляют время</div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {DISCIPLINES.map((d) => {
-            return (
-              <button
-                key={d.id}
-                onClick={() => onPickQuick(d)}
-                className="group relative overflow-hidden text-left transition-all duration-200 p-5 flex flex-col gap-4 min-h-[200px] hover:-translate-y-0.5"
-                style={{
-                  background: VOLT.canvas,
-                  border: `1px solid ${VOLT.hairline}`,
-                  borderRadius: 8,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.borderColor = VOLT.primary; }}
-                onMouseLeave={(e) => { e.currentTarget.style.borderColor = VOLT.hairline; }}
-              >
-                {/* eyebrow + glyph */}
-                <div className="relative flex items-center justify-between">
-                  <div
-                    className="w-10 h-10 flex items-center justify-center"
-                    style={{ background: VOLT.canvasSoft, border: `1px solid ${VOLT.hairline}`, borderRadius: 6 }}
-                  >
-                    <MiniTargetIcon disciplineId={d.id} />
-                  </div>
-                  <div
-                    className="text-[11px] font-semibold"
-                    style={{ color: VOLT.primary, fontFamily: "SFMono-Regular, Menlo, Monaco, Consolas, monospace", letterSpacing: "0.18em" }}
-                  >
-                    {d.short}
-                  </div>
-                </div>
-
-                {/* title + caption */}
-                <div className="relative">
-                  <div
-                    className="text-[18px] font-semibold tracking-tight leading-snug"
-                    style={{ color: VOLT.ink, fontFamily: "Inter, system-ui, sans-serif" }}
-                  >
-                    {d.name}
-                  </div>
-                  <div
-                    className="text-[13px] mt-1.5 leading-snug line-clamp-2"
-                    style={{ color: VOLT.body }}
-                  >
-                    {d.caption}
-                  </div>
-                </div>
-
-                {/* footer: sight pill + npx-style command chip */}
-                <div className="relative mt-auto flex items-center justify-between">
-                  <span
-                    className="px-2 py-0.5 text-[10px] font-medium"
-                    style={{
-                      color: VOLT.body,
-                      background: VOLT.canvas,
-                      border: `1px solid ${VOLT.hairline}`,
-                      borderRadius: 9999,
-                      fontFamily: "SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                    }}
-                  >
-                    {d.sight === "diopter" ? "diopter" : "open"}
-                  </span>
-                  <span
-                    className="px-2.5 py-1 text-[12px] font-semibold transition-colors"
-                    style={{
-                      color: VOLT.primary,
-                      background: VOLT.canvasSoft,
-                      border: `1px solid ${VOLT.hairline}`,
-                      borderRadius: 6,
-                      fontFamily: "SFMono-Regular, Menlo, Monaco, Consolas, monospace",
-                    }}
-                    onMouseEnter={(e) => { e.currentTarget.style.background = VOLT.primary; e.currentTarget.style.color = VOLT.onPrimary; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = VOLT.canvasSoft; e.currentTarget.style.color = VOLT.primary; }}
-                  >
-                    ▸ play
-                  </span>
-                </div>
-              </button>
-            );
-          })}
         </div>
       </div>
 
@@ -2113,23 +2074,195 @@ function HomeScreen({
   );
 }
 
+function DisciplineBriefing({
+  discipline,
+  onBack,
+  onStart,
+}: {
+  discipline: Discipline;
+  onBack: () => void;
+  onStart: () => void;
+}) {
+  const notes = briefingNotes(discipline.id);
+
+  return (
+    <div className="min-h-screen px-4 md:px-6 py-8 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))] text-foreground">
+      <div className="w-full max-w-6xl mx-auto">
+        <button
+          type="button"
+          onClick={onBack}
+          className="border border-border px-4 py-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+        >
+          НАЗАД
+        </button>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-6 mt-6 items-stretch">
+          <section className="border border-border/70 bg-slate-950/55 p-5 flex flex-col">
+            <div className="text-[10px] tracking-[0.45em] text-primary font-bold">ВЫБРАНА ДИСЦИПЛИНА</div>
+            <h1 className="mt-3 text-3xl md:text-5xl font-black tracking-tight leading-none">{discipline.name}</h1>
+            <div className="mt-3 text-sm text-muted-foreground leading-relaxed">{discipline.caption}</div>
+
+            <div className="my-6 border border-border/60 bg-slate-900/70 min-h-[220px] flex items-center justify-center">
+              <WeaponIllustration disciplineId={discipline.id} large />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 mt-auto">
+              <MiniStat label="ПРИЦЕЛ" v={discipline.sight === "diopter" ? "ДИОПТР" : "ОТКРЫТЫЙ"} />
+              <div className={`border px-2 py-1 ${difficultyStyle(discipline.id)}`}>
+                <div className="text-[8px] tracking-widest opacity-75">СЛОЖНОСТЬ</div>
+                <div className="font-bold">{difficultyLabel(discipline.id)}</div>
+              </div>
+            </div>
+          </section>
+
+          <section className="border border-[var(--gold-bright)]/40 bg-[var(--navy-mid)]/70 p-5 md:p-6 flex flex-col">
+            <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">ТРЕНЕРСКИЙ РАЗБОР</div>
+            <div className="mt-4 space-y-3">
+              {notes.map((note, index) => (
+                <div key={note.title} className="border border-border/60 bg-slate-950/45 p-4">
+                  <div className="text-[10px] tracking-[0.28em] text-primary font-mono">ШАГ {index + 1}</div>
+                  <div className="mt-2 text-lg font-black tracking-tight">{note.title}</div>
+                  <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{note.text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-auto pt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+              <div className="text-[11px] leading-relaxed text-muted-foreground max-w-md">
+                Сначала работай спокойно: навёлся, задержал дыхание, плавно нажал. Если не успел за несколько секунд, отпусти прицел и начни заново.
+              </div>
+              <button
+                type="button"
+                onClick={onStart}
+                className="bg-primary text-primary-foreground px-6 py-3 text-xs font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
+              >
+                НА РУБЕЖ
+              </button>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function briefingNotes(id: DisciplineId) {
+  const common = [
+    {
+      title: "Стойка и прицел",
+      text: "Не лови центр рывком. Выведи корпусом грубо в район десятки, потом дозируй мелкое движение мышцами плеча и кисти.",
+    },
+    {
+      title: "Дыхание",
+      text: "ПКМ задерживает дыхание. Лучшее окно короткое: примерно три-пять секунд. Дольше держать нельзя, рука начнет дрожать.",
+    },
+    {
+      title: "Спуск",
+      text: "ЛКМ нажимай ровно, без резкого щелчка пальцем. Выстрел должен как будто случиться сам, пока мушка держится в зоне.",
+    },
+  ];
+
+  const specific: Record<DisciplineId, { title: string; text: string }> = {
+    ar10: {
+      title: "Пневматическая винтовка 10 м",
+      text: "Здесь решает стабильность. Не торопись после наведения: проверь кольцо прицела, выдохни лишнее напряжение и мягко обработай спуск.",
+    },
+    boar: {
+      title: "Бегущая мишень",
+      text: "Веди цель корпусом, а не одним стволом. Держи горизонтальную линию и стреляй с упреждением, не догоняя мишень в последний момент.",
+    },
+    rifle50: {
+      title: "Винтовка 50 м",
+      text: "На дистанции сильнее заметны ветер и мелкие ошибки. Перед выстрелом проверь флюгер и не затягивай удержание.",
+    },
+    ap10: {
+      title: "Пневматический пистолет 10 м",
+      text: "Кисть держи плотной, но не зажатой. Следи за ровной мушкой в прорези, а спуск нажимай строго назад.",
+    },
+    rfp25: {
+      title: "Скоростной пистолет 25 м",
+      text: "Главное не паниковать от темпа. Поднимай оружие одинаково, фиксируй мушку и не ломай кисть при каждом выстреле.",
+    },
+  };
+
+  return [specific[id], ...common];
+}
+
+function difficultyLabel(id: DisciplineId) {
+  const labels: Record<DisciplineId, string> = {
+    ar10: "ЛЕГКАЯ",
+    boar: "СЛОЖНАЯ",
+    rifle50: "СЛОЖНАЯ",
+    ap10: "СРЕДНЯЯ",
+    rfp25: "ВЫСОКАЯ",
+  };
+  return labels[id];
+}
+
+function difficultyStyle(id: DisciplineId) {
+  const styles: Record<DisciplineId, string> = {
+    ar10: "border-emerald-400/50 bg-emerald-500/10 text-emerald-200",
+    boar: "border-amber-400/50 bg-amber-500/10 text-amber-200",
+    rifle50: "border-amber-400/50 bg-amber-500/10 text-amber-200",
+    ap10: "border-sky-400/50 bg-sky-500/10 text-sky-200",
+    rfp25: "border-rose-400/50 bg-rose-500/10 text-rose-200",
+  };
+  return styles[id];
+}
+
+function WeaponIllustration({ disciplineId, large = false }: { disciplineId: DisciplineId; large?: boolean }) {
+  const width = large ? 340 : 150;
+  const height = large ? 180 : 92;
+  const isPistol = disciplineId === "ap10" || disciplineId === "rfp25";
+  const isRunning = disciplineId === "boar";
+  const isLongRange = disciplineId === "rifle50";
+
+  return (
+    <svg width={width} height={height} viewBox="0 0 180 100" role="img" aria-label="weapon illustration">
+      <rect x="8" y="80" width="164" height="2" fill="#334155" opacity="0.7" />
+      {isPistol ? (
+        <g>
+          <path d="M43 44 H112 C120 44 126 49 129 56 L135 72 H113 L106 60 H82 L78 81 H56 L62 60 H43 Z" fill="#0f172a" stroke="#cbd5e1" strokeWidth="2" />
+          <rect x="52" y="35" width="72" height="13" fill="#1e293b" stroke="#cbd5e1" strokeWidth="2" />
+          <rect x="121" y="38" width="30" height="6" fill="#64748b" />
+          <rect x="64" y="60" width="16" height="30" rx="2" fill="#334155" stroke="#cbd5e1" strokeWidth="1.5" />
+          <path d="M91 60 C90 70 94 75 101 77" fill="none" stroke="#94a3b8" strokeWidth="2" />
+          <circle cx="62" cy="41" r="2" fill="#22d3ee" />
+          {disciplineId === "rfp25" && <rect x="126" y="30" width="25" height="5" fill="#fbbf24" />}
+        </g>
+      ) : (
+        <g>
+          <path d="M24 59 C39 43 58 43 76 54 L112 54 C123 54 132 59 137 68 L146 82 H122 L113 67 H72 C57 67 42 74 28 82 H15 C15 74 18 65 24 59 Z" fill="#0f172a" stroke="#cbd5e1" strokeWidth="2" />
+          <rect x="61" y="44" width="75" height="10" fill="#1e293b" stroke="#cbd5e1" strokeWidth="1.7" />
+          <rect x="132" y="47" width="42" height="4" fill="#94a3b8" />
+          <rect x="76" y="34" width="42" height="8" rx="4" fill="#334155" stroke="#cbd5e1" strokeWidth="1.5" />
+          <circle cx="52" cy="55" r="5" fill="#22d3ee" opacity="0.8" />
+          <path d="M88 66 C87 75 91 79 98 81" fill="none" stroke="#94a3b8" strokeWidth="2" />
+          {isLongRange && (
+            <>
+              <rect x="91" y="28" width="35" height="6" fill="#fbbf24" />
+              <rect x="139" y="44" width="20" height="9" fill="#64748b" />
+            </>
+          )}
+          {isRunning && (
+            <>
+              <rect x="18" y="18" width="124" height="3" fill="#64748b" />
+              <circle cx="145" cy="20" r="10" fill="#f4f4ef" stroke="#cbd5e1" strokeWidth="1.5" />
+              <circle cx="145" cy="20" r="4" fill="#0f172a" />
+            </>
+          )}
+        </g>
+      )}
+    </svg>
+  );
+}
+
 function MiniStat({ label, v }: { label: string; v: string }) {
   return (
     <div className="bg-[var(--navy-deep)] px-2 py-1 border border-border/40">
       <div className="text-[8px] tracking-widest text-muted-foreground">{label}</div>
       <div className="text-foreground font-bold">{v}</div>
     </div>
-  );
-}
-
-function MiniTargetIcon({ disciplineId }: { disciplineId: DisciplineId }) {
-  const blackR = disciplineId.startsWith("ap") || disciplineId === "rfp25" ? 22 : 14;
-  return (
-    <svg width="48" height="48" viewBox="0 0 48 48">
-      <circle cx={24} cy={24} r={22} fill="#f4f4ef" stroke="#222" strokeWidth="1" />
-      <circle cx={24} cy={24} r={blackR} fill="#0a0a0a" />
-      <circle cx={24} cy={24} r={2} fill="#fff" />
-    </svg>
   );
 }
 
