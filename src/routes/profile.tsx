@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/profile")({
-  head: () => ({ meta: [{ title: "Профиль — Olympic Rifle Simulator" }] }),
+  head: () => ({ meta: [{ title: "Профиль - Olympic Rifle Simulator" }] }),
   component: ProfilePage,
 });
 
@@ -15,10 +15,24 @@ type Profile = {
   perfect_tens: number;
   equipped_skin: string;
   selected_discipline: string;
-  skins: any;
-  upgrades: any;
+  skins: unknown;
+  upgrades: unknown;
   created_at: string;
 };
+
+function createFallbackProfile(email?: string): Profile {
+  return {
+    display_name: email?.split("@")[0] ?? null,
+    credits: 0,
+    total_score: 0,
+    perfect_tens: 0,
+    equipped_skin: "default",
+    selected_discipline: "air_rifle_10m",
+    skins: ["default"],
+    upgrades: [],
+    created_at: new Date().toISOString(),
+  };
+}
 
 function ProfilePage() {
   const { user, loading } = useAuth();
@@ -27,6 +41,7 @@ function ProfilePage() {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate({ to: "/auth" });
@@ -34,26 +49,44 @@ function ProfilePage() {
 
   useEffect(() => {
     if (!user) return;
+
     (async () => {
       setFetching(true);
-      const { data } = await supabase
+      setProfileError(null);
+
+      const { data, error } = await supabase
         .from("profiles")
         .select("display_name, credits, total_score, perfect_tens, equipped_skin, selected_discipline, skins, upgrades, created_at")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data) {
-        setProfile(data as Profile);
-        setName(data.display_name ?? "");
+
+      if (error) {
+        setProfileError("Не удалось загрузить профиль. Проверьте Supabase RLS и миграции.");
       }
+
+      const nextProfile = (data as Profile | null) ?? createFallbackProfile(user.email);
+      setProfile(nextProfile);
+      setName(nextProfile.display_name ?? "");
       setFetching(false);
     })();
   }, [user]);
 
   const saveName = async () => {
     if (!user) return;
+
     setSaving(true);
-    await supabase.from("profiles").update({ display_name: name }).eq("user_id", user.id);
-    setProfile((p) => (p ? { ...p, display_name: name } : p));
+    setProfileError(null);
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ user_id: user.id, display_name: name }, { onConflict: "user_id" });
+
+    if (error) {
+      setProfileError("Не удалось сохранить профиль.");
+    } else {
+      setProfile((p) => (p ? { ...p, display_name: name } : createFallbackProfile(user.email)));
+    }
+
     setSaving(false);
   };
 
@@ -99,15 +132,21 @@ function ProfilePage() {
           </div>
         </div>
 
+        {profileError && (
+          <div className="border border-destructive text-destructive px-4 py-3 text-xs mb-6">
+            {profileError}
+          </div>
+        )}
+
         <div className="grid md:grid-cols-3 gap-4 mb-6">
           <Stat label="КРЕДИТЫ" value={profile.credits.toString()} accent="gold" />
-          <Stat label="ОБЩИЙ СЧЁТ" value={Number(profile.total_score).toFixed(1)} />
+          <Stat label="ОБЩИЙ СЧЕТ" value={Number(profile.total_score).toFixed(1)} />
           <Stat label="ИДЕАЛЬНЫХ 10.9" value={profile.perfect_tens.toString()} accent="gold" />
         </div>
 
         <div className="border border-border bg-[var(--navy-mid)] p-6 mb-6">
           <div className="text-[10px] tracking-widest text-muted-foreground mb-3">EMAIL</div>
-          <div className="font-mono mb-6">{user.email}</div>
+          <div className="font-mono mb-6 break-all">{user.email}</div>
 
           <div className="text-[10px] tracking-widest text-muted-foreground mb-2">ИМЯ СТРЕЛКА</div>
           <div className="flex gap-2">
@@ -140,7 +179,7 @@ function ProfilePage() {
           <div className="border border-border bg-[var(--navy-mid)] p-6">
             <div className="text-[10px] tracking-widest text-muted-foreground mb-3">УЛУЧШЕНИЯ ({upgradesList.length})</div>
             {upgradesList.length === 0 ? (
-              <div className="text-xs text-muted-foreground">Ещё ничего не куплено</div>
+              <div className="text-xs text-muted-foreground">Еще ничего не куплено</div>
             ) : (
               <div className="flex flex-wrap gap-1">
                 {upgradesList.map((u) => (

@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/hooks/use-auth";
 
 export const Route = createFileRoute("/auth")({
@@ -87,16 +86,16 @@ function AuthPage() {
     setBusy(true);
 
     try {
-      const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: authRedirectUrl,
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: authRedirectUrl,
+        },
       });
 
-      if (result.error) throw result.error;
-      if (result.redirected) return;
-      navigate({ to: "/profile" });
+      if (error) throw error;
     } catch (error) {
       setErr(getAuthErrorMessage(error));
-    } finally {
       setBusy(false);
     }
   };
@@ -131,12 +130,14 @@ function AuthPage() {
 
         <div className="flex border border-border mb-6">
           <button
+            type="button"
             onClick={() => setMode("signin")}
             className={`flex-1 py-2 text-xs tracking-widest ${mode === "signin" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
           >
             ВОЙТИ
           </button>
           <button
+            type="button"
             onClick={() => setMode("signup")}
             className={`flex-1 py-2 text-xs tracking-widest ${mode === "signup" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
           >
