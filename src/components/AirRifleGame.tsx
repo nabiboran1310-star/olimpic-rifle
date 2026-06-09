@@ -507,6 +507,7 @@ export default function AirRifleGame() {
   const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
   const [coachSessionId, setCoachSessionId] = useState(0);
   const [showRangeGuide, setShowRangeGuide] = useState(false);
+  const [accountPromptOpen, setAccountPromptOpen] = useState(false);
   const [score, setScore] = useState(0);
 
   const [timeLeft, setTimeLeft] = useState(START_TIME);
@@ -596,6 +597,10 @@ export default function AirRifleGame() {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+  const closeRangeGuide = useCallback(() => {
+    setShowRangeGuide(false);
+    if (!user) setAccountPromptOpen(true);
+  }, [user]);
   const hydratedRef = useRef(false);
 
   // Route-driven screen separation: '/' = Home, '/range' = Shooting.
@@ -1432,6 +1437,10 @@ export default function AirRifleGame() {
 
 
       )}
+      <AccountPrompt
+        open={accountPromptOpen && !user}
+        onClose={() => setAccountPromptOpen(false)}
+      />
 
       {/* GAMEPLAY */}
       {phase !== "menu" && (
@@ -1443,7 +1452,7 @@ export default function AirRifleGame() {
               <RangeCoachGuide
                 discipline={discipline}
                 holdWindow={holdWindow}
-                onClose={() => setShowRangeGuide(false)}
+                onClose={closeRangeGuide}
               />
             )}
 
@@ -1959,9 +1968,21 @@ function HomeScreen({
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
   const [signInOpen, setSignInOpen] = useState(false);
   const [guestWarnOpen, setGuestWarnOpen] = useState(false);
+  const [tournamentPromptOpen, setTournamentPromptOpen] = useState(false);
   const [briefingDiscipline, setBriefingDiscipline] = useState<Discipline | null>(null);
   const [briefingLeaderboardRank, setBriefingLeaderboardRank] = useState<LeaderboardRankId | null>(null);
   const signInRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!mounted || !user) return;
+    const key = `tournament-prompt-seen-${user.id}`;
+    const pending = localStorage.getItem("postAuthTournamentPrompt") === "1";
+    if (pending || !localStorage.getItem(key)) {
+      localStorage.removeItem("postAuthTournamentPrompt");
+      localStorage.setItem(key, "1");
+      setTournamentPromptOpen(true);
+    }
+  }, [mounted, user]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -2100,6 +2121,17 @@ function HomeScreen({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <TournamentPrompt
+        open={tournamentPromptOpen}
+        onClose={() => setTournamentPromptOpen(false)}
+        onPlay={() => {
+          setTournamentPromptOpen(false);
+          window.setTimeout(() => {
+            document.getElementById("daily-tournament")?.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 80);
+        }}
+      />
 
       <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 items-stretch">
         <section className="border border-border/70 bg-[var(--navy-mid)]/70 p-6 md:p-8 flex flex-col justify-between min-h-[360px]">
@@ -2534,6 +2566,118 @@ function rangeCoachSteps(discipline: Discipline, holdWindow: number) {
   ];
 }
 
+function AccountPrompt({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[110] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 12 }}
+            transition={{ duration: 0.18 }}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-md border border-[var(--gold-bright)]/70 bg-[var(--navy-mid)] p-6 shadow-2xl"
+          >
+            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-black">ТРЕНЕР</div>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">Хочешь сохранить прогресс?</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Создай аккаунт, и игра запомнит твои кредиты, рекорды, значки и открытые уровни. Так ты не потеряешь результат после закрытия страницы.
+            </p>
+            <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="border border-border px-4 py-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+              >
+                ПРОДОЛЖИТЬ ТАК
+              </button>
+              <Link
+                to="/auth"
+                onClick={() => {
+                  localStorage.setItem("authDefaultMode", "signup");
+                  localStorage.setItem("postAuthTournamentPrompt", "1");
+                  onClose();
+                }}
+                className="bg-primary text-primary-foreground px-5 py-2 text-center text-xs font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
+              >
+                СОЗДАТЬ АККАУНТ
+              </Link>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function TournamentPrompt({
+  open,
+  onClose,
+  onPlay,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onPlay: () => void;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[110] bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 12 }}
+            transition={{ duration: 0.18 }}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-md border border-[var(--gold-bright)]/70 bg-[var(--navy-mid)] p-6 shadow-2xl"
+          >
+            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-black">НОВЫЙ ВЫЗОВ</div>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">Попробуем турнир дня?</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Теперь у тебя есть аккаунт. Можно сыграть серию из 10 выстрелов и попасть в ежедневную таблицу. Соперники обновляются каждый день.
+            </p>
+            <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="border border-border px-4 py-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+              >
+                ПОЗЖЕ
+              </button>
+              <button
+                type="button"
+                onClick={onPlay}
+                className="bg-primary text-primary-foreground px-5 py-2 text-xs font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
+              >
+                УЧАСТВОВАТЬ
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function DailyLeaderboards({
   progress,
   onPlayDiscipline,
@@ -2552,7 +2696,7 @@ function DailyLeaderboards({
   const earnedBadges = progress.badges.filter((badge) => badge.startsWith("daily-1-"));
 
   return (
-    <section className="w-full max-w-6xl mt-10 border border-border/70 bg-[var(--navy-mid)]/65 p-4 md:p-5">
+    <section id="daily-tournament" className="w-full max-w-6xl mt-10 border border-border/70 bg-[var(--navy-mid)]/65 p-4 md:p-5 scroll-mt-6">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
         <div>
           <div className="text-[10px] tracking-[0.45em] text-primary font-bold">ЕЖЕДНЕВНЫЕ ТАБЛИЦЫ</div>

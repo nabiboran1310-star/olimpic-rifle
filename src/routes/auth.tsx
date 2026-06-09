@@ -31,7 +31,12 @@ function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const authRedirectUrl = import.meta.env.VITE_AUTH_REDIRECT_URL || window.location.origin;
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup">(() => {
+    if (typeof window === "undefined") return "signin";
+    const savedMode = localStorage.getItem("authDefaultMode");
+    localStorage.removeItem("authDefaultMode");
+    return savedMode === "signup" ? "signup" : "signin";
+  });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -40,7 +45,7 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) navigate({ to: "/profile" });
+    if (!loading && user) navigate({ to: "/" });
   }, [user, loading, navigate]);
 
   const submit = async (e: React.FormEvent) => {
@@ -63,7 +68,8 @@ function AuthPage() {
         if (error) throw error;
 
         if (data.session) {
-          navigate({ to: "/profile" });
+          localStorage.setItem("postAuthTournamentPrompt", "1");
+          navigate({ to: "/" });
           return;
         }
 
@@ -72,7 +78,8 @@ function AuthPage() {
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate({ to: "/profile" });
+        localStorage.setItem("postAuthTournamentPrompt", "1");
+        navigate({ to: "/" });
       }
     } catch (error) {
       setErr(getAuthErrorMessage(error));
@@ -94,6 +101,7 @@ function AuthPage() {
       });
 
       if (error) throw error;
+      localStorage.setItem("postAuthTournamentPrompt", "1");
     } catch (error) {
       setErr(getAuthErrorMessage(error));
       setBusy(false);
