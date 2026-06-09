@@ -25,6 +25,7 @@ export const getAiCoachFeedback = createServerFn({ method: "POST" })
   .inputValidator(coachInputSchema)
   .handler(async ({ data }) => {
     const apiKey = process.env.GEMINI_API_KEY;
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
     if (!apiKey) {
       return { text: data.fallback, source: "fallback" as const };
     }
@@ -45,7 +46,7 @@ export const getAiCoachFeedback = createServerFn({ method: "POST" })
     const timeout = setTimeout(() => controller.abort(), 8000);
 
     try {
-      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent", {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
         method: "POST",
         signal: controller.signal,
         headers: {
