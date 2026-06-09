@@ -1918,48 +1918,6 @@ function HomeScreen({
         </div>
       </div>
 
-      {/* Olympic Finals — hardcore vs AI */}
-      <div className="w-full max-w-6xl mt-10">
-        <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-xl md:text-2xl font-black tracking-tight">ОЛИМПИЙСКИЙ ФИНАЛ</h2>
-          <div className="text-[10px] text-muted-foreground">
-            За золото: <span className="text-[var(--gold-bright)] font-bold">+5000 CR</span>
-          </div>
-        </div>
-        <button
-          type="button"
-          disabled={!olympicUnlocked}
-          onClick={onStartOlympic}
-          className={`group relative w-full overflow-hidden border transition-colors text-left p-5 md:p-6 flex flex-col md:flex-row gap-4 md:gap-6 items-start md:items-center ${
-            olympicUnlocked
-              ? "border-[var(--gold-bright)]/60 bg-gradient-to-r from-[var(--navy-deep)] via-[var(--navy-mid)] to-[var(--navy-deep)] hover:border-[var(--gold-bright)]"
-              : "border-border/50 bg-[var(--navy-deep)]/70 opacity-60 cursor-not-allowed"
-          }`}
-        >
-          <div className="text-2xl md:text-3xl font-black tracking-widest shrink-0 text-[var(--gold-bright)]">
-            {olympicUnlocked ? "ФИНАЛ" : "ЗАКРЫТ"}
-          </div>
-          <div className="flex-1">
-            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-bold mb-1">
-              {olympicUnlocked ? "HARDCORE · vs 5 AI" : `ЗАКРЫТО · ПРОЙДЕНО ${careerCompleted}/${CAREER_LEVEL_COUNT}`}
-            </div>
-            <div className="text-xl md:text-2xl font-black tracking-tight">Olympic Finals · 10 выстрелов на выбывание</div>
-            <div className="text-xs md:text-sm text-muted-foreground mt-1 leading-relaxed max-w-2xl">
-              {olympicUnlocked
-                ? "Винтовка 10м. После 4, 6 и 8 выстрелов слабейший участник выбывает. Дойдите до конца и заберите Олимпийское Золото у Cooper (USA), Chang (CHN), Rossi (ITA), Schmidt (GER) и Tanaka (JPN)."
-                : "Финал откроется только после прохождения всех пяти уровней карьеры. Сначала закрой всю лестницу дисциплин."}
-            </div>
-          </div>
-          <div className={`shrink-0 font-bold tracking-widest px-5 py-3 text-xs md:text-sm ${
-            olympicUnlocked
-              ? "bg-[var(--gold-bright)] text-[var(--navy-deep)] group-hover:opacity-90"
-              : "border border-border text-muted-foreground"
-          }`}>
-            {olympicUnlocked ? "▶ ВЫЙТИ В ФИНАЛ" : "НУЖНО 5 УРОВНЕЙ"}
-          </div>
-        </button>
-      </div>
-
       {/* Career levels */}
       <div className="w-full max-w-6xl mt-10">
 
@@ -2011,6 +1969,71 @@ function HomeScreen({
               </button>
             );
           })}
+        </div>
+
+        {/* Olympic Finals — final barrier after the full career ladder */}
+        <div className="mt-8 md:mt-10">
+          <button
+            type="button"
+            disabled={!olympicUnlocked}
+            onClick={onStartOlympic}
+            className={`group relative w-full overflow-hidden border-2 text-left transition-colors ${
+              olympicUnlocked
+                ? "border-[var(--gold-bright)] bg-gradient-to-r from-[var(--navy-deep)] via-[var(--navy-mid)] to-[var(--navy-deep)] hover:border-primary"
+                : "border-border/60 bg-slate-950/80 opacity-70 cursor-not-allowed"
+            }`}
+          >
+            <div
+              className={`absolute inset-0 pointer-events-none ${
+                olympicUnlocked
+                  ? "bg-[linear-gradient(135deg,rgba(240,193,74,0.16)_0_14px,transparent_14px_28px)]"
+                  : "bg-[linear-gradient(135deg,rgba(148,163,184,0.14)_0_14px,transparent_14px_28px)]"
+              }`}
+            />
+            <div className="relative grid grid-cols-1 md:grid-cols-[220px_1fr_190px] gap-5 md:gap-7 items-center p-6 md:p-8 min-h-[210px]">
+              <div className={`border-2 h-32 md:h-40 flex items-center justify-center ${
+                olympicUnlocked ? "border-[var(--gold-bright)] bg-[var(--gold-bright)]/10" : "border-border bg-slate-900/70"
+              }`}>
+                <div className="text-center">
+                  <div className="text-[10px] tracking-[0.45em] text-muted-foreground font-bold">ПРЕГРАДА</div>
+                  <div className="mt-2 text-4xl md:text-5xl font-black tracking-widest text-[var(--gold-bright)]">
+                    {olympicUnlocked ? "ОТКР" : "ЗАМК"}
+                  </div>
+                  <div className="mt-2 text-[10px] font-mono text-muted-foreground">{careerCompleted}/{CAREER_LEVEL_COUNT}</div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">
+                  {olympicUnlocked ? "ФИНАЛ ОТКРЫТ · HARDCORE · vs 5 AI" : "ОЛИМПИЙСКИЙ ФИНАЛ ЗАКРЫТ"}
+                </div>
+                <div className="mt-3 text-3xl md:text-5xl font-black tracking-tight leading-none">
+                  Olympic Finals
+                </div>
+                <div className="mt-3 text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl">
+                  {olympicUnlocked
+                    ? "Ты прошел всю карьерную лестницу. Теперь финал: винтовка 10м, 10 выстрелов, после 4, 6 и 8 выстрелов слабейший участник выбывает."
+                    : "Это последняя преграда. Чтобы выйти в финал, пройди все 5 карьерных уровней по порядку."}
+                </div>
+                {!olympicUnlocked && (
+                  <div className="mt-5 h-3 border border-border bg-[var(--navy-deep)]">
+                    <div
+                      className="h-full bg-[var(--gold-bright)]"
+                      style={{ width: `${Math.min(100, (careerCompleted / CAREER_LEVEL_COUNT) * 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <div className={`shrink-0 text-center font-black tracking-widest px-5 py-5 text-xs md:text-sm ${
+                olympicUnlocked
+                  ? "bg-[var(--gold-bright)] text-[var(--navy-deep)] group-hover:bg-primary"
+                  : "border border-border text-muted-foreground bg-slate-900/70"
+              }`}>
+                {olympicUnlocked ? "ВЫЙТИ В ФИНАЛ" : "НУЖНО 5/5"}
+              </div>
+            </div>
+          </button>
         </div>
       </div>
 
