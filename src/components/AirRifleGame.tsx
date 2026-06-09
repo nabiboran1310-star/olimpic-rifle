@@ -57,7 +57,7 @@ const DISCIPLINES: Discipline[] = [
     id: "boar",
     name: "Бегущий кабан 10м",
     short: "10m RUNNING TARGET",
-    caption: "ISSF Running Target · движущаяся мишень · упреждение",
+    caption: "ISSF Running Target · движущаяся мишень · стреляй чуть заранее",
     sight: "diopter",
     amplitude: 22,
     pulseAmp: 10,
@@ -93,7 +93,7 @@ const DISCIPLINES: Discipline[] = [
     id: "ap10",
     name: "Пистолет 10м",
     short: "10m AIR PISTOL",
-    caption: "Air Pistol · открытый прицел · резкий тремор",
+    caption: "Air Pistol · открытый прицел · прицел сильнее шатается",
     sight: "open",
     amplitude: 48,
     pulseAmp: 18,
@@ -1549,19 +1549,19 @@ export default function AirRifleGame() {
             {/* Sight Adjustment turret — bottom-left of arena */}
             <div className="absolute left-2 md:left-4 bottom-20 md:bottom-24 z-20 pointer-events-auto">
               <div className="bg-[var(--navy-deep)]/95 border border-primary/60 px-2 py-2 font-mono text-foreground shadow-xl">
-                <div className="text-[9px] tracking-widest text-muted-foreground text-center mb-1">ПОПРАВКИ · 4 клика = 1 габарит</div>
+                <div className="text-[9px] tracking-widest text-muted-foreground text-center mb-1">ПОПРАВКИ · КУДА ПОПАЛ, ТУДА НАЖМИ</div>
                 <div className="grid grid-cols-3 gap-1 w-[120px] mx-auto">
                   <div />
                   <button
                     onClick={() => adjustSight("up")}
                     className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
-                    title="Вверх (попал вверху)"
+                    title="Если попал выше центра, нажми сюда"
                   >▲</button>
                   <div />
                   <button
                     onClick={() => adjustSight("left")}
                     className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
-                    title="Влево (попал слева)"
+                    title="Если попал левее центра, нажми сюда"
                   >◀</button>
                   <div className="aspect-square bg-[var(--navy-deep)] border border-border flex flex-col items-center justify-center text-[8px] leading-none text-muted-foreground">
                     <div>X:<span className="text-primary tabular-nums ml-0.5">{adjX > 0 ? `+${adjX}` : adjX}</span></div>
@@ -1570,13 +1570,13 @@ export default function AirRifleGame() {
                   <button
                     onClick={() => adjustSight("right")}
                     className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
-                    title="Вправо (попал справа)"
+                    title="Если попал правее центра, нажми сюда"
                   >▶</button>
                   <div />
                   <button
                     onClick={() => adjustSight("down")}
                     className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
-                    title="Вниз (попал внизу)"
+                    title="Если попал ниже центра, нажми сюда"
                   >▼</button>
                   <div />
                 </div>
@@ -2109,7 +2109,7 @@ function HomeScreen({
               Olympic<br />Shooting<br />Simulator
             </h1>
             <p className="mt-5 max-w-md text-sm md:text-base leading-relaxed text-muted-foreground">
-              Выбери дисциплину, посмотри разбор тренера и выходи на рубеж уже с понятным планом: стойка, дыхание, прицел и спуск.
+              Выбери дисциплину, посмотри разбор тренера и выходи на рубеж с простым планом: навелся, задержал дыхание, мягко нажал.
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3 mt-8 text-center">
@@ -2472,14 +2472,14 @@ function RangeCoachGuide({
 
 function rangeCoachSteps(discipline: Discipline, holdWindow: number) {
   const movingTargetText = discipline.id === "boar"
-    ? "Это движущаяся мишень. Смотри не только в центр: веди цель плавно корпусом и стреляй с упреждением."
-    : "Центр не лови рывком. Наведи прицел в район десятки, дай мушке спокойно стоять и не дергай мышь перед выстрелом.";
+    ? "Мишень едет в сторону. Веди прицел рядом с ней плавно, без рывков вверх и вниз."
+    : "Наведи прицел ближе к центру. Не дергай мышь. Дай прицелу спокойно остановиться и только потом стреляй.";
 
   return [
     {
       id: "mode",
       title: "Сначала пробные",
-      text: "Вот здесь режимы. В пробных стреляешь без зачета, смотришь куда ложится пробоина и вносишь поправки. Когда стало ровно, нажимай ЗАЧЕТ.",
+      text: "Вот здесь два режима. ПРОБНЫЕ - это тренировка без счета. ЗАЧЕТ - это уже результат. Сначала сделай пару пробных.",
       spot: "top-2 left-20 w-[230px] h-[42px] md:top-4 md:left-36 md:w-[280px] md:h-[48px]",
       arrow: "top-[58px] left-[150px] md:top-[78px] md:left-[250px] text-5xl rotate-[-28deg]",
       arrowText: "↖",
@@ -2501,7 +2501,7 @@ function rangeCoachSteps(discipline: Discipline, holdWindow: number) {
     {
       id: "breath",
       title: "Задержка дыхания",
-      text: `ПКМ зажимай только на короткое окно. У тебя примерно ${holdWindow} сек. Если не успел нажать ЛКМ, отпусти прицел, вдох-выдох и начинай заново.`,
+      text: `Правая кнопка мыши делает прицел спокойнее. Держи ее недолго: примерно ${holdWindow} сек. Если не успел выстрелить, отпусти и начни заново.`,
       spot: "right-4 bottom-5 w-[190px] h-[58px] md:right-[384px] md:bottom-6 md:w-[240px]",
       arrow: "right-[130px] bottom-[84px] md:right-[560px] md:bottom-[96px] text-5xl rotate-[22deg]",
       arrowText: "↘",
@@ -2512,7 +2512,7 @@ function rangeCoachSteps(discipline: Discipline, holdWindow: number) {
     {
       id: "shot",
       title: "Выстрел",
-      text: "ЛКМ нажимай мягко, без щелчка пальцем. После выстрела оружие перезаряжается клавишей R, если внизу появилось EMPTY.",
+      text: "Левая кнопка мыши стреляет. Нажимай ее мягко, без резкого рывка. Если внизу написано EMPTY, нажми R для перезарядки.",
       spot: "left-1/2 top-1/2 w-[120px] h-[120px] -translate-x-1/2 -translate-y-1/2 rounded-full md:left-[calc(50%-180px)] md:w-[150px] md:h-[150px]",
       arrow: "left-[calc(50%+70px)] top-[calc(50%-125px)] md:left-[calc(50%-85px)] md:top-[calc(50%-150px)] text-6xl rotate-[32deg]",
       arrowText: "↙",
@@ -2523,7 +2523,7 @@ function rangeCoachSteps(discipline: Discipline, holdWindow: number) {
     {
       id: "adjustments",
       title: "Поправки после пробных",
-      text: "Если пробоина слева, жми левую стрелку. Если выше, жми вверх. Правило простое: куда попал, туда и крутишь. 4 клика = 1 габарит.",
+      text: "Если пробный выстрел попал левее центра, нажимай стрелку влево. Если выше центра, нажимай вверх. Куда попал - туда и нажимай.",
       spot: "left-2 bottom-20 w-[245px] h-[185px] md:left-4 md:bottom-24",
       arrow: "left-[250px] bottom-[190px] md:left-[270px] md:bottom-[230px] text-6xl rotate-[16deg]",
       arrowText: "↙",
@@ -2725,7 +2725,7 @@ function DisciplineBriefing({
 
             <div className="mt-auto pt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <div className="text-[11px] leading-relaxed text-muted-foreground max-w-md">
-                Сначала работай спокойно: навёлся, задержал дыхание, плавно нажал. Если не успел за несколько секунд, отпусти прицел и начни заново.
+                Простая схема: наведи прицел, зажми правую кнопку мыши, мягко нажми левую. Если долго не получается выстрелить, отпусти и начни заново.
               </div>
               <button
                 type="button"
@@ -2745,39 +2745,39 @@ function DisciplineBriefing({
 function briefingNotes(id: DisciplineId) {
   const common = [
     {
-      title: "Стойка и прицел",
-      text: "Не лови центр рывком. Выведи корпусом грубо в район десятки, потом дозируй мелкое движение мышцами плеча и кисти.",
+      title: "Как целиться",
+      text: "Наведи прицел ближе к центру мишени. Не пытайся резко поймать точку. Двигай мышь медленно и спокойно.",
     },
     {
       title: "Дыхание",
-      text: "ПКМ задерживает дыхание. Лучшее окно короткое: примерно три-пять секунд. Дольше держать нельзя, рука начнет дрожать.",
+      text: "Правая кнопка мыши делает прицел спокойнее. Держи ее недолго. Если держать слишком долго, прицел начнет дрожать сильнее.",
     },
     {
-      title: "Спуск",
-      text: "ЛКМ нажимай ровно, без резкого щелчка пальцем. Выстрел должен как будто случиться сам, пока мушка держится в зоне.",
+      title: "Как стрелять",
+      text: "Левая кнопка мыши делает выстрел. Нажимай мягко. Если резко кликнуть, прицел дернется и пуля уйдет в сторону.",
     },
   ];
 
   const specific: Record<DisciplineId, { title: string; text: string }> = {
     ar10: {
       title: "Пневматическая винтовка 10 м",
-      text: "Здесь решает стабильность. Не торопись после наведения: проверь кольцо прицела, выдохни лишнее напряжение и мягко обработай спуск.",
+      text: "Это самый понятный режим для старта. Наводи прицел в центр, держи мышь спокойно и не спеши с нажатием.",
     },
     boar: {
       title: "Бегущая мишень",
-      text: "Веди цель корпусом, а не одним стволом. Держи горизонтальную линию и стреляй с упреждением, не догоняя мишень в последний момент.",
+      text: "Мишень двигается. Не пытайся резко догнать ее мышью. Веди прицел рядом с мишенью плавно и стреляй чуть заранее.",
     },
     rifle50: {
       title: "Винтовка 50 м",
-      text: "На дистанции сильнее заметны ветер и мелкие ошибки. Перед выстрелом проверь флюгер и не затягивай удержание.",
+      text: "Здесь расстояние больше, поэтому маленькие ошибки заметнее. Смотри на ветер и нажимай левую кнопку спокойно.",
     },
     ap10: {
       title: "Пневматический пистолет 10 м",
-      text: "Кисть держи плотной, но не зажатой. Следи за ровной мушкой в прорези, а спуск нажимай строго назад.",
+      text: "Пистолет сильнее шатается. Держи мышь мягко, не зажимай руку и нажимай левую кнопку без рывка.",
     },
     rfp25: {
       title: "Скоростной пистолет 25 м",
-      text: "Главное не паниковать от темпа. Поднимай оружие одинаково, фиксируй мушку и не ломай кисть при каждом выстреле.",
+      text: "Тут важен темп. Не паникуй. Лучше нажать спокойно и точно, чем быстро дернуть мышь.",
     },
   };
 
