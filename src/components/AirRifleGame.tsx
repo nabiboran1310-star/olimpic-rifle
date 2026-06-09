@@ -506,6 +506,7 @@ export default function AirRifleGame() {
   const [lastCoachShot, setLastCoachShot] = useState<CoachShotTelemetry | null>(null);
   const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
   const [coachSessionId, setCoachSessionId] = useState(0);
+  const [showRangeGuide, setShowRangeGuide] = useState(false);
   const [score, setScore] = useState(0);
 
   const [timeLeft, setTimeLeft] = useState(START_TIME);
@@ -1137,6 +1138,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
+    setShowRangeGuide(true);
     setTimeLeft(START_TIME);
     setLoaded(true);
     setReloading(false);
@@ -1173,6 +1175,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
+    setShowRangeGuide(true);
     setTimeLeft(999);
     setLoaded(true);
     setReloading(false);
@@ -1208,6 +1211,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
+    setShowRangeGuide(true);
     setTimeLeft(999);
     setLoaded(true);
     setReloading(false);
@@ -1259,6 +1263,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
+    setShowRangeGuide(true);
     setTimeLeft(999);
     setLoaded(true);
     setReloading(false);
@@ -1280,6 +1285,7 @@ export default function AirRifleGame() {
     setHoles([]);
     setLastCoachShot(null);
     setCoachMessages([]);
+    setShowRangeGuide(false);
     setCareerResult(null);
     setLeaderboardResult(null);
     navigate({ to: "/" });
@@ -1433,6 +1439,13 @@ export default function AirRifleGame() {
           {/* Range */}
           <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
             {phase === "playing" && <CoachPanel messages={coachMessages} />}
+            {phase === "playing" && showRangeGuide && (
+              <RangeCoachGuide
+                discipline={discipline}
+                holdWindow={holdWindow}
+                onClose={() => setShowRangeGuide(false)}
+              />
+            )}
 
             <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10 gap-2">
               <div className="flex items-center gap-2">
@@ -2387,6 +2400,138 @@ function HomeScreen({
       </div>
     </div>
   );
+}
+
+function RangeCoachGuide({
+  discipline,
+  holdWindow,
+  onClose,
+}: {
+  discipline: Discipline;
+  holdWindow: number;
+  onClose: () => void;
+}) {
+  const [step, setStep] = useState(0);
+  const steps = rangeCoachSteps(discipline, holdWindow);
+  const current = steps[step] ?? steps[0];
+  const last = step >= steps.length - 1;
+
+  return (
+    <div className="fixed inset-0 z-50 pointer-events-auto">
+      <div className="absolute inset-0 bg-slate-950/78 backdrop-blur-[2px]" />
+      <motion.div
+        key={current.id}
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.18 }}
+        className={`absolute border-2 border-[var(--gold-bright)] bg-transparent shadow-[0_0_0_9999px_rgba(2,6,23,0.28),0_0_36px_rgba(245,190,80,0.65)] ${current.spot}`}
+      />
+      <motion.div
+        key={`${current.id}-arrow`}
+        initial={{ opacity: 0, x: current.arrowDx * -0.35, y: current.arrowDy * -0.35 }}
+        animate={{ opacity: 1, x: 0, y: 0 }}
+        transition={{ duration: 0.22 }}
+        className={`absolute font-black text-[var(--gold-bright)] drop-shadow-[0_3px_10px_rgba(0,0,0,0.9)] ${current.arrow}`}
+      >
+        {current.arrowText}
+      </motion.div>
+      <div className={`absolute w-[min(360px,calc(100%-32px))] border border-[var(--gold-bright)]/70 bg-slate-950/92 text-foreground shadow-2xl ${current.card}`}>
+        <div className="border-b border-border/70 bg-slate-900/80 px-4 py-3">
+          <div className="text-[10px] tracking-[0.38em] text-[var(--gold-bright)] font-black">ТРЕНЕР НА РУБЕЖЕ</div>
+          <div className="mt-1 text-xs text-muted-foreground font-mono">
+            {step + 1}/{steps.length} · {discipline.short}
+          </div>
+        </div>
+        <div className="px-4 py-4">
+          <div className="text-lg font-black tracking-tight">{current.title}</div>
+          <p className="mt-2 text-sm leading-relaxed text-slate-200">{current.text}</p>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="border border-border px-3 py-2 text-[10px] font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+            >
+              ПРОПУСТИТЬ
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (last) onClose();
+                else setStep((value) => value + 1);
+              }}
+              className="bg-primary text-primary-foreground px-4 py-2 text-[10px] font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
+            >
+              {last ? "ПОНЯЛ, НАЧАТЬ" : "ДАЛЬШЕ"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function rangeCoachSteps(discipline: Discipline, holdWindow: number) {
+  const movingTargetText = discipline.id === "boar"
+    ? "Это движущаяся мишень. Смотри не только в центр: веди цель плавно корпусом и стреляй с упреждением."
+    : "Центр не лови рывком. Наведи прицел в район десятки, дай мушке спокойно стоять и не дергай мышь перед выстрелом.";
+
+  return [
+    {
+      id: "mode",
+      title: "Сначала пробные",
+      text: "Вот здесь режимы. В пробных стреляешь без зачета, смотришь куда ложится пробоина и вносишь поправки. Когда стало ровно, нажимай ЗАЧЕТ.",
+      spot: "top-2 left-20 w-[230px] h-[42px] md:top-4 md:left-36 md:w-[280px] md:h-[48px]",
+      arrow: "top-[58px] left-[150px] md:top-[78px] md:left-[250px] text-5xl rotate-[-28deg]",
+      arrowText: "↖",
+      arrowDx: -40,
+      arrowDy: -25,
+      card: "top-24 left-4 md:top-28 md:left-8",
+    },
+    {
+      id: "target",
+      title: "Работай по мишени",
+      text: movingTargetText,
+      spot: "left-1/2 top-1/2 w-[250px] h-[250px] -translate-x-1/2 -translate-y-1/2 rounded-full md:left-[calc(50%-180px)] md:w-[360px] md:h-[360px]",
+      arrow: "left-[calc(50%-170px)] top-[calc(50%-225px)] md:left-[calc(50%-425px)] md:top-[calc(50%-300px)] text-6xl rotate-[-20deg]",
+      arrowText: "↘",
+      arrowDx: 45,
+      arrowDy: 45,
+      card: "right-4 top-20 md:right-8 md:top-28",
+    },
+    {
+      id: "breath",
+      title: "Задержка дыхания",
+      text: `ПКМ зажимай только на короткое окно. У тебя примерно ${holdWindow} сек. Если не успел нажать ЛКМ, отпусти прицел, вдох-выдох и начинай заново.`,
+      spot: "right-4 bottom-5 w-[190px] h-[58px] md:right-[384px] md:bottom-6 md:w-[240px]",
+      arrow: "right-[130px] bottom-[84px] md:right-[560px] md:bottom-[96px] text-5xl rotate-[22deg]",
+      arrowText: "↘",
+      arrowDx: 35,
+      arrowDy: 30,
+      card: "right-4 bottom-32 md:right-8 md:bottom-36",
+    },
+    {
+      id: "shot",
+      title: "Выстрел",
+      text: "ЛКМ нажимай мягко, без щелчка пальцем. После выстрела оружие перезаряжается клавишей R, если внизу появилось EMPTY.",
+      spot: "left-1/2 top-1/2 w-[120px] h-[120px] -translate-x-1/2 -translate-y-1/2 rounded-full md:left-[calc(50%-180px)] md:w-[150px] md:h-[150px]",
+      arrow: "left-[calc(50%+70px)] top-[calc(50%-125px)] md:left-[calc(50%-85px)] md:top-[calc(50%-150px)] text-6xl rotate-[32deg]",
+      arrowText: "↙",
+      arrowDx: -38,
+      arrowDy: 38,
+      card: "left-4 top-24 md:left-8 md:top-32",
+    },
+    {
+      id: "adjustments",
+      title: "Поправки после пробных",
+      text: "Если пробоина слева, жми левую стрелку. Если выше, жми вверх. Правило простое: куда попал, туда и крутишь. 4 клика = 1 габарит.",
+      spot: "left-2 bottom-20 w-[245px] h-[185px] md:left-4 md:bottom-24",
+      arrow: "left-[250px] bottom-[190px] md:left-[270px] md:bottom-[230px] text-6xl rotate-[16deg]",
+      arrowText: "↙",
+      arrowDx: -40,
+      arrowDy: 35,
+      card: "left-4 top-24 md:left-8 md:top-28",
+    },
+  ];
 }
 
 function DailyLeaderboards({
