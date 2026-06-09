@@ -12,6 +12,8 @@ export interface CoachShotTelemetry {
   score: number;
   deltaX: number;
   deltaY: number;
+  clickX: number;
+  clickY: number;
   isSightingMode: boolean;
   holdBreathTime: number;
   levelId: number | null;

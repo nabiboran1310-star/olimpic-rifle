@@ -41,8 +41,12 @@ function pick<T>(items: readonly T[], seed: number): T {
   return items[Math.abs(Math.round(seed * 10)) % items.length];
 }
 
+function conciseCorrection(clicks: number, direction: string) {
+  return `${clicks} ${direction}`;
+}
+
 export function getTelemetryFeedback(shotData: TelemetryFeedbackInput): string {
-  const { score, deltaX, deltaY, isSightingMode, holdBreathTime } = shotData;
+  const { score, deltaX, deltaY, clickX, clickY, isSightingMode, holdBreathTime } = shotData;
 
   if (holdBreathTime > 5 && score < 9.5) {
     return pick(BREATH_FEEDBACK, score + deltaX + deltaY);
@@ -54,37 +58,28 @@ export function getTelemetryFeedback(shotData: TelemetryFeedbackInput): string {
     return pick(MATCH_LOW, score + deltaX - deltaY);
   }
 
-  if (score >= 10.8) {
+  const absClickX = Math.abs(clickX);
+  const absClickY = Math.abs(clickY);
+  const hasCorrection = absClickX > 0 || absClickY > 0;
+
+  if (score >= 10.8 && !hasCorrection) {
     return "Центр пойман. Оставляй поправки как есть и переходи в зачетную серию.";
   }
 
-  const gabarits = Math.max(0, 10 - Math.floor(score));
-  const clicks = gabarits * 4;
-  const horizontal = Math.abs(deltaX) > Math.abs(deltaY);
-  const vertical = Math.abs(deltaY) > Math.abs(deltaX);
-
-  if (horizontal && deltaX < 0) {
-    return `Пробоина ушла влево примерно на ${gabarits} габарита. Дай ${clicks} кликов влево [◀] и проверь следующую пробную.`;
+  if (absClickX >= absClickY && absClickX > 0) {
+    return conciseCorrection(absClickX, clickX < 0 ? "влево" : "вправо");
   }
 
-  if (horizontal && deltaX > 0) {
-    return `Пробоина ушла вправо примерно на ${gabarits} габарита. Дай ${clicks} кликов вправо [▶] и снова проверь центр.`;
+  if (absClickY > 0) {
+    return conciseCorrection(absClickY, clickY < 0 ? "вверх" : "вниз");
   }
 
-  if (vertical && deltaY > 0) {
-    return `Попадание выше центра на ${gabarits} габарита. Сделай ${clicks} кликов вверх [▲], потом спокойно повтори.`;
-  }
-
-  if (vertical && deltaY < 0) {
-    return `Попадание ниже центра на ${gabarits} габарита. Сделай ${clicks} кликов вниз [▼] и не меняй стойку на следующем выстреле.`;
-  }
-
-  return `Увод идет по диагонали примерно на ${gabarits} габарита. Начни с ${clicks} кликов по той стороне, куда легла пробоина.`;
+  return "Попадание близко к центру. Поправки пока не трогай, сделай еще одну пробную для проверки.";
 }
 
 function feedbackType(shotData: TelemetryFeedbackInput): CoachMessageType {
   if (shotData.holdBreathTime > 5 && shotData.score < 9.5) return "warning";
-  if (shotData.isSightingMode && shotData.score >= 10.8) return "success";
+  if (shotData.isSightingMode && shotData.score >= 10.8 && Math.abs(shotData.clickX) === 0 && Math.abs(shotData.clickY) === 0) return "success";
   if (!shotData.isSightingMode && shotData.score >= 10.5) return "success";
   if (!shotData.isSightingMode && shotData.score < 9.5) return "warning";
   return shotData.isSightingMode ? "telemetry" : "tactical";
@@ -139,6 +134,8 @@ export function useTelemetryCoach({
       score: lastShot.score,
       deltaX: lastShot.deltaX,
       deltaY: lastShot.deltaY,
+      clickX: lastShot.clickX,
+      clickY: lastShot.clickY,
       isSightingMode,
       holdBreathTime: lastShot.holdBreathTime,
       levelId,
@@ -146,6 +143,12 @@ export function useTelemetryCoach({
 
     const fallback = getTelemetryFeedback(shotData);
     const type = feedbackType(shotData);
+    const hasSightingCorrection = isSightingMode && (Math.abs(shotData.clickX) > 0 || Math.abs(shotData.clickY) > 0);
+
+    if (hasSightingCorrection) {
+      addCoachMessage(fallback, type);
+      return;
+    }
 
     void getAiCoachFeedback({ data: { ...shotData, fallback } })
       .then((result) => {

@@ -779,6 +779,8 @@ export default function AirRifleGame() {
       score: sc,
       deltaX: dx,
       deltaY: dy,
+      clickX: Math.round(dx / pxPerClick),
+      clickY: Math.round(dy / pxPerClick),
       isSightingMode: isSighting,
       holdBreathTime: shotHoldTime,
       levelId: careerLevel?.id ?? null,
