@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { getAiCoachFeedback } from "@/lib/api/coach.functions";
 import type { CoachMessageType, CoachShotTelemetry, TelemetryFeedbackInput } from "@/types/coach";
 
 const HYPOXIA_FEEDBACK = [
@@ -132,6 +133,7 @@ export function useTelemetryCoach({
   useEffect(() => {
     if (!lastShot || lastShotIdRef.current === lastShot.id) return;
     lastShotIdRef.current = lastShot.id;
+    let cancelled = false;
 
     const shotData: TelemetryFeedbackInput = {
       score: lastShot.score,
@@ -142,6 +144,19 @@ export function useTelemetryCoach({
       levelId,
     };
 
-    addCoachMessage(getTelemetryFeedback(shotData), feedbackType(shotData));
+    const fallback = getTelemetryFeedback(shotData);
+    const type = feedbackType(shotData);
+
+    void getAiCoachFeedback({ data: { ...shotData, fallback } })
+      .then((result) => {
+        if (!cancelled) addCoachMessage(result.text, type);
+      })
+      .catch(() => {
+        if (!cancelled) addCoachMessage(fallback, type);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [addCoachMessage, isSightingMode, lastShot, levelId]);
 }
