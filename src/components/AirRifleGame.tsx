@@ -2168,7 +2168,13 @@ function HomeScreen({
         </div>
       </div>
 
-      <DailyLeaderboards progress={progress} />
+      <DailyLeaderboards
+        progress={progress}
+        onPlayDiscipline={(disciplineId) => {
+          const selected = DISCIPLINES.find((d) => d.id === disciplineId);
+          if (selected) setBriefingDiscipline(selected);
+        }}
+      />
 
       {/* Unified shop */}
       <div className="w-full max-w-6xl mt-10">
@@ -2268,7 +2274,13 @@ function HomeScreen({
   );
 }
 
-function DailyLeaderboards({ progress }: { progress: Progress }) {
+function DailyLeaderboards({
+  progress,
+  onPlayDiscipline,
+}: {
+  progress: Progress;
+  onPlayDiscipline: (disciplineId: DisciplineId) => void;
+}) {
   const [selectedDiscipline, setSelectedDiscipline] = useState<DisciplineId>("ar10");
   const [selectedRank, setSelectedRank] = useState<LeaderboardRankId>("rookie");
   const date = todayKey();
@@ -2343,8 +2355,17 @@ function DailyLeaderboards({ progress }: { progress: Progress }) {
               <div className="text-[10px] tracking-[0.35em] text-[var(--gold-bright)] font-bold">{selectedRankInfo.name}</div>
               <div className="text-sm font-black mt-1">{DISCIPLINES.find((d) => d.id === selectedDiscipline)?.name}</div>
             </div>
-            <div className="text-[10px] text-muted-foreground font-mono">
-              {typeof playerScore === "number" ? `ВАШЕ МЕСТО: ${playerPlace}` : "ВАШ РЕЗУЛЬТАТ ЕЩЕ НЕ ЗАПИСАН"}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+              <div className="text-[10px] text-muted-foreground font-mono">
+                {typeof playerScore === "number" ? `ВАШЕ МЕСТО: ${playerPlace}` : "ВАШ РЕЗУЛЬТАТ ЕЩЕ НЕ ЗАПИСАН"}
+              </div>
+              <button
+                type="button"
+                onClick={() => onPlayDiscipline(selectedDiscipline)}
+                className="bg-primary text-primary-foreground px-4 py-2 text-[10px] font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
+              >
+                ИГРАТЬ
+              </button>
             </div>
           </div>
 
