@@ -2192,6 +2192,27 @@ function HomeScreen({
         )}
       </div>
 
+      <div className="sticky top-2 z-40 w-full max-w-6xl mb-5 border border-border/70 bg-[var(--navy-deep)]/92 backdrop-blur-md px-2 py-2 shadow-xl">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          {[
+            { id: "disciplines", label: "ДИСЦИПЛИНЫ" },
+            { id: "career-path", label: "КАРЬЕРА" },
+            { id: "daily-tournament", label: "ТУРНИР" },
+            { id: "weekly-gifts", label: "ПОДАРКИ" },
+            { id: "shop", label: "МАГАЗИН" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => document.getElementById(tab.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
+              className="border border-border/60 bg-slate-950/45 px-3 py-2 text-[10px] font-black tracking-widest text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <button
         type="button"
         onClick={() => document.getElementById("weekly-gifts")?.scrollIntoView({ behavior: "smooth", block: "start" })}
@@ -2277,7 +2298,7 @@ function HomeScreen({
         }}
       />
 
-      <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 items-stretch">
+      <div id="disciplines" className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 items-stretch scroll-mt-24">
         <section className="border border-border/70 bg-[var(--navy-mid)]/70 p-6 md:p-8 flex flex-col justify-between min-h-[360px]">
           <div>
             <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-4">OLYMPIC SHOOTING RANGE</div>
@@ -2351,7 +2372,7 @@ function HomeScreen({
       </div>
 
       {/* Career levels */}
-      <div className="w-full max-w-6xl mt-10">
+      <div id="career-path" className="w-full max-w-6xl mt-10 scroll-mt-24">
 
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-xl md:text-2xl font-black tracking-tight">РЕЖИМ КАРЬЕРЫ</h2>
@@ -2506,7 +2527,7 @@ function HomeScreen({
       />
 
       {/* Unified shop */}
-      <div className="w-full max-w-6xl mt-10">
+      <div id="shop" className="w-full max-w-6xl mt-10 scroll-mt-24">
         <div className="flex items-baseline justify-between mb-3">
           <h2 className="text-xl md:text-2xl font-black tracking-tight">МАГАЗИН</h2>
           <div className="text-[10px] text-muted-foreground">10.9 = +500 CR · 10.x = +100 CR · 9.x = +50 CR</div>
@@ -2861,7 +2882,7 @@ function WeeklyGifts({
   const chromeSkin = SKINS.find((skin) => skin.id === "chrome");
 
   return (
-    <section id="weekly-gifts" className="w-full max-w-6xl mt-10 border border-[var(--gold-bright)]/45 bg-[var(--navy-mid)]/70 p-4 md:p-5 scroll-mt-6">
+    <section id="weekly-gifts" className="w-full max-w-6xl mt-10 border border-[var(--gold-bright)]/45 bg-[var(--navy-mid)]/70 p-4 md:p-5 scroll-mt-24">
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
         <div>
           <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">ЕЖЕДНЕВНЫЕ ПОДАРКИ</div>
@@ -2955,7 +2976,7 @@ function DailyLeaderboards({
   const earnedBadges = progress.badges.filter((badge) => badge.startsWith("daily-1-"));
 
   return (
-    <section id="daily-tournament" className="w-full max-w-6xl mt-10 border border-border/70 bg-[var(--navy-mid)]/65 p-4 md:p-5 scroll-mt-6">
+    <section id="daily-tournament" className="w-full max-w-6xl mt-10 border border-border/70 bg-[var(--navy-mid)]/65 p-4 md:p-5 scroll-mt-24">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
         <div>
           <div className="text-[10px] tracking-[0.45em] text-primary font-bold">ЕЖЕДНЕВНЫЕ ТАБЛИЦЫ</div>
