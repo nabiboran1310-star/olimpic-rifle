@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Link, useNavigate } from "@tanstack/react-router";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
 import { CoachPanel } from "@/components/CoachPanel";
@@ -330,7 +331,7 @@ function dailySimScore(date: string, disciplineId: DisciplineId, rank: Leaderboa
 }
 
 function makeDailyLeaderboard(date: string, disciplineId: DisciplineId, rank: LeaderboardRankId, playerScore?: number) {
-  const entries = Array.from({ length: 10 }, (_, index) => {
+  const entries: Array<{ id: string; name: string; score: number; simulated: boolean }> = Array.from({ length: 10 }, (_, index) => {
     const nameIndex = Math.floor(seededUnit(`${date}:${disciplineId}:${rank}:${index}:name`) * SIM_PLAYER_NAMES.length);
     return {
       id: `sim-${index}`,
@@ -419,7 +420,7 @@ function loadSettings(): AppSettings {
 }
 
 function saveSettings(settings: AppSettings) {
-  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch { void 0; }
 }
 
 function applySettings(settings: AppSettings) {
@@ -614,7 +615,7 @@ function loadProgress(): Progress {
   } catch { return def; }
 }
 function saveProgress(p: Progress) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(p)); } catch {}
+  try { localStorage.setItem(LS_KEY, JSON.stringify(p)); } catch { void 0; }
 }
 
 const RANGE_GUIDE_KEY_PREFIX = "range-guide-seen-v2";
@@ -738,7 +739,7 @@ export default function AirRifleGame() {
       },
     ].slice(-3));
   }, []);
-  const hasUpgrade = (id: string) => progress.upgrades.includes(id);
+  const hasUpgrade = useCallback((id: string) => progress.upgrades.includes(id), [progress.upgrades]);
   const holdWindow = hasUpgrade("premium") ? 5 : 3;
 
   const recordDailyLeaderboardScore = useCallback((disciplineId: DisciplineId, rankId: LeaderboardRankId, resultScore: number) => {
@@ -955,7 +956,7 @@ export default function AirRifleGame() {
         setReloading(false);
       }, reloadCloseMs);
     }, reloadOpenMs);
-  }, [loaded, reloading, phase, mode, careerLevel, discipline, progress.upgrades]);
+  }, [loaded, reloading, phase, mode, careerLevel, discipline, hasUpgrade]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1098,7 +1099,7 @@ export default function AirRifleGame() {
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [phase, holding, holdStart, mouse, discipline, progress.upgrades, holdWindow, mode, careerLevel]);
+  }, [phase, holding, holdStart, mouse, discipline, hasUpgrade, holdWindow, mode, careerLevel]);
 
   // Fire
   const fire = useCallback(() => {
@@ -1252,7 +1253,7 @@ export default function AirRifleGame() {
       const playerScore = +(score + sc).toFixed(1);
       setTimeout(() => runOlympicRound(shotNum, playerScore), 550);
     }
-  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore, leaderboardRank, progress.upgrades]);
+  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore, leaderboardRank, hasUpgrade]);
 
   // ----- Olympic round helper -----
   const runOlympicRound = (shotNum: number, playerScore: number) => {
@@ -2282,7 +2283,7 @@ function HomeScreen({
   onStartOlympic: () => void;
   progress: Progress;
   careerCompleted: number;
-  user: any;
+  user: User | null;
   mounted: boolean;
   buySkin: (s: Skin) => void;
   equipSkin: (s: Skin) => void;
@@ -3457,9 +3458,10 @@ function WeeklyGifts({
 
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
         {DAILY_GIFTS.map((gift) => {
+          const reward = gift.reward;
           const active = gift.day === currentDay;
           const claimedToday = alreadyClaimed && active;
-          const skin = gift.reward.type === "skin" ? SKINS.find((item) => item.id === gift.reward.skinId) : null;
+          const skin = reward.type === "skin" ? SKINS.find((item) => item.id === reward.skinId) : null;
 
           return (
             <div
