@@ -2120,6 +2120,12 @@ function HomeScreen({
   }
 
   const olympicUnlocked = careerCompleted >= CAREER_LEVEL_COUNT;
+  const today = localTodayKey();
+  const giftAlreadyClaimed = progress.dailyGift.lastClaimDate === today;
+  const giftDay = nextGiftDay(progress.dailyGift, today);
+  const todayGift = DAILY_GIFTS.find((gift) => gift.day === giftDay) ?? DAILY_GIFTS[0];
+  const nextGiftDayNumber = giftDay >= 7 ? 1 : giftDay + 1;
+  const nextGift = DAILY_GIFTS.find((gift) => gift.day === nextGiftDayNumber) ?? DAILY_GIFTS[0];
 
   return (
     <div className="min-h-screen flex flex-col items-center px-4 md:px-6 py-8 bg-[radial-gradient(ellipse_at_top,_var(--navy-mid),_var(--navy-deep))]">
@@ -2185,6 +2191,37 @@ function HomeScreen({
           )
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={() => document.getElementById("weekly-gifts")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        className={`w-full max-w-6xl mb-6 text-left border px-4 py-3 transition-colors ${
+          giftAlreadyClaimed
+            ? "border-border/70 bg-slate-950/35 hover:border-[var(--gold-bright)]/60"
+            : "border-[var(--gold-bright)] bg-[var(--gold-bright)]/12 hover:bg-[var(--gold-bright)]/18 shadow-[0_0_24px_rgba(245,190,80,0.16)]"
+        }`}
+      >
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 shrink-0 border border-[var(--gold-bright)]/70 bg-slate-950/60 flex items-center justify-center text-xl">
+              🎁
+            </div>
+            <div>
+              <div className="text-[10px] tracking-[0.35em] text-[var(--gold-bright)] font-bold">
+                {giftAlreadyClaimed ? "ПОДАРОК УЖЕ ЗАБРАН" : "ТЕБЯ ЖДЕТ ПОДАРОК"}
+              </div>
+              <div className="mt-1 text-sm md:text-base font-black">
+                {giftAlreadyClaimed
+                  ? `Завтра: день ${nextGift.day} · ${rewardLabel(nextGift.reward)}`
+                  : `Сегодня: день ${todayGift.day} · ${rewardLabel(todayGift.reward)}`}
+              </div>
+            </div>
+          </div>
+          <div className="text-[10px] font-black tracking-widest text-primary">
+            {giftAlreadyClaimed ? "ПОСМОТРЕТЬ НЕДЕЛЮ" : "ЗАБРАТЬ СЕЙЧАС"}
+          </div>
+        </div>
+      </button>
 
       {/* Guest warning modal */}
       <AnimatePresence>
@@ -2804,7 +2841,7 @@ function WeeklyGifts({
   const chromeSkin = SKINS.find((skin) => skin.id === "chrome");
 
   return (
-    <section className="w-full max-w-6xl mt-10 border border-[var(--gold-bright)]/45 bg-[var(--navy-mid)]/70 p-4 md:p-5">
+    <section id="weekly-gifts" className="w-full max-w-6xl mt-10 border border-[var(--gold-bright)]/45 bg-[var(--navy-mid)]/70 p-4 md:p-5 scroll-mt-6">
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
         <div>
           <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">ЕЖЕДНЕВНЫЕ ПОДАРКИ</div>
