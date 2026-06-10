@@ -65,7 +65,7 @@ export function CoachPanel({ messages }: CoachPanelProps) {
             <div className="absolute left-2 top-7 h-2 w-8 rounded-full bg-amber-300/70" />
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-black tracking-wide text-amber-100">Тренер Сергей</div>
+            <div className="text-sm font-black tracking-wide text-amber-100">Тренер Руслан</div>
             <div className="text-[10px] uppercase tracking-[0.22em] text-slate-400">рядом на рубеже</div>
           </div>
         </div>
