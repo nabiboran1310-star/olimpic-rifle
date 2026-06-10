@@ -1704,7 +1704,7 @@ export default function AirRifleGame() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
           {/* Range */}
           <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
-            {phase === "playing" && <CoachPanel messages={coachMessages} />}
+            {phase === "playing" && <CoachPanel messages={coachMessages} mobile={isTouchDevice} />}
             {phase === "playing" && showRangeGuide && (
               <RangeCoachGuide
                 discipline={discipline}

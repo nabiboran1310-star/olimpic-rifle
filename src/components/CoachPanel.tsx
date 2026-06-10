@@ -3,6 +3,7 @@ import type { CoachMessage } from "@/types/coach";
 
 type CoachPanelProps = {
   messages: CoachMessage[];
+  mobile?: boolean;
 };
 
 const TYPE_CLASS: Record<CoachMessage["type"], string> = {
@@ -19,7 +20,7 @@ const TYPE_LABEL: Record<CoachMessage["type"], string> = {
   success: "хорошо",
 };
 
-export function CoachPanel({ messages }: CoachPanelProps) {
+export function CoachPanel({ messages, mobile = false }: CoachPanelProps) {
   const latest = messages[messages.length - 1];
   const [typedMessage, setTypedMessage] = useState({ id: "", text: "" });
 
@@ -55,36 +56,38 @@ export function CoachPanel({ messages }: CoachPanelProps) {
     };
   }, [latest?.id, latest?.text]);
 
+  const visibleMessages = messages.length === 0 ? [] : messages.slice(-1);
+
   return (
-    <div className="absolute top-16 left-2 md:left-4 z-20 w-[min(360px,calc(100%-1rem))] pointer-events-none">
-      <div className="overflow-hidden border border-amber-200/35 bg-slate-950/78 backdrop-blur-md text-slate-100 shadow-2xl shadow-slate-950/35">
-        <div className="flex items-center gap-3 border-b border-amber-100/15 bg-slate-900/70 px-3 py-3">
-          <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-amber-200/45 bg-gradient-to-b from-slate-700 to-slate-950">
+    <div className={`${mobile ? "absolute left-3 right-3 bottom-32" : "absolute left-2 right-2 bottom-32 md:left-auto md:right-4 md:top-[132px] md:bottom-auto md:w-[260px]"} z-20 pointer-events-none`}>
+      <div className="overflow-hidden border border-amber-200/30 bg-slate-950/72 backdrop-blur-sm text-slate-100 shadow-xl shadow-slate-950/25">
+        <div className={`${mobile ? "hidden" : "flex"} items-center gap-2 border-b border-amber-100/10 bg-slate-900/60 px-2.5 py-2`}>
+          <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-amber-200/40 bg-gradient-to-b from-slate-700 to-slate-950">
             <div className="absolute left-1/2 top-2 h-4 w-4 -translate-x-1/2 rounded-full bg-amber-100/85" />
             <div className="absolute left-1/2 top-6 h-8 w-9 -translate-x-1/2 rounded-t-full bg-slate-300/85" />
             <div className="absolute left-2 top-7 h-2 w-8 rounded-full bg-amber-300/70" />
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-black tracking-wide text-amber-100">Тренер Руслан</div>
-            <div className="text-[10px] uppercase tracking-[0.22em] text-slate-400">рядом на рубеже</div>
+            <div className="text-xs font-black tracking-wide text-amber-100">Тренер Руслан</div>
+            <div className="text-[9px] uppercase tracking-[0.18em] text-slate-400">короткая подсказка</div>
           </div>
         </div>
-        <div className="space-y-2 px-3 py-3">
+        <div className="space-y-1.5 px-2.5 py-2">
           {messages.length === 0 ? (
-            <div className="rounded-sm border border-slate-600/40 bg-slate-900/45 px-3 py-2 text-[12px] leading-relaxed text-slate-300">
+            <div className="rounded-sm border border-slate-600/35 bg-slate-900/40 px-2.5 py-2 text-[11px] leading-snug text-slate-300">
               Я рядом. Сделай пробный выстрел, посмотрим, что поправить.
             </div>
           ) : (
-            messages.map((message) => {
+            visibleMessages.map((message) => {
               const isTyping = message.id === latest?.id && typedMessage.id === message.id;
               const text = isTyping ? typedMessage.text : message.text;
 
               return (
                 <div
                   key={message.id}
-                  className={`relative rounded-sm border-l-2 bg-slate-900/55 px-3 py-2 text-[12px] leading-relaxed shadow-sm ${TYPE_CLASS[message.type]}`}
+                  className={`relative rounded-sm border-l-2 bg-slate-900/50 px-2.5 py-2 text-[11px] leading-snug shadow-sm ${TYPE_CLASS[message.type]}`}
                 >
-                  <div className="mb-1 text-[9px] uppercase tracking-[0.2em] text-slate-400">
+                  <div className="mb-1 text-[8px] uppercase tracking-[0.18em] text-slate-400">
                     {TYPE_LABEL[message.type]}
                   </div>
                   {text}
