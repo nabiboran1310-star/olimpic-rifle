@@ -382,6 +382,53 @@ function creditsForShot(s: number): number {
 // ============================================================
 // Audio (real MP3 files)
 // ============================================================
+type AppSettings = {
+  theme: "dark" | "light";
+  sfxVolume: number;
+  compactUi: boolean;
+  showGiftHint: boolean;
+};
+
+const SETTINGS_KEY = "olympic-rifle-settings-v1";
+const DEFAULT_SETTINGS: AppSettings = {
+  theme: "dark",
+  sfxVolume: 0.8,
+  compactUi: false,
+  showGiftHint: true,
+};
+
+let globalSfxVolume = DEFAULT_SETTINGS.sfxVolume;
+
+function normalizeSettings(value: Partial<AppSettings> | null | undefined): AppSettings {
+  return {
+    theme: value?.theme === "light" ? "light" : "dark",
+    sfxVolume: Math.max(0, Math.min(1, Number(value?.sfxVolume ?? DEFAULT_SETTINGS.sfxVolume))),
+    compactUi: Boolean(value?.compactUi),
+    showGiftHint: value?.showGiftHint === false ? false : true,
+  };
+}
+
+function loadSettings(): AppSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    return normalizeSettings(raw ? JSON.parse(raw) : null);
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
+
+function saveSettings(settings: AppSettings) {
+  try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch {}
+}
+
+function applySettings(settings: AppSettings) {
+  globalSfxVolume = settings.sfxVolume;
+  if (typeof document === "undefined") return;
+  document.documentElement.classList.toggle("theme-light-range", settings.theme === "light");
+  document.documentElement.classList.toggle("theme-dark-range", settings.theme === "dark");
+}
+
 const SOUND_URLS = {
   shotAir: "https://assets.mixkit.co/active_storage/sfx/1670/1670-preview.mp3",
   shotRim: "https://assets.mixkit.co/active_storage/sfx/1678/1678-preview.mp3",
@@ -418,7 +465,7 @@ function playSfx(a: HTMLAudioElement | null) {
   if (!a) return;
   try {
     const clone = a.cloneNode(true) as HTMLAudioElement;
-    clone.volume = a.volume;
+    clone.volume = Math.max(0, Math.min(1, a.volume * globalSfxVolume));
     void clone.play().catch(() => {});
   } catch {/* ignore */}
 }
@@ -437,7 +484,7 @@ function playTurretClick() {
     o.frequency.setValueAtTime(2400, ctx.currentTime);
     o.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.04);
     g.gain.setValueAtTime(0.0001, ctx.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.09, ctx.currentTime + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.09 * globalSfxVolume, ctx.currentTime + 0.005);
     g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.05);
     o.connect(g).connect(ctx.destination);
     o.start();
@@ -639,6 +686,7 @@ export default function AirRifleGame() {
   const [hasMatchShot, setHasMatchShot] = useState(false);
 
   const [progress, setProgress] = useState<Progress>(() => loadProgress());
+  const [settings, setSettings] = useState<AppSettings>(() => loadSettings());
   const [shopOpen, setShopOpen] = useState(false);
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
   const [isGuest, setIsGuest] = useState(false);
@@ -712,6 +760,10 @@ export default function AirRifleGame() {
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    applySettings(settings);
+    saveSettings(settings);
+  }, [settings]);
   const closeRangeGuide = useCallback(() => {
     markRangeGuideSeen(discipline.id);
     setShowRangeGuide(false);
@@ -1597,6 +1649,8 @@ export default function AirRifleGame() {
           isGuest={isGuest}
           onStartGuest={startGuestSession}
           onClaimDailyGift={claimDailyGift}
+          settings={settings}
+          onSettingsChange={setSettings}
         />
 
 
@@ -2111,7 +2165,7 @@ export default function AirRifleGame() {
 
 function HomeScreen({
   onPickCareer, onPickQuick, onPickLeaderboard, onStartOlympic, progress, careerCompleted, user, mounted,
-  buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest, onClaimDailyGift,
+  buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest, onClaimDailyGift, settings, onSettingsChange,
 }: {
   onPickCareer: (lvl: CareerLevel) => void;
   onPickQuick: (d: Discipline) => void;
@@ -2128,12 +2182,15 @@ function HomeScreen({
   isGuest: boolean;
   onStartGuest: () => void;
   onClaimDailyGift: () => void;
+  settings: AppSettings;
+  onSettingsChange: React.Dispatch<React.SetStateAction<AppSettings>>;
 }) {
   const credits = progress.credits;
   const [homeTab, setHomeTab] = useState<"disciplines" | "career" | "tournament" | "shop">("disciplines");
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
   const [signInOpen, setSignInOpen] = useState(false);
   const [guestWarnOpen, setGuestWarnOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [tournamentPromptOpen, setTournamentPromptOpen] = useState(false);
   const [briefingDiscipline, setBriefingDiscipline] = useState<Discipline | null>(null);
   const [briefingLeaderboardRank, setBriefingLeaderboardRank] = useState<LeaderboardRankId | null>(null);
@@ -2198,56 +2255,66 @@ function HomeScreen({
           </div>
         </div>
         {mounted && (
-          user ? (
-            <Link
-              to="/profile"
-              className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="border border-border text-muted-foreground font-bold tracking-widest px-3 py-2 text-xs hover:border-[var(--gold-bright)] hover:text-[var(--gold-bright)] transition-colors"
+              aria-label="Открыть настройки"
             >
-              ПРОФИЛЬ
-            </Link>
-          ) : (
-            <div ref={signInRef} className="relative">
-              <button
-                type="button"
-                onClick={() => setSignInOpen((v) => !v)}
-                className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors flex items-center gap-2"
-                aria-haspopup="menu"
-                aria-expanded={signInOpen}
+              ⚙
+            </button>
+            {user ? (
+              <Link
+                to="/profile"
+                className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
               >
-                ВОЙТИ
-                <span className={`inline-block transition-transform ${signInOpen ? "rotate-180" : ""}`}>▾</span>
-              </button>
-              <AnimatePresence>
-                {signInOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.15 }}
-                    className="absolute right-0 mt-2 w-56 border border-[var(--gold-bright)]/50 bg-[var(--navy-deep)] shadow-xl z-50"
-                    role="menu"
-                  >
-                    <Link
-                      to="/auth"
-                      onClick={() => setSignInOpen(false)}
-                      className="block px-4 py-3 text-xs tracking-widest text-foreground hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors border-b border-border"
-                      role="menuitem"
+                ПРОФИЛЬ
+              </Link>
+            ) : (
+              <div ref={signInRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSignInOpen((v) => !v)}
+                  className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors flex items-center gap-2"
+                  aria-haspopup="menu"
+                  aria-expanded={signInOpen}
+                >
+                  ВОЙТИ
+                  <span className={`inline-block transition-transform ${signInOpen ? "rotate-180" : ""}`}>▾</span>
+                </button>
+                <AnimatePresence>
+                  {signInOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 mt-2 w-56 border border-[var(--gold-bright)]/50 bg-[var(--navy-deep)] shadow-xl z-50"
+                      role="menu"
                     >
-                      ОСНОВНОЙ ВХОД
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={() => { setSignInOpen(false); setGuestWarnOpen(true); }}
-                      className="block w-full text-left px-4 py-3 text-xs tracking-widest text-muted-foreground hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
-                      role="menuitem"
-                    >
-                      ВОЙТИ КАК ГОСТЬ
-                    </button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          )
+                      <Link
+                        to="/auth"
+                        onClick={() => setSignInOpen(false)}
+                        className="block px-4 py-3 text-xs tracking-widest text-foreground hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors border-b border-border"
+                        role="menuitem"
+                      >
+                        ОСНОВНОЙ ВХОД
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => { setSignInOpen(false); setGuestWarnOpen(true); }}
+                        className="block w-full text-left px-4 py-3 text-xs tracking-widest text-muted-foreground hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
+                        role="menuitem"
+                      >
+                        ВОЙТИ КАК ГОСТЬ
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -2275,6 +2342,7 @@ function HomeScreen({
         </div>
       </div>
 
+      {settings.showGiftHint && (
       <button
         type="button"
         onClick={() => setHomeTab("shop")}
@@ -2305,6 +2373,7 @@ function HomeScreen({
           </div>
         </div>
       </button>
+      )}
 
       {/* Guest warning modal */}
       <AnimatePresence>
@@ -2357,11 +2426,17 @@ function HomeScreen({
           setHomeTab("tournament");
         }}
       />
+      <SettingsModal
+        open={settingsOpen}
+        settings={settings}
+        onChange={onSettingsChange}
+        onClose={() => setSettingsOpen(false)}
+      />
 
       {homeTab === "disciplines" && (
         <>
-      <div id="disciplines" className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 items-stretch">
-        <section className="border border-border/70 bg-[var(--navy-mid)]/70 p-6 md:p-8 flex flex-col justify-between min-h-[360px]">
+      <div id="disciplines" className={`w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 items-stretch ${settings.compactUi ? "text-[0.94rem]" : ""}`}>
+        <section className={`border border-border/70 bg-[var(--navy-mid)]/70 flex flex-col justify-between ${settings.compactUi ? "p-5 min-h-[300px]" : "p-6 md:p-8 min-h-[360px]"}`}>
           <div>
             <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-4">OLYMPIC SHOOTING RANGE</div>
             <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-none">
@@ -3036,6 +3111,174 @@ function TournamentPrompt({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function SettingsModal({
+  open,
+  settings,
+  onChange,
+  onClose,
+}: {
+  open: boolean;
+  settings: AppSettings;
+  onChange: React.Dispatch<React.SetStateAction<AppSettings>>;
+  onClose: () => void;
+}) {
+  const update = (patch: Partial<AppSettings>) => {
+    onChange((current) => normalizeSettings({ ...current, ...patch }));
+  };
+
+  const resetRangeGuides = () => {
+    if (typeof window === "undefined") return;
+    DISCIPLINES.forEach((discipline) => localStorage.removeItem(rangeGuideKey(discipline.id)));
+  };
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[120] bg-black/72 flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 12 }}
+            transition={{ duration: 0.18 }}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-lg border border-[var(--gold-bright)]/70 bg-[var(--navy-mid)] p-5 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-4 border-b border-border pb-4">
+              <div>
+                <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-black">НАСТРОЙКИ</div>
+                <h2 className="mt-2 text-2xl font-black tracking-tight">Панель игрока</h2>
+              </div>
+              <button
+                type="button"
+                onClick={onClose}
+                className="border border-border px-3 py-1.5 text-xs font-black hover:border-primary hover:text-primary transition-colors"
+              >
+                X
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-5">
+              <div>
+                <div className="text-[10px] tracking-widest text-muted-foreground mb-2">ПАЛИТРА</div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => update({ theme: "dark" })}
+                    className={`border px-4 py-3 text-left transition-colors ${
+                      settings.theme === "dark" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-slate-950/35"
+                    }`}
+                  >
+                    <div className="text-xs font-black tracking-widest">ТЕМНАЯ</div>
+                    <div className="mt-2 flex gap-1">
+                      <span className="h-5 w-5 bg-black border border-border" />
+                      <span className="h-5 w-5 bg-emerald-400" />
+                      <span className="h-5 w-5 bg-slate-700" />
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => update({ theme: "light" })}
+                    className={`border px-4 py-3 text-left transition-colors ${
+                      settings.theme === "light" ? "border-primary bg-primary text-primary-foreground" : "border-border bg-slate-950/35"
+                    }`}
+                  >
+                    <div className="text-xs font-black tracking-widest">СВЕТЛАЯ</div>
+                    <div className="mt-2 flex gap-1">
+                      <span className="h-5 w-5 bg-zinc-100 border border-zinc-400" />
+                      <span className="h-5 w-5 bg-orange-500" />
+                      <span className="h-5 w-5 bg-black" />
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              <label className="block">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] tracking-widest text-muted-foreground">ГРОМКОСТЬ ЗВУКА</span>
+                  <span className="font-mono text-sm text-[var(--gold-bright)]">{Math.round(settings.sfxVolume * 100)}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={Math.round(settings.sfxVolume * 100)}
+                  onChange={(event) => update({ sfxVolume: Number(event.target.value) / 100 })}
+                  className="mt-2 w-full accent-[var(--gold-bright)]"
+                />
+              </label>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <SettingToggle
+                  checked={settings.compactUi}
+                  label="Компактный интерфейс"
+                  description="Меньше воздуха на главном экране."
+                  onClick={() => update({ compactUi: !settings.compactUi })}
+                />
+                <SettingToggle
+                  checked={settings.showGiftHint}
+                  label="Подсказка подарка"
+                  description="Показывать баннер ежедневной награды."
+                  onClick={() => update({ showGiftHint: !settings.showGiftHint })}
+                />
+              </div>
+
+              <div className="border border-border bg-slate-950/25 p-3">
+                <div className="text-xs font-black tracking-widest">ОБУЧЕНИЕ</div>
+                <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  Можно снова включить подсказки тренера для всех дисциплин.
+                </p>
+                <button
+                  type="button"
+                  onClick={resetRangeGuides}
+                  className="mt-3 border border-primary text-primary px-3 py-2 text-[10px] font-black tracking-widest hover:bg-primary hover:text-primary-foreground transition-colors"
+                >
+                  ПОКАЗАТЬ ОБУЧЕНИЕ СНОВА
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function SettingToggle({
+  checked,
+  label,
+  description,
+  onClick,
+}: {
+  checked: boolean;
+  label: string;
+  description: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left border p-3 transition-colors ${
+        checked ? "border-primary bg-primary/15" : "border-border bg-slate-950/25 hover:border-primary"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs font-black tracking-widest">{label}</div>
+        <div className={`h-5 w-9 border p-0.5 ${checked ? "border-primary bg-primary" : "border-border bg-muted"}`}>
+          <div className={`h-full w-4 bg-background transition-transform ${checked ? "translate-x-3" : ""}`} />
+        </div>
+      </div>
+      <div className="mt-2 text-[11px] text-muted-foreground leading-relaxed">{description}</div>
+    </button>
   );
 }
 
