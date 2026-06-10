@@ -633,6 +633,14 @@ function markRangeGuideSeen(disciplineId: DisciplineId) {
   localStorage.setItem(rangeGuideKey(disciplineId), "1");
 }
 
+function resetRangeGuideProgress() {
+  if (typeof window === "undefined") return;
+  DISCIPLINES.forEach((discipline) => localStorage.removeItem(rangeGuideKey(discipline.id)));
+  Object.keys(localStorage)
+    .filter((key) => key.startsWith(RANGE_GUIDE_KEY_PREFIX))
+    .forEach((key) => localStorage.removeItem(key));
+}
+
 // ============================================================
 // Component
 // ============================================================
@@ -1651,6 +1659,7 @@ export default function AirRifleGame() {
           onClaimDailyGift={claimDailyGift}
           settings={settings}
           onSettingsChange={setSettings}
+          onResetTraining={resetRangeGuideProgress}
         />
 
 
@@ -2165,7 +2174,7 @@ export default function AirRifleGame() {
 
 function HomeScreen({
   onPickCareer, onPickQuick, onPickLeaderboard, onStartOlympic, progress, careerCompleted, user, mounted,
-  buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest, onClaimDailyGift, settings, onSettingsChange,
+  buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest, onClaimDailyGift, settings, onSettingsChange, onResetTraining,
 }: {
   onPickCareer: (lvl: CareerLevel) => void;
   onPickQuick: (d: Discipline) => void;
@@ -2184,6 +2193,7 @@ function HomeScreen({
   onClaimDailyGift: () => void;
   settings: AppSettings;
   onSettingsChange: React.Dispatch<React.SetStateAction<AppSettings>>;
+  onResetTraining: () => void;
 }) {
   const credits = progress.credits;
   const [homeTab, setHomeTab] = useState<"disciplines" | "career" | "tournament" | "shop">("disciplines");
@@ -2430,6 +2440,10 @@ function HomeScreen({
         open={settingsOpen}
         settings={settings}
         onChange={onSettingsChange}
+        onResetTraining={() => {
+          onResetTraining();
+          setHomeTab("disciplines");
+        }}
         onClose={() => setSettingsOpen(false)}
       />
 
@@ -3118,20 +3132,28 @@ function SettingsModal({
   open,
   settings,
   onChange,
+  onResetTraining,
   onClose,
 }: {
   open: boolean;
   settings: AppSettings;
   onChange: React.Dispatch<React.SetStateAction<AppSettings>>;
+  onResetTraining: () => void;
   onClose: () => void;
 }) {
+  const [trainingReset, setTrainingReset] = useState(false);
+
+  useEffect(() => {
+    if (!open) setTrainingReset(false);
+  }, [open]);
+
   const update = (patch: Partial<AppSettings>) => {
     onChange((current) => normalizeSettings({ ...current, ...patch }));
   };
 
   const resetRangeGuides = () => {
-    if (typeof window === "undefined") return;
-    DISCIPLINES.forEach((discipline) => localStorage.removeItem(rangeGuideKey(discipline.id)));
+    onResetTraining();
+    setTrainingReset(true);
   };
 
   return (
@@ -3239,10 +3261,19 @@ function SettingsModal({
                 <button
                   type="button"
                   onClick={resetRangeGuides}
-                  className="mt-3 border border-primary text-primary px-3 py-2 text-[10px] font-black tracking-widest hover:bg-primary hover:text-primary-foreground transition-colors"
+                  className={`mt-3 border px-3 py-2 text-[10px] font-black tracking-widest transition-colors ${
+                    trainingReset
+                      ? "border-[var(--gold-bright)] bg-[var(--gold-bright)] text-[var(--navy-deep)]"
+                      : "border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+                  }`}
                 >
-                  ПОКАЗАТЬ ОБУЧЕНИЕ СНОВА
+                  {trainingReset ? "ГОТОВО. ВЫБЕРИ ДИСЦИПЛИНУ" : "ПОКАЗАТЬ ОБУЧЕНИЕ СНОВА"}
                 </button>
+                {trainingReset && (
+                  <p className="mt-2 text-xs text-[var(--gold-bright)]">
+                    Обучение снова откроется при следующем запуске любой дисциплины.
+                  </p>
+                )}
               </div>
             </div>
           </motion.div>
