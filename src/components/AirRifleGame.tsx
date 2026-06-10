@@ -252,6 +252,24 @@ function todayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function localTodayKey() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDaysKey(dateKey: string, days: number) {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + days);
+  const nextYear = date.getFullYear();
+  const nextMonth = String(date.getMonth() + 1).padStart(2, "0");
+  const nextDay = String(date.getDate()).padStart(2, "0");
+  return `${nextYear}-${nextMonth}-${nextDay}`;
+}
+
 function leaderboardKey(date: string, disciplineId: DisciplineId, rankId: LeaderboardRankId) {
   return `${date}:${disciplineId}:${rankId}`;
 }
@@ -415,6 +433,49 @@ const SKINS: Skin[] = [
     glow: "0 0 8px rgba(240,200,80,0.85), inset 0 0 0 1px rgba(255,230,140,0.9)", goldHalo: true },
 ];
 
+type DailyGiftReward =
+  | { type: "credits"; amount: number }
+  | { type: "skin"; skinId: string; fallbackCredits: number };
+
+const DAILY_GIFTS: Array<{ day: number; title: string; reward: DailyGiftReward }> = [
+  { day: 1, title: "Разминка", reward: { type: "credits", amount: 100 } },
+  { day: 2, title: "Спокойная рука", reward: { type: "credits", amount: 150 } },
+  { day: 3, title: "Точный взгляд", reward: { type: "credits", amount: 250 } },
+  { day: 4, title: "Хороший темп", reward: { type: "credits", amount: 400 } },
+  { day: 5, title: "Серия пошла", reward: { type: "credits", amount: 600 } },
+  { day: 6, title: "Почти финал", reward: { type: "credits", amount: 900 } },
+  { day: 7, title: "Подарок недели", reward: { type: "skin", skinId: "chrome", fallbackCredits: 1500 } },
+];
+
+type DailyGiftState = {
+  lastClaimDate: string | null;
+  streakDay: number;
+};
+
+function normalizeGiftState(value: unknown): DailyGiftState {
+  if (!value || typeof value !== "object") return { lastClaimDate: null, streakDay: 0 };
+  const state = value as Partial<DailyGiftState>;
+  return {
+    lastClaimDate: typeof state.lastClaimDate === "string" ? state.lastClaimDate : null,
+    streakDay: Math.max(0, Math.min(7, Number(state.streakDay) || 0)),
+  };
+}
+
+function nextGiftDay(state: DailyGiftState, today = localTodayKey()) {
+  if (state.lastClaimDate === today) return Math.max(1, state.streakDay || 1);
+  const yesterday = addDaysKey(today, -1);
+  if (state.lastClaimDate === yesterday) {
+    return state.streakDay >= 7 ? 1 : Math.max(1, state.streakDay + 1);
+  }
+  return 1;
+}
+
+function rewardLabel(reward: DailyGiftReward) {
+  if (reward.type === "credits") return `+${reward.amount} CR`;
+  const skin = SKINS.find((item) => item.id === reward.skinId);
+  return skin ? `Скин: ${skin.name}` : "Скин прицела";
+}
+
 type Upgrade = { id: string; name: string; desc: string; price: number };
 const UPGRADES: Upgrade[] = [
   { id: "jacket", name: "Спортивный костюм", desc: "Снижает амплитуду дрожания прицела на 20% во всех дисциплинах.", price: 2500 },
@@ -436,6 +497,7 @@ type Progress = {
   careerCompleted: number; // highest completed career level (0..5)
   dailyScores: Record<string, DailyLeaderboardScore>;
   badges: string[];
+  dailyGift: DailyGiftState;
 };
 function loadProgress(): Progress {
   const def: Progress = {
@@ -448,6 +510,7 @@ function loadProgress(): Progress {
     careerCompleted: 0,
     dailyScores: {},
     badges: [],
+    dailyGift: { lastClaimDate: null, streakDay: 0 },
   };
   if (typeof window === "undefined") return def;
   try {
@@ -464,6 +527,7 @@ function loadProgress(): Progress {
       careerCompleted: Math.max(0, Math.min(CAREER_LEVEL_COUNT, Number(p.careerCompleted) || 0)),
       dailyScores: p.dailyScores && typeof p.dailyScores === "object" ? p.dailyScores : {},
       badges: Array.isArray(p.badges) ? p.badges : [],
+      dailyGift: normalizeGiftState(p.dailyGift),
     };
   } catch { return def; }
 }
@@ -656,6 +720,7 @@ export default function AirRifleGame() {
         careerCompleted: prev.careerCompleted,
         dailyScores: prev.dailyScores,
         badges: prev.badges,
+        dailyGift: prev.dailyGift,
       }));
       hydratedRef.current = true;
     })();
@@ -1242,6 +1307,7 @@ export default function AirRifleGame() {
       careerCompleted: 0,
       dailyScores: {},
       badges: [],
+      dailyGift: { lastClaimDate: null, streakDay: 0 },
     });
     startCareerLevel(CAREER_LEVELS[0]);
   };
@@ -1340,6 +1406,45 @@ export default function AirRifleGame() {
     setProgress((p) => ({ ...p, credits: p.credits - u.price, upgrades: [...p.upgrades, u.id] }));
   };
 
+  const claimDailyGift = () => {
+    const today = localTodayKey();
+    if (progress.dailyGift.lastClaimDate === today) return;
+
+    const day = nextGiftDay(progress.dailyGift, today);
+    const gift = DAILY_GIFTS.find((item) => item.day === day) ?? DAILY_GIFTS[0];
+
+    setProgress((prev) => {
+      const nextDay = nextGiftDay(prev.dailyGift, today);
+      const nextGift = DAILY_GIFTS.find((item) => item.day === nextDay) ?? DAILY_GIFTS[0];
+      const nextState: DailyGiftState = { lastClaimDate: today, streakDay: nextDay };
+
+      if (nextGift.reward.type === "credits") {
+        return {
+          ...prev,
+          credits: prev.credits + nextGift.reward.amount,
+          dailyGift: nextState,
+        };
+      }
+
+      if (prev.owned.includes(nextGift.reward.skinId)) {
+        return {
+          ...prev,
+          credits: prev.credits + nextGift.reward.fallbackCredits,
+          dailyGift: nextState,
+        };
+      }
+
+      return {
+        ...prev,
+        owned: [...prev.owned, nextGift.reward.skinId],
+        equipped: nextGift.reward.skinId,
+        dailyGift: nextState,
+      };
+    });
+
+    playSfx(gift.reward.type === "skin" ? A.chime : A.purchase);
+  };
+
   const holdTime = holding && holdStart ? (performance.now() - holdStart) / 1000 : 0;
   const inFocus = holding && holdTime < holdWindow;
   const overHold = holding && holdTime >= holdWindow;
@@ -1433,6 +1538,7 @@ export default function AirRifleGame() {
           hasUpgrade={hasUpgrade}
           isGuest={isGuest}
           onStartGuest={startGuestSession}
+          onClaimDailyGift={claimDailyGift}
         />
 
 
@@ -1947,7 +2053,7 @@ export default function AirRifleGame() {
 
 function HomeScreen({
   onPickCareer, onPickQuick, onPickLeaderboard, onStartOlympic, progress, careerCompleted, user, mounted,
-  buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest,
+  buySkin, equipSkin, buyUpgrade, hasUpgrade, isGuest, onStartGuest, onClaimDailyGift,
 }: {
   onPickCareer: (lvl: CareerLevel) => void;
   onPickQuick: (d: Discipline) => void;
@@ -1963,6 +2069,7 @@ function HomeScreen({
   hasUpgrade: (id: string) => boolean;
   isGuest: boolean;
   onStartGuest: () => void;
+  onClaimDailyGift: () => void;
 }) {
   const credits = progress.credits;
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
@@ -2336,6 +2443,11 @@ function HomeScreen({
         }}
       />
 
+      <WeeklyGifts
+        progress={progress}
+        onClaim={onClaimDailyGift}
+      />
+
       {/* Unified shop */}
       <div className="w-full max-w-6xl mt-10">
         <div className="flex items-baseline justify-between mb-3">
@@ -2675,6 +2787,96 @@ function TournamentPrompt({
         </motion.div>
       )}
     </AnimatePresence>
+  );
+}
+
+function WeeklyGifts({
+  progress,
+  onClaim,
+}: {
+  progress: Progress;
+  onClaim: () => void;
+}) {
+  const today = localTodayKey();
+  const alreadyClaimed = progress.dailyGift.lastClaimDate === today;
+  const currentDay = nextGiftDay(progress.dailyGift, today);
+  const currentGift = DAILY_GIFTS.find((gift) => gift.day === currentDay) ?? DAILY_GIFTS[0];
+  const chromeSkin = SKINS.find((skin) => skin.id === "chrome");
+
+  return (
+    <section className="w-full max-w-6xl mt-10 border border-[var(--gold-bright)]/45 bg-[var(--navy-mid)]/70 p-4 md:p-5">
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
+        <div>
+          <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">ЕЖЕДНЕВНЫЕ ПОДАРКИ</div>
+          <h2 className="mt-1 text-xl md:text-2xl font-black tracking-tight">Неделя наград</h2>
+          <p className="mt-1 text-xs text-muted-foreground max-w-2xl">
+            Заходи каждый день и забирай подарок. В начале дают кредиты, а на 7-й день открывается скин прицела.
+          </p>
+        </div>
+
+        <div className="border border-[var(--gold-bright)]/55 bg-slate-950/45 px-4 py-3 min-w-[220px]">
+          <div className="text-[10px] tracking-widest text-muted-foreground">СЕГОДНЯ</div>
+          <div className="mt-1 text-lg font-black text-[var(--gold-bright)]">{rewardLabel(currentGift.reward)}</div>
+          <button
+            type="button"
+            onClick={onClaim}
+            disabled={alreadyClaimed}
+            className={`mt-3 w-full px-4 py-2 text-[10px] font-black tracking-widest transition-colors ${
+              alreadyClaimed
+                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                : "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
+            }`}
+          >
+            {alreadyClaimed ? "УЖЕ ЗАБРАНО" : "ЗАБРАТЬ ПОДАРОК"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        {DAILY_GIFTS.map((gift) => {
+          const active = gift.day === currentDay;
+          const claimedToday = alreadyClaimed && active;
+          const skin = gift.reward.type === "skin" ? SKINS.find((item) => item.id === gift.reward.skinId) : null;
+
+          return (
+            <div
+              key={gift.day}
+              className={`border px-3 py-3 min-h-[120px] flex flex-col ${
+                active
+                  ? "border-[var(--gold-bright)] bg-[var(--gold-bright)]/10 text-foreground"
+                  : "border-border/60 bg-slate-950/35 text-muted-foreground"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[10px] tracking-widest">ДЕНЬ {gift.day}</div>
+                {claimedToday && <div className="text-[10px] text-primary font-black">OK</div>}
+              </div>
+              <div className="mt-2 text-sm font-black">{gift.title}</div>
+              <div className="mt-auto pt-3">
+                {skin ? (
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="h-8 w-8 rounded-full border-[3px]"
+                      style={{
+                        borderColor: skin.ring,
+                        boxShadow: skin.glow ?? "0 0 0 1px rgba(255,255,255,0.08)",
+                      }}
+                    />
+                    <div className="text-[11px] font-bold text-[var(--gold-bright)] leading-tight">
+                      {chromeSkin?.name ?? rewardLabel(gift.reward)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-lg font-black font-mono text-[var(--gold-bright)]">
+                    {rewardLabel(gift.reward)}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
