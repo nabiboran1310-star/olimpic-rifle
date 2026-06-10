@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+﻿import { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { Link, useNavigate } from "@tanstack/react-router";
@@ -37,9 +37,9 @@ type Discipline = {
 const DISCIPLINES: Discipline[] = [
   {
     id: "ar10",
-    name: "Винтовка 10м",
+    name: "Р’РёРЅС‚РѕРІРєР° 10Рј",
     short: "10m AIR RIFLE",
-    caption: "ISSF Air Rifle · диоптр · тяжёлая восьмёрка",
+    caption: "ISSF Air Rifle В· РґРёРѕРїС‚СЂ В· С‚СЏР¶С‘Р»Р°СЏ РІРѕСЃСЊРјС‘СЂРєР°",
     sight: "diopter",
     amplitude: 24,
     pulseAmp: 12,
@@ -55,9 +55,9 @@ const DISCIPLINES: Discipline[] = [
   },
   {
     id: "boar",
-    name: "Бегущий кабан 10м",
+    name: "Р‘РµРіСѓС‰РёР№ РєР°Р±Р°РЅ 10Рј",
     short: "10m RUNNING TARGET",
-    caption: "ISSF Running Target · движущаяся мишень · стреляй чуть заранее",
+    caption: "ISSF Running Target В· РґРІРёР¶СѓС‰Р°СЏСЃСЏ РјРёС€РµРЅСЊ В· СЃС‚СЂРµР»СЏР№ С‡СѓС‚СЊ Р·Р°СЂР°РЅРµРµ",
     sight: "diopter",
     amplitude: 22,
     pulseAmp: 10,
@@ -73,9 +73,9 @@ const DISCIPLINES: Discipline[] = [
   },
   {
     id: "rifle50",
-    name: "Винтовка 50м",
+    name: "Р’РёРЅС‚РѕРІРєР° 50Рј",
     short: "50m RIFLE .22LR",
-    caption: "Smallbore .22LR · диоптр · инерция + ветер",
+    caption: "Smallbore .22LR В· РґРёРѕРїС‚СЂ В· РёРЅРµСЂС†РёСЏ + РІРµС‚РµСЂ",
     sight: "diopter",
     amplitude: 30,
     pulseAmp: 14,
@@ -91,9 +91,9 @@ const DISCIPLINES: Discipline[] = [
   },
   {
     id: "ap10",
-    name: "Пистолет 10м",
+    name: "РџРёСЃС‚РѕР»РµС‚ 10Рј",
     short: "10m AIR PISTOL",
-    caption: "Air Pistol · открытый прицел · прицел сильнее шатается",
+    caption: "Air Pistol В· РѕС‚РєСЂС‹С‚С‹Р№ РїСЂРёС†РµР» В· РїСЂРёС†РµР» СЃРёР»СЊРЅРµРµ С€Р°С‚Р°РµС‚СЃСЏ",
     sight: "open",
     amplitude: 48,
     pulseAmp: 18,
@@ -109,9 +109,9 @@ const DISCIPLINES: Discipline[] = [
   },
   {
     id: "rfp25",
-    name: "Пистолет 25м",
+    name: "РџРёСЃС‚РѕР»РµС‚ 25Рј",
     short: "25m RAPID FIRE",
-    caption: "Rapid Fire Pistol · открытый прицел · хаотичные рывки",
+    caption: "Rapid Fire Pistol В· РѕС‚РєСЂС‹С‚С‹Р№ РїСЂРёС†РµР» В· С…Р°РѕС‚РёС‡РЅС‹Рµ СЂС‹РІРєРё",
     sight: "open",
     amplitude: 56,
     pulseAmp: 22,
@@ -154,7 +154,7 @@ function computeIntegerScore(distPx: number, d: Discipline): number {
 // Career Mode
 // ============================================================
 type CareerLevel = {
-  id: 1 | 2 | 3 | 4 | 5;
+  id: number;
   name: string;
   short: string;
   description: string;
@@ -166,33 +166,58 @@ type CareerLevel = {
   hardcore: boolean;
 };
 
-const CAREER_LEVEL_COUNT = 5;
+const CAREER_LEVEL_COUNT = 10;
 
 const CAREER_LEVELS: CareerLevel[] = [
   {
-    id: 1, name: "Клубный дебют", short: "L1 · INTEGER",
-    description: "Винтовка 10м. Только целые очки. 10 выстрелов. Цель: набрать 95+.",
+    id: 1, name: "РљР»СѓР±РЅС‹Р№ РґРµР±СЋС‚", short: "L1 В· INTEGER",
+    description: "Р’РёРЅС‚РѕРІРєР° 10Рј. РўРѕР»СЊРєРѕ С†РµР»С‹Рµ РѕС‡РєРё. 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: РЅР°Р±СЂР°С‚СЊ 95+.",
     disciplineId: "ar10", shots: 10, winScore: 95, scoring: "integer", moving: false, hardcore: false,
   },
   {
-    id: 2, name: "Олимпийский отбор · Бегущий кабан", short: "L2 · RUNNING TARGET",
-    description: "Движущаяся мишень. Десятые. 10 выстрелов. Цель: 96.0+.",
+    id: 2, name: "РћР»РёРјРїРёР№СЃРєРёР№ РѕС‚Р±РѕСЂ В· Р‘РµРіСѓС‰РёР№ РєР°Р±Р°РЅ", short: "L2 В· RUNNING TARGET",
+    description: "Р”РІРёР¶СѓС‰Р°СЏСЃСЏ РјРёС€РµРЅСЊ. Р”РµСЃСЏС‚С‹Рµ. 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 96.0+.",
     disciplineId: "boar", shots: 10, winScore: 96.0, scoring: "decimal", moving: true, hardcore: false,
   },
   {
-    id: 3, name: "Пневматический пистолет", short: "L3 · AIR PISTOL",
-    description: "Пистолет 10м. Открытый прицел. 10 выстрелов. Цель: 96.5+.",
+    id: 3, name: "РџРЅРµРІРјР°С‚РёС‡РµСЃРєРёР№ РїРёСЃС‚РѕР»РµС‚", short: "L3 В· AIR PISTOL",
+    description: "РџРёСЃС‚РѕР»РµС‚ 10Рј. РћС‚РєСЂС‹С‚С‹Р№ РїСЂРёС†РµР». 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 96.5+.",
     disciplineId: "ap10", shots: 10, winScore: 96.5, scoring: "decimal", moving: false, hardcore: false,
   },
   {
-    id: 4, name: "Малокалиберная винтовка 50м", short: "L4 · 50M WIND",
-    description: "Винтовка 50м. Ветер и инерция. 10 выстрелов. Цель: 103.5+.",
+    id: 4, name: "РњР°Р»РѕРєР°Р»РёР±РµСЂРЅР°СЏ РІРёРЅС‚РѕРІРєР° 50Рј", short: "L4 В· 50M WIND",
+    description: "Р’РёРЅС‚РѕРІРєР° 50Рј. Р’РµС‚РµСЂ Рё РёРЅРµСЂС†РёСЏ. 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 103.5+.",
     disciplineId: "rifle50", shots: 10, winScore: 103.5, scoring: "decimal", moving: false, hardcore: true,
   },
   {
-    id: 5, name: "Скоростной пистолет", short: "L5 · RAPID FIRE",
-    description: "Пистолет 25м. Жесткий темп и открытый прицел. 10 выстрелов. Цель: 101.0+.",
+    id: 5, name: "РЎРєРѕСЂРѕСЃС‚РЅРѕР№ РїРёСЃС‚РѕР»РµС‚", short: "L5 В· RAPID FIRE",
+    description: "РџРёСЃС‚РѕР»РµС‚ 25Рј. Р–РµСЃС‚РєРёР№ С‚РµРјРї Рё РѕС‚РєСЂС‹С‚С‹Р№ РїСЂРёС†РµР». 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 101.0+.",
     disciplineId: "rfp25", shots: 10, winScore: 101.0, scoring: "decimal", moving: false, hardcore: true,
+  },
+  {
+    id: 6, name: "РЎС‚Р°Р±РёР»СЊРЅР°СЏ СЃРµСЂРёСЏ", short: "L6 В· PRECISION",
+    description: "Р’РёРЅС‚РѕРІРєР° 10Рј. Р”РµСЃСЏС‚С‹Рµ РѕС‡РєРё. 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 102.0+.",
+    disciplineId: "ar10", shots: 10, winScore: 102.0, scoring: "decimal", moving: false, hardcore: false,
+  },
+  {
+    id: 7, name: "РљР°Р±Р°РЅ РІ С‚РµРјРїРµ", short: "L7 В· FAST BOAR",
+    description: "Р‘РµРіСѓС‰Р°СЏ РјРёС€РµРЅСЊ. РќСѓР¶РЅРѕ РїР»Р°РІРЅРѕ РІРµСЃС‚Рё С†РµР»СЊ Р±РµР· Р»РёС€РЅРёС… РґРІРёР¶РµРЅРёР№ РІРІРµСЂС…-РІРЅРёР·. 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 102.5+.",
+    disciplineId: "boar", shots: 10, winScore: 102.5, scoring: "decimal", moving: true, hardcore: true,
+  },
+  {
+    id: 8, name: "РџРёСЃС‚РѕР»РµС‚ РїРѕРґ РґР°РІР»РµРЅРёРµРј", short: "L8 В· TRIGGER",
+    description: "РџРёСЃС‚РѕР»РµС‚ 10Рј. РћС€РёР±РєР° СЃРїСѓСЃРєР° СЃРёР»СЊРЅРµРµ СѓРІРѕРґРёС‚ РІС‹СЃС‚СЂРµР». 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 103.0+.",
+    disciplineId: "ap10", shots: 10, winScore: 103.0, scoring: "decimal", moving: false, hardcore: true,
+  },
+  {
+    id: 9, name: "Р’РµС‚РµСЂ 50 РјРµС‚СЂРѕРІ", short: "L9 В· HARD WIND",
+    description: "Р’РёРЅС‚РѕРІРєР° 50Рј. Р”Р°Р»СЊРЅСЏСЏ РґРёСЃС‚Р°РЅС†РёСЏ Рё СЃРёР»СЊРЅРµРµ РІР»РёСЏРЅРёРµ РІРµС‚СЂР°. 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 104.5+.",
+    disciplineId: "rifle50", shots: 10, winScore: 104.5, scoring: "decimal", moving: false, hardcore: true,
+  },
+  {
+    id: 10, name: "РњР°СЃС‚РµСЂСЃРєР°СЏ РєРІР°Р»РёС„РёРєР°С†РёСЏ", short: "L10 В· MASTER",
+    description: "РЎРєРѕСЂРѕСЃС‚РЅРѕР№ РїРёСЃС‚РѕР»РµС‚ 25Рј. Р¤РёРЅР°Р»СЊРЅС‹Р№ РѕС‚Р±РѕСЂ РїРµСЂРµРґ РѕР»РёРјРїРёР№СЃРєРёРј С„РёРЅР°Р»РѕРј. 10 РІС‹СЃС‚СЂРµР»РѕРІ. Р¦РµР»СЊ: 105.0+.",
+    disciplineId: "rfp25", shots: 10, winScore: 105.0, scoring: "decimal", moving: false, hardcore: true,
   },
 ];
 const CAREER_WIN_BONUS = 2000;
@@ -227,20 +252,25 @@ type LeaderboardRankId = "rookie" | "starter" | "solid" | "pro" | "champion";
 type DailyLeaderboardScore = { date: string; score: number };
 
 const LEADERBOARD_RANKS: Array<{ id: LeaderboardRankId; name: string; subtitle: string; min: number; max: number }> = [
-  { id: "rookie", name: "Новичок", subtitle: "первые стабильные серии", min: 88.0, max: 97.5 },
-  { id: "starter", name: "Начинающий стрелок", subtitle: "уже держит темп", min: 94.0, max: 101.5 },
-  { id: "solid", name: "Неплохой стрелок", subtitle: "борется за десятки", min: 98.0, max: 104.0 },
-  { id: "pro", name: "Профи", subtitle: "почти без срывов", min: 102.0, max: 106.8 },
-  { id: "champion", name: "Олимпийский чемпион", subtitle: "уровень финала", min: 105.0, max: 109.0 },
+  { id: "rookie", name: "РќРѕРІРёС‡РѕРє", subtitle: "РїРµСЂРІС‹Рµ СЃС‚Р°Р±РёР»СЊРЅС‹Рµ СЃРµСЂРёРё", min: 88.0, max: 97.5 },
+  { id: "starter", name: "РќР°С‡РёРЅР°СЋС‰РёР№ СЃС‚СЂРµР»РѕРє", subtitle: "СѓР¶Рµ РґРµСЂР¶РёС‚ С‚РµРјРї", min: 94.0, max: 101.5 },
+  { id: "solid", name: "РќРµРїР»РѕС…РѕР№ СЃС‚СЂРµР»РѕРє", subtitle: "Р±РѕСЂРµС‚СЃСЏ Р·Р° РґРµСЃСЏС‚РєРё", min: 98.0, max: 104.0 },
+  { id: "pro", name: "РџСЂРѕС„Рё", subtitle: "РїРѕС‡С‚Рё Р±РµР· СЃСЂС‹РІРѕРІ", min: 102.0, max: 106.8 },
+  { id: "champion", name: "РћР»РёРјРїРёР№СЃРєРёР№ С‡РµРјРїРёРѕРЅ", subtitle: "СѓСЂРѕРІРµРЅСЊ С„РёРЅР°Р»Р°", min: 105.0, max: 109.0 },
 ];
 const LEADERBOARD_SHOTS = 10;
 
-const CAREER_RANK_BY_LEVEL: Record<CareerLevel["id"], LeaderboardRankId> = {
+const CAREER_RANK_BY_LEVEL: Record<number, LeaderboardRankId> = {
   1: "rookie",
   2: "starter",
   3: "solid",
   4: "pro",
   5: "champion",
+  6: "solid",
+  7: "pro",
+  8: "pro",
+  9: "champion",
+  10: "champion",
 };
 
 const SIM_PLAYER_NAMES = [
@@ -311,7 +341,7 @@ function makeDailyLeaderboard(date: string, disciplineId: DisciplineId, rank: Le
   });
 
   if (typeof playerScore === "number") {
-    entries.push({ id: "player", name: "Вы", score: playerScore, simulated: false });
+    entries.push({ id: "player", name: "Р’С‹", score: playerScore, simulated: false });
   }
 
   return entries.sort((a, b) => b.score - a.score).map((entry, index) => ({ ...entry, place: index + 1 }));
@@ -321,8 +351,8 @@ function badgeLabel(id: string) {
   const [, , disciplineId, rankId] = id.split("-");
   const discipline = DISCIPLINES.find((d) => d.id === disciplineId);
   const rank = LEADERBOARD_RANKS.find((r) => r.id === rankId);
-  if (!discipline || !rank) return "Значок мастера";
-  return `${rank.name} · ${discipline.name}`;
+  if (!discipline || !rank) return "Р—РЅР°С‡РѕРє РјР°СЃС‚РµСЂР°";
+  return `${rank.name} В· ${discipline.name}`;
 }
 
 function rollBotShot(favorite: boolean): number {
@@ -393,7 +423,7 @@ function playSfx(a: HTMLAudioElement | null) {
   } catch {/* ignore */}
 }
 
-// Sight-turret click (synthesized — tiny metallic tick)
+// Sight-turret click (synthesized вЂ” tiny metallic tick)
 let _audioCtx: AudioContext | null = null;
 function playTurretClick() {
   if (typeof window === "undefined") return;
@@ -423,13 +453,13 @@ type Skin = {
   ring: string; dot: string; glow?: string; goldHalo?: boolean;
 };
 const SKINS: Skin[] = [
-  { id: "default", name: "Стандартный спорт", price: 0, ring: "#1a202c", dot: "#1a202c",
+  { id: "default", name: "РЎС‚Р°РЅРґР°СЂС‚РЅС‹Р№ СЃРїРѕСЂС‚", price: 0, ring: "#1a202c", dot: "#1a202c",
     glow: "0 0 0 1px rgba(255,255,255,0.55)" },
-  { id: "carbon", name: "Спортивный Карбон", price: 1500, ring: "#3a3f47", dot: "#1a1d22",
+  { id: "carbon", name: "РЎРїРѕСЂС‚РёРІРЅС‹Р№ РљР°СЂР±РѕРЅ", price: 1500, ring: "#3a3f47", dot: "#1a1d22",
     glow: "inset 0 0 0 1px rgba(120,130,140,0.4)" },
-  { id: "chrome", name: "Олимпийский Хром", price: 3500, ring: "#e8edf2", dot: "#9aa3ad",
+  { id: "chrome", name: "РћР»РёРјРїРёР№СЃРєРёР№ РҐСЂРѕРј", price: 3500, ring: "#e8edf2", dot: "#9aa3ad",
     glow: "0 0 6px rgba(220,230,240,0.7), inset 0 0 0 1px rgba(255,255,255,0.9)" },
-  { id: "gold", name: "Золото Чемпиона", price: 7000, ring: "#f0c14a", dot: "#8a6a18",
+  { id: "gold", name: "Р—РѕР»РѕС‚Рѕ Р§РµРјРїРёРѕРЅР°", price: 7000, ring: "#f0c14a", dot: "#8a6a18",
     glow: "0 0 8px rgba(240,200,80,0.85), inset 0 0 0 1px rgba(255,230,140,0.9)", goldHalo: true },
 ];
 
@@ -438,13 +468,13 @@ type DailyGiftReward =
   | { type: "skin"; skinId: string; fallbackCredits: number };
 
 const DAILY_GIFTS: Array<{ day: number; title: string; reward: DailyGiftReward }> = [
-  { day: 1, title: "Разминка", reward: { type: "credits", amount: 100 } },
-  { day: 2, title: "Спокойная рука", reward: { type: "credits", amount: 150 } },
-  { day: 3, title: "Точный взгляд", reward: { type: "credits", amount: 250 } },
-  { day: 4, title: "Хороший темп", reward: { type: "credits", amount: 400 } },
-  { day: 5, title: "Серия пошла", reward: { type: "credits", amount: 600 } },
-  { day: 6, title: "Почти финал", reward: { type: "credits", amount: 900 } },
-  { day: 7, title: "Подарок недели", reward: { type: "skin", skinId: "chrome", fallbackCredits: 1500 } },
+  { day: 1, title: "Р Р°Р·РјРёРЅРєР°", reward: { type: "credits", amount: 100 } },
+  { day: 2, title: "РЎРїРѕРєРѕР№РЅР°СЏ СЂСѓРєР°", reward: { type: "credits", amount: 150 } },
+  { day: 3, title: "РўРѕС‡РЅС‹Р№ РІР·РіР»СЏРґ", reward: { type: "credits", amount: 250 } },
+  { day: 4, title: "РҐРѕСЂРѕС€РёР№ С‚РµРјРї", reward: { type: "credits", amount: 400 } },
+  { day: 5, title: "РЎРµСЂРёСЏ РїРѕС€Р»Р°", reward: { type: "credits", amount: 600 } },
+  { day: 6, title: "РџРѕС‡С‚Рё С„РёРЅР°Р»", reward: { type: "credits", amount: 900 } },
+  { day: 7, title: "РџРѕРґР°СЂРѕРє РЅРµРґРµР»Рё", reward: { type: "skin", skinId: "chrome", fallbackCredits: 1500 } },
 ];
 
 type DailyGiftState = {
@@ -473,14 +503,19 @@ function nextGiftDay(state: DailyGiftState, today = localTodayKey()) {
 function rewardLabel(reward: DailyGiftReward) {
   if (reward.type === "credits") return `+${reward.amount} CR`;
   const skin = SKINS.find((item) => item.id === reward.skinId);
-  return skin ? `Скин: ${skin.name}` : "Скин прицела";
+  return skin ? `РЎРєРёРЅ: ${skin.name}` : "РЎРєРёРЅ РїСЂРёС†РµР»Р°";
 }
 
 type Upgrade = { id: string; name: string; desc: string; price: number };
 const UPGRADES: Upgrade[] = [
-  { id: "jacket", name: "Спортивный костюм", desc: "Снижает амплитуду дрожания прицела на 20% во всех дисциплинах.", price: 2500 },
-  { id: "glove",  name: "Перчатка стрелка", desc: "Уменьшает резкие рывки от сердцебиения на 30%.", price: 4000 },
-  { id: "premium",name: "Премиум Оптика / Анатом. рукоятка", desc: "Эффективная задержка дыхания 3 → 5 секунд.", price: 6000 },
+  { id: "jacket", name: "РЎРїРѕСЂС‚РёРІРЅС‹Р№ РєРѕСЃС‚СЋРј", desc: "РЎРЅРёР¶Р°РµС‚ Р°РјРїР»РёС‚СѓРґСѓ РґСЂРѕР¶Р°РЅРёСЏ РїСЂРёС†РµР»Р° РЅР° 20% РІРѕ РІСЃРµС… РґРёСЃС†РёРїР»РёРЅР°С….", price: 2500 },
+  { id: "glove",  name: "РџРµСЂС‡Р°С‚РєР° СЃС‚СЂРµР»РєР°", desc: "РЈРјРµРЅСЊС€Р°РµС‚ СЂРµР·РєРёРµ СЂС‹РІРєРё РѕС‚ СЃРµСЂРґС†РµР±РёРµРЅРёСЏ РЅР° 30%.", price: 4000 },
+  { id: "premium",name: "РџСЂРµРјРёСѓРј РћРїС‚РёРєР° / РђРЅР°С‚РѕРј. СЂСѓРєРѕСЏС‚РєР°", desc: "Р­С„С„РµРєС‚РёРІРЅР°СЏ Р·Р°РґРµСЂР¶РєР° РґС‹С…Р°РЅРёСЏ 3 в†’ 5 СЃРµРєСѓРЅРґ.", price: 6000 },
+  { id: "stance", name: "РЎС‚РѕР№РєР° РјР°СЃС‚РµСЂР°", desc: "Р•С‰Рµ РЅР° 12% СЃРЅРёР¶Р°РµС‚ Р±Р°Р·РѕРІРѕРµ РєР°С‡Р°РЅРёРµ РїСЂРёС†РµР»Р° РІ СЃР»РѕР¶РЅС‹С… СЃРµСЂРёСЏС….", price: 7500 },
+  { id: "trigger", name: "РњСЏРіРєРёР№ СЃРїСѓСЃРє", desc: "РЈРјРµРЅСЊС€Р°РµС‚ СЃР»СѓС‡Р°Р№РЅС‹Р№ РјРёРєСЂРѕСЂС‹РІРѕРє РїСЂРё РІС‹СЃС‚СЂРµР»Рµ Рё РїРѕРјРѕРіР°РµС‚ РїРёСЃС‚РѕР»РµС‚РЅС‹Рј РґРёСЃС†РёРїР»РёРЅР°Рј.", price: 9000 },
+  { id: "wind-reader", name: "Р’РµС‚СЂРѕРІРѕР№ С„РёР»СЊС‚СЂ", desc: "РЎРЅРёР¶Р°РµС‚ РІР»РёСЏРЅРёРµ РІРµС‚СЂР° РЅР° 50 Рј Рё РїРѕР·РґРЅРёС… РєР°СЂСЊРµСЂРЅС‹С… СѓСЂРѕРІРЅСЏС….", price: 11000 },
+  { id: "fast-bolt", name: "Р‘С‹СЃС‚СЂС‹Р№ Р·Р°С‚РІРѕСЂ", desc: "РџРµСЂРµР·Р°СЂСЏРґРєР° РїСЂРѕС…РѕРґРёС‚ Р±С‹СЃС‚СЂРµРµ, РјРµРЅСЊС€Рµ РїР°СѓР· РјРµР¶РґСѓ РІС‹СЃС‚СЂРµР»Р°РјРё.", price: 6500 },
+  { id: "tracking", name: "РўСЂРµРЅРёСЂРѕРІРєР° РїСЂРѕРІРѕРґРєРё", desc: "Р‘РµРіСѓС‰РёР№ РєР°Р±Р°РЅ РґРІРёР¶РµС‚СЃСЏ С‡СѓС‚СЊ СЃРїРѕРєРѕР№РЅРµРµ, Р»РµРіС‡Рµ РІРµСЃС‚Рё РјРёС€РµРЅСЊ.", price: 8500 },
 ];
 
 // ============================================================
@@ -494,7 +529,7 @@ type Progress = {
   equipped: string;
   totalScore: number;
   perfectTens: number;
-  careerCompleted: number; // highest completed career level (0..5)
+  careerCompleted: number; // highest completed career level
   dailyScores: Record<string, DailyLeaderboardScore>;
   badges: string[];
   dailyGift: DailyGiftState;
@@ -593,7 +628,7 @@ export default function AirRifleGame() {
   const [timeLeft, setTimeLeft] = useState(START_TIME);
 
   // Sight adjustment system: random bias per match + player corrections (in clicks).
-  // 1 ring (gabarit) = 4 clicks. Rule: "where the shot landed — turn that way".
+  // 1 ring (gabarit) = 4 clicks. Rule: "where the shot landed вЂ” turn that way".
   const [errorX, setErrorX] = useState(0);
   const [errorY, setErrorY] = useState(0);
   const [adjX, setAdjX] = useState(0);
@@ -685,7 +720,7 @@ export default function AirRifleGame() {
   const hydratedRef = useRef(false);
 
   // Route-driven screen separation: '/' = Home, '/range' = Shooting.
-  // Route is synced manually inside startMatch / backToMenu — no auto-redirect
+  // Route is synced manually inside startMatch / backToMenu вЂ” no auto-redirect
   // here (it was racing the state update on match start and bouncing user home).
   const navigate = useNavigate();
 
@@ -820,18 +855,20 @@ export default function AirRifleGame() {
       targetOffsetRef.current = startX;
       setTargetOffsetX(startX);
     }
+    const reloadOpenMs = hasUpgrade("fast-bolt") ? 180 : 300;
+    const reloadCloseMs = hasUpgrade("fast-bolt") ? 100 : 180;
     setTimeout(() => {
       playSfx(A.boltClose);
       setTimeout(() => {
         setLoaded(true);
         setReloading(false);
-      }, 180);
-    }, 300);
-  }, [loaded, reloading, phase, mode, careerLevel, discipline]);
+      }, reloadCloseMs);
+    }, reloadOpenMs);
+  }, [loaded, reloading, phase, mode, careerLevel, discipline, progress.upgrades]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "r" || e.key === "R" || e.key === "к" || e.key === "К") reload();
+      if (e.key === "r" || e.key === "R" || e.key === "Рє" || e.key === "Рљ") reload();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -844,7 +881,7 @@ export default function AirRifleGame() {
     }
   }, [shotHistory.length]);
 
-  // Game timer (only in quick mode AND match mode — paused during sighting)
+  // Game timer (only in quick mode AND match mode вЂ” paused during sighting)
   useEffect(() => {
     if (phase !== "playing" || mode !== "quick" || sessionMode !== "match") return;
     const t = setInterval(() => {
@@ -859,7 +896,7 @@ export default function AirRifleGame() {
     return () => clearInterval(t);
   }, [phase, mode, sessionMode]);
 
-  // Game over trigger (quick mode only — by time)
+  // Game over trigger (quick mode only вЂ” by time)
   useEffect(() => {
     if (phase === "playing" && mode === "quick" && sessionMode === "match" && timeLeft <= 0) {
       setPhase("gameover");
@@ -894,10 +931,11 @@ export default function AirRifleGame() {
       }
 
       const jacketMul = hasUpgrade("jacket") ? 0.8 : 1;
+      const stanceMul = hasUpgrade("stance") ? 0.88 : 1;
       const gloveMul  = hasUpgrade("glove")  ? 0.7 : 1;
 
       const hardcoreAmpMul = hardcore ? 1.6 : 1;
-      const baseAmp = d.amplitude * jacketMul * hardcoreAmpMul;
+      const baseAmp = d.amplitude * jacketMul * stanceMul * hardcoreAmpMul;
       let swayX: number, swayY: number;
       if (d.sight === "diopter") {
         swayX = Math.sin(t * 1.8) * baseAmp + Math.sin(t * 4.2) * baseAmp * 0.35;
@@ -917,12 +955,13 @@ export default function AirRifleGame() {
       const pulseX = pulse * Math.sin(t * 13);
       const pulseY = pulse * Math.cos(t * 11);
 
-      const jitter = d.jitter;
+      const jitter = d.jitter * (hasUpgrade("trigger") ? 0.82 : 1);
       const jx = (Math.random() - 0.5) * jitter;
       const jy = (Math.random() - 0.5) * jitter;
 
       // Wind drift (50m / 25m / hardcore L3)
-      const effectiveWind = hardcore ? Math.max(d.wind, 0.6) * 1.8 : d.wind;
+      const windFilterMul = hasUpgrade("wind-reader") ? 0.55 : 1;
+      const effectiveWind = (hardcore ? Math.max(d.wind, 0.6) * 1.8 : d.wind) * windFilterMul;
       if (effectiveWind > 0) {
         windTimer -= dt;
         if (windTimer <= 0) {
@@ -951,7 +990,7 @@ export default function AirRifleGame() {
       if (moving) {
         const startX = -size * 0.5;
         const endX = size * 0.5;
-        const duration = 4.5; // seconds to cross the arena
+        const duration = hasUpgrade("tracking") ? 5.25 : 4.5; // seconds to cross the arena
         const speed = (endX - startX) / duration;
         let off = boarRunRef.current + speed * dt;
         if (off > endX) off = startX;
@@ -989,8 +1028,10 @@ export default function AirRifleGame() {
     const biasX = (errorX - adjX) * pxPerClick;
     const biasY = (errorY - adjY) * pxPerClick;
 
-    const hitX = sightRef.current.x + biasX;
-    const hitY = sightRef.current.y + biasY;
+    const triggerSlip = d.sight === "open" ? d.jitter * 1.15 : d.jitter * 0.65;
+    const triggerMul = hasUpgrade("trigger") ? 0.45 : 1;
+    const hitX = sightRef.current.x + biasX + (Math.random() - 0.5) * triggerSlip * triggerMul;
+    const hitY = sightRef.current.y + biasY + (Math.random() - 0.5) * triggerSlip * triggerMul;
     const offX = targetOffsetRef.current;
     // hit relative to current target center
     const dx = hitX - (center + offX);
@@ -1040,7 +1081,7 @@ export default function AirRifleGame() {
     setScore((s) => +(s + sc).toFixed(1));
     setShotHistory((h) => [...h, { n: shotNum, score: sc, discipline: d.short, id }]);
 
-    // Time bonus — only in quick mode
+    // Time bonus вЂ” only in quick mode
     if (mode === "quick") {
       const bonus = timeBonusForShot(sc);
       if (bonus > 0) setTimeLeft((t) => Math.min(120, +(t + bonus).toFixed(2)));
@@ -1120,7 +1161,7 @@ export default function AirRifleGame() {
       const playerScore = +(score + sc).toFixed(1);
       setTimeout(() => runOlympicRound(shotNum, playerScore), 550);
     }
-  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore, leaderboardRank]);
+  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore, leaderboardRank, progress.upgrades]);
 
   // ----- Olympic round helper -----
   const runOlympicRound = (shotNum: number, playerScore: number) => {
@@ -1145,7 +1186,7 @@ export default function AirRifleGame() {
         playerOut = true;
       } else {
         nextBots = updatedBots.map((b) => (b.id === loser.id ? { ...b, eliminated: true } : b));
-        playSfx(A.crowd); // bot dropped, player advances — short applause
+        playSfx(A.crowd); // bot dropped, player advances вЂ” short applause
       }
     }
     setBots(nextBots);
@@ -1201,7 +1242,7 @@ export default function AirRifleGame() {
 
   // ----- actions -----
   const randomizeSightError = () => {
-    // Random scope drift in clicks: roughly ±5 rings worth (4 clicks per ring)
+    // Random scope drift in clicks: roughly В±5 rings worth (4 clicks per ring)
     const rand = () => Math.round((Math.random() * 2 - 1) * 20);
     setErrorX(rand());
     setErrorY(rand());
@@ -1479,40 +1520,40 @@ export default function AirRifleGame() {
 
   return (
     <div className="min-h-screen bg-background text-foreground select-none overflow-hidden">
-      {/* Top bar — visible only on Shooting Range screen */}
+      {/* Top bar вЂ” visible only on Shooting Range screen */}
       {phase !== "menu" && (
         <div className="flex items-center justify-between border-b border-border bg-[var(--navy-mid)] px-3 py-2 md:px-6 md:py-3 gap-2 flex-wrap">
           <div className="flex items-center gap-3">
             <div className="h-3 w-3 rounded-full bg-destructive animate-pulse" />
             <span className="text-xs font-bold tracking-[0.3em] text-muted-foreground">LIVE</span>
             <span className="text-xs font-semibold tracking-widest text-foreground">
-              {discipline.short} · OLYMPIC RANGE
+              {discipline.short} В· OLYMPIC RANGE
             </span>
           </div>
           <div className="flex items-center gap-4 text-xs font-mono">
             {phase === "playing" && mode === "quick" && (
               <div className={`px-2 py-0.5 border ${timeCritical ? "border-destructive text-destructive animate-pulse" : "border-primary text-primary"}`}>
-                <span className="text-muted-foreground mr-2">ВРЕМЯ</span>
+                <span className="text-muted-foreground mr-2">Р’Р Р•РњРЇ</span>
                 <span className="font-bold tabular-nums">{timeLeft.toFixed(1)}s</span>
               </div>
             )}
             {phase === "playing" && mode === "career" && careerLevel && (
               <div className="px-2 py-0.5 border border-primary text-primary">
-                <span className="text-muted-foreground mr-2">ВЫСТРЕЛ</span>
+                <span className="text-muted-foreground mr-2">Р’Р«РЎРўР Р•Р›</span>
                 <span className="font-bold tabular-nums">{totalShots}/{careerLevel.shots}</span>
-                <span className="text-muted-foreground ml-2">ЦЕЛЬ</span>
+                <span className="text-muted-foreground ml-2">Р¦Р•Р›Р¬</span>
                 <span className="font-bold tabular-nums ml-1">{careerLevel.winScore}</span>
               </div>
             )}
             {phase === "playing" && mode === "leaderboard" && (
               <div className="px-2 py-0.5 border border-[var(--gold-bright)] text-[var(--gold-bright)]">
-                <span className="text-muted-foreground mr-2">ТАБЛИЦА</span>
+                <span className="text-muted-foreground mr-2">РўРђР‘Р›РР¦Рђ</span>
                 <span className="font-bold tabular-nums">{totalShots}/{LEADERBOARD_SHOTS}</span>
               </div>
             )}
             {phase === "playing" && mode === "olympic" && (
               <div className="px-2 py-0.5 border border-[var(--gold-bright)] text-[var(--gold-bright)]">
-                <span className="text-muted-foreground mr-2">🏅 ФИНАЛ</span>
+                <span className="text-muted-foreground mr-2">рџЏ… Р¤РРќРђР›</span>
                 <span className="font-bold tabular-nums">{totalShots}/{OLYMPIC_TOTAL_SHOTS}</span>
               </div>
             )}
@@ -1524,7 +1565,7 @@ export default function AirRifleGame() {
               <span className="text-muted-foreground mr-2">CR</span>
               <span className="font-bold text-[var(--gold-bright)] tabular-nums">{progress.credits}</span>
               {isGuest && (
-                <span className="ml-2 text-[10px] tracking-widest text-muted-foreground">• РЕЖИМ ГОСТЯ</span>
+                <span className="ml-2 text-[10px] tracking-widest text-muted-foreground">вЂў Р Р•Р–РРњ Р“РћРЎРўРЇ</span>
               )}
             </div>
 
@@ -1532,7 +1573,7 @@ export default function AirRifleGame() {
               onClick={backToMenu}
               className="border border-primary text-primary font-bold px-3 py-1.5 hover:bg-primary hover:text-primary-foreground transition-colors tracking-widest"
             >
-              ← НАЗАД В МЕНЮ
+              в†ђ РќРђР—РђР” Р’ РњР•РќР®
             </button>
           </div>
         </div>
@@ -1582,7 +1623,7 @@ export default function AirRifleGame() {
             <div className="absolute top-2 left-2 right-2 md:top-4 md:left-4 md:right-4 flex items-center justify-between text-[10px] md:text-xs font-mono pointer-events-auto z-10 gap-2">
               <div className="flex items-center gap-2">
                 <div className="bg-[var(--navy-deep)]/90 px-2 py-1 md:px-3 md:py-1.5 text-foreground border-l-2 border-primary">
-                  <span className="text-[9px] tracking-widest text-muted-foreground mr-2 hidden sm:inline">ДИСЦИПЛИНА</span>
+                  <span className="text-[9px] tracking-widest text-muted-foreground mr-2 hidden sm:inline">Р”РРЎР¦РРџР›РРќРђ</span>
                   <span className="font-bold">{discipline.short}</span>
                 </div>
                 {/* Mode toggle: Sighting / Match */}
@@ -1595,49 +1636,49 @@ export default function AirRifleGame() {
                         // Reverting from match back is blocked anyway, just no-op
                       }
                     }}
-                    title={hasMatchShot ? "Зачёт уже начался — возврат запрещён" : "Пробные выстрелы (без зачёта)"}
+                    title={hasMatchShot ? "Р—Р°С‡С‘С‚ СѓР¶Рµ РЅР°С‡Р°Р»СЃСЏ вЂ” РІРѕР·РІСЂР°С‚ Р·Р°РїСЂРµС‰С‘РЅ" : "РџСЂРѕР±РЅС‹Рµ РІС‹СЃС‚СЂРµР»С‹ (Р±РµР· Р·Р°С‡С‘С‚Р°)"}
                     className={`px-2 py-1 md:px-3 md:py-1.5 font-bold tracking-widest text-[10px] md:text-[11px] transition-colors ${
                       sessionMode === "sighting"
                         ? "bg-destructive/80 text-foreground"
                         : "text-muted-foreground hover:text-foreground"
                     } ${hasMatchShot ? "opacity-40 cursor-not-allowed" : ""}`}
                   >
-                    ПРОБНЫЕ
+                    РџР РћР‘РќР«Р•
                   </button>
                   <button
                     type="button"
                     onClick={switchToMatch}
-                    title="Перейти в зачётный режим (мишень очистится, таймер запустится)"
+                    title="РџРµСЂРµР№С‚Рё РІ Р·Р°С‡С‘С‚РЅС‹Р№ СЂРµР¶РёРј (РјРёС€РµРЅСЊ РѕС‡РёСЃС‚РёС‚СЃСЏ, С‚Р°Р№РјРµСЂ Р·Р°РїСѓСЃС‚РёС‚СЃСЏ)"
                     className={`px-2 py-1 md:px-3 md:py-1.5 font-bold tracking-widest text-[10px] md:text-[11px] transition-colors ${
                       sessionMode === "match"
                         ? "bg-primary text-primary-foreground"
                         : "text-primary hover:bg-primary/20"
                     }`}
                   >
-                    ЗАЧЁТ
+                    Р—РђР§РЃРў
                   </button>
                 </div>
               </div>
               <button
                 onClick={resetTarget}
-                title="Сбросить пробоины (счет и время сохраняются)"
+                title="РЎР±СЂРѕСЃРёС‚СЊ РїСЂРѕР±РѕРёРЅС‹ (СЃС‡РµС‚ Рё РІСЂРµРјСЏ СЃРѕС…СЂР°РЅСЏСЋС‚СЃСЏ)"
                 className="bg-[var(--navy-deep)]/90 hover:bg-[var(--navy-mid)] px-2 py-1 md:px-3 md:py-1.5 border-r-2 border-primary text-foreground font-bold tracking-widest text-[10px] md:text-[11px] flex items-center gap-2"
               >
-                <span>👁</span> <span className="hidden sm:inline">СБРОСИТЬ МИШЕНЬ</span><span className="sm:hidden">СБРОС</span>
+                <span>рџ‘Ѓ</span> <span className="hidden sm:inline">РЎР‘Р РћРЎРРўР¬ РњРРЁР•РќР¬</span><span className="sm:hidden">РЎР‘Р РћРЎ</span>
               </button>
             </div>
 
-            {/* Olympic Finals — live leaderboard */}
+            {/* Olympic Finals вЂ” live leaderboard */}
             {mode === "olympic" && (
               <div className="absolute top-16 right-2 md:right-4 z-20 pointer-events-auto w-[200px] md:w-[230px]">
                 <div className="bg-[var(--navy-deep)]/95 border border-[var(--gold-bright)]/70 shadow-xl">
                   <div className="px-3 py-2 border-b border-border bg-[var(--navy-mid)] flex items-center justify-between">
-                    <div className="text-[10px] tracking-widest text-[var(--gold-bright)] font-bold">🏅 ОЛИМП. ФИНАЛ</div>
+                    <div className="text-[10px] tracking-widest text-[var(--gold-bright)] font-bold">рџЏ… РћР›РРњРџ. Р¤РРќРђР›</div>
                     <div className="text-[9px] font-mono text-muted-foreground">{totalShots}/{OLYMPIC_TOTAL_SHOTS}</div>
                   </div>
                   <ul className="divide-y divide-border/60">
                     {[
-                      { id: "player", name: "ВЫ", country: "PLR", score: score, eliminated: olympicResult?.eliminated ?? false, isPlayer: true, favorite: false },
+                      { id: "player", name: "Р’Р«", country: "PLR", score: score, eliminated: olympicResult?.eliminated ?? false, isPlayer: true, favorite: false },
                       ...bots.map((b) => ({ id: b.id, name: b.name, country: b.country, score: b.score, eliminated: b.eliminated, isPlayer: false, favorite: !!b.favorite })),
                     ]
                       .slice()
@@ -1660,10 +1701,10 @@ export default function AirRifleGame() {
                               {p.name}
                             </span>
                             <span className="text-muted-foreground ml-1 text-[9px]">{p.country}</span>
-                            {p.favorite && !p.eliminated && <span className="ml-1 text-[var(--gold-bright)]">★</span>}
+                            {p.favorite && !p.eliminated && <span className="ml-1 text-[var(--gold-bright)]">в…</span>}
                           </span>
                           {p.eliminated ? (
-                            <span className="text-destructive font-bold text-[10px]">❌</span>
+                            <span className="text-destructive font-bold text-[10px]">вќЊ</span>
                           ) : (
                             <span className="tabular-nums font-bold text-foreground">{p.score.toFixed(1)}</span>
                           )}
@@ -1671,30 +1712,30 @@ export default function AirRifleGame() {
                       ))}
                   </ul>
                   <div className="px-3 py-1.5 border-t border-border text-[9px] text-muted-foreground tracking-wider">
-                    Выбывание: 4 · 6 · 8 выстрелы
+                    Р’С‹Р±С‹РІР°РЅРёРµ: 4 В· 6 В· 8 РІС‹СЃС‚СЂРµР»С‹
                   </div>
                 </div>
               </div>
             )}
 
 
-            {/* Sight Adjustment turret — bottom-left of arena */}
+            {/* Sight Adjustment turret вЂ” bottom-left of arena */}
             <div className="absolute left-2 md:left-4 bottom-20 md:bottom-24 z-20 pointer-events-auto">
               <div className="bg-[var(--navy-deep)]/95 border border-primary/60 px-2 py-2 font-mono text-foreground shadow-xl">
-                <div className="text-[9px] tracking-widest text-muted-foreground text-center mb-1">ПОПРАВКИ · КУДА ПОПАЛ, ТУДА НАЖМИ</div>
+                <div className="text-[9px] tracking-widest text-muted-foreground text-center mb-1">РџРћРџР РђР’РљР В· РљРЈР”Рђ РџРћРџРђР›, РўРЈР”Рђ РќРђР–РњР</div>
                 <div className="grid grid-cols-3 gap-1 w-[120px] mx-auto">
                   <div />
                   <button
                     onClick={() => adjustSight("up")}
                     className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
-                    title="Если попал выше центра, нажми сюда"
-                  >▲</button>
+                    title="Р•СЃР»Рё РїРѕРїР°Р» РІС‹С€Рµ С†РµРЅС‚СЂР°, РЅР°Р¶РјРё СЃСЋРґР°"
+                  >в–І</button>
                   <div />
                   <button
                     onClick={() => adjustSight("left")}
                     className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
-                    title="Если попал левее центра, нажми сюда"
-                  >◀</button>
+                    title="Р•СЃР»Рё РїРѕРїР°Р» Р»РµРІРµРµ С†РµРЅС‚СЂР°, РЅР°Р¶РјРё СЃСЋРґР°"
+                  >в—Ђ</button>
                   <div className="aspect-square bg-[var(--navy-deep)] border border-border flex flex-col items-center justify-center text-[8px] leading-none text-muted-foreground">
                     <div>X:<span className="text-primary tabular-nums ml-0.5">{adjX > 0 ? `+${adjX}` : adjX}</span></div>
                     <div className="mt-0.5">Y:<span className="text-primary tabular-nums ml-0.5">{adjY > 0 ? `+${adjY}` : adjY}</span></div>
@@ -1702,14 +1743,14 @@ export default function AirRifleGame() {
                   <button
                     onClick={() => adjustSight("right")}
                     className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
-                    title="Если попал правее центра, нажми сюда"
-                  >▶</button>
+                    title="Р•СЃР»Рё РїРѕРїР°Р» РїСЂР°РІРµРµ С†РµРЅС‚СЂР°, РЅР°Р¶РјРё СЃСЋРґР°"
+                  >в–¶</button>
                   <div />
                   <button
                     onClick={() => adjustSight("down")}
                     className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
-                    title="Если попал ниже центра, нажми сюда"
-                  >▼</button>
+                    title="Р•СЃР»Рё РїРѕРїР°Р» РЅРёР¶Рµ С†РµРЅС‚СЂР°, РЅР°Р¶РјРё СЃСЋРґР°"
+                  >в–ј</button>
                   <div />
                 </div>
               </div>
@@ -1783,7 +1824,7 @@ export default function AirRifleGame() {
                 >
                   <div className="bg-[var(--navy-deep)]/90 backdrop-blur-sm border-y-4 border-primary px-16 py-8">
                     <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-2 text-center">
-                      INNER TEN · +500 CR · +8s
+                      INNER TEN В· +500 CR В· +8s
                     </div>
                     <div className="text-7xl font-black tracking-tight text-primary">PERFECT 10.9</div>
                   </div>
@@ -1796,13 +1837,13 @@ export default function AirRifleGame() {
               <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-l-2 border-primary">
                 <div className="text-[9px] tracking-widest text-muted-foreground">CHAMBER</div>
                 <div className={`font-bold ${reloading ? "text-[var(--gold-bright)] animate-pulse" : loaded ? "text-[var(--gold-bright)]" : "text-destructive"}`}>
-                  {reloading ? "◐ RELOADING…" : loaded ? "● LOADED" : "○ EMPTY · [R]"}
+                  {reloading ? "в—ђ RELOADINGвЂ¦" : loaded ? "в—Џ LOADED" : "в—‹ EMPTY В· [R]"}
                 </div>
               </div>
               <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-r-2 border-primary text-right">
                 <div className="text-[9px] tracking-widest text-muted-foreground">BREATH ({holdWindow}s)</div>
                 <div className={`font-bold ${inFocus ? "text-[var(--gold-bright)]" : overHold ? "text-destructive" : ""}`}>
-                  {holding ? (inFocus ? `ФОКУС · ${(holdWindow - holdTime).toFixed(2)}s` : "ПЕРЕДЕРЖАНО!") : "ДЫХАНИЕ"}
+                  {holding ? (inFocus ? `Р¤РћРљРЈРЎ В· ${(holdWindow - holdTime).toFixed(2)}s` : "РџР•Р Р•Р”Р•Р Р–РђРќРћ!") : "Р”Р«РҐРђРќРР•"}
                 </div>
               </div>
             </div>
@@ -1815,35 +1856,35 @@ export default function AirRifleGame() {
                     <>
                       {olympicResult.eliminated ? (
                         <>
-                          <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
-                          <div className="text-5xl font-black tracking-tight text-destructive">ВЫ ВЫБЫЛИ</div>
+                          <div className="text-[10px] tracking-[0.5em] text-destructive font-bold">рџЏ… РћР›РРњРџРР™РЎРљРР™ Р¤РРќРђР›</div>
+                          <div className="text-5xl font-black tracking-tight text-destructive">Р’Р« Р’Р«Р‘Р«Р›Р</div>
                           <div className="text-sm text-muted-foreground">
-                            Вы выбыли из финала на <span className="text-foreground font-bold">{olympicResult.place}-м</span> месте.
+                            Р’С‹ РІС‹Р±С‹Р»Рё РёР· С„РёРЅР°Р»Р° РЅР° <span className="text-foreground font-bold">{olympicResult.place}-Рј</span> РјРµСЃС‚Рµ.
                           </div>
                           <div className="grid grid-cols-2 gap-4 text-sm font-mono">
-                            <Stat label="МЕСТО" value={olympicResult.place} />
-                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                            <Stat label="РњР•РЎРўРћ" value={olympicResult.place} />
+                            <Stat label="РћР§РљР" value={olympicResult.score.toFixed(1)} />
                           </div>
                         </>
                       ) : olympicResult.medal === "gold" ? (
                         <>
-                          <div className="text-[10px] tracking-[0.5em] text-[var(--gold-bright)] font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
-                          <div className="text-5xl md:text-6xl font-black tracking-tight text-[var(--gold-bright)]">ЧЕМПИОН! 🥇</div>
-                          <div className="text-lg text-[var(--gold-bright)] font-bold tracking-wide">+ {OLYMPIC_GOLD_BONUS} КРЕДИТОВ СУПЕР-БОНУСА</div>
+                          <div className="text-[10px] tracking-[0.5em] text-[var(--gold-bright)] font-bold">рџЏ… РћР›РРњРџРР™РЎРљРР™ Р¤РРќРђР›</div>
+                          <div className="text-5xl md:text-6xl font-black tracking-tight text-[var(--gold-bright)]">Р§Р•РњРџРРћРќ! рџҐ‡</div>
+                          <div className="text-lg text-[var(--gold-bright)] font-bold tracking-wide">+ {OLYMPIC_GOLD_BONUS} РљР Р•Р”РРўРћР’ РЎРЈРџР•Р -Р‘РћРќРЈРЎРђ</div>
                           <div className="grid grid-cols-2 gap-4 text-sm font-mono">
-                            <Stat label="МЕСТО" value="1" />
-                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                            <Stat label="РњР•РЎРўРћ" value="1" />
+                            <Stat label="РћР§РљР" value={olympicResult.score.toFixed(1)} />
                           </div>
                         </>
                       ) : (
                         <>
-                          <div className="text-[10px] tracking-[0.5em] text-primary font-bold">🏅 ОЛИМПИЙСКИЙ ФИНАЛ</div>
+                          <div className="text-[10px] tracking-[0.5em] text-primary font-bold">рџЏ… РћР›РРњРџРР™РЎРљРР™ Р¤РРќРђР›</div>
                           <div className="text-5xl font-black tracking-tight">
-                            {olympicResult.medal === "silver" ? "СЕРЕБРО 🥈" : olympicResult.medal === "bronze" ? "БРОНЗА 🥉" : `${olympicResult.place}-е МЕСТО`}
+                            {olympicResult.medal === "silver" ? "РЎР•Р Р•Р‘Р Рћ рџҐ€" : olympicResult.medal === "bronze" ? "Р‘Р РћРќР—Рђ рџҐ‰" : `${olympicResult.place}-Рµ РњР•РЎРўРћ`}
                           </div>
                           <div className="grid grid-cols-2 gap-4 text-sm font-mono">
-                            <Stat label="МЕСТО" value={olympicResult.place} />
-                            <Stat label="ОЧКИ" value={olympicResult.score.toFixed(1)} />
+                            <Stat label="РњР•РЎРўРћ" value={olympicResult.place} />
+                            <Stat label="РћР§РљР" value={olympicResult.score.toFixed(1)} />
                           </div>
                         </>
                       )}
@@ -1852,13 +1893,13 @@ export default function AirRifleGame() {
                           onClick={startOlympicFinals}
                           className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
                         >
-                          ПОПРОБОВАТЬ СНОВА
+                          РџРћРџР РћР‘РћР’РђРўР¬ РЎРќРћР’Рђ
                         </button>
                         <button
                           onClick={backToMenu}
                           className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
                         >
-                          В МЕНЮ
+                          Р’ РњР•РќР®
                         </button>
                       </div>
                     </>
@@ -1868,21 +1909,21 @@ export default function AirRifleGame() {
                         {careerResult.level.short}
                       </div>
                       <div className="text-5xl font-black tracking-tight">
-                        {careerResult.won ? "УРОВЕНЬ ПРОЙДЕН!" : "ПРОВАЛ"}
+                        {careerResult.won ? "РЈР РћР’Р•РќР¬ РџР РћР™Р”Р•Рќ!" : "РџР РћР’РђР›"}
                       </div>
                       {careerResult.won && (
                         <div className="text-lg text-[var(--gold-bright)] font-bold tracking-wide">
-                          + {CAREER_WIN_BONUS} КРЕДИТОВ БОНУСА
+                          + {CAREER_WIN_BONUS} РљР Р•Р”РРўРћР’ Р‘РћРќРЈРЎРђ
                         </div>
                       )}
                       <div className="grid grid-cols-3 gap-4 text-sm font-mono">
                         <Stat label="SCORE" value={careerResult.score.toFixed(1)} />
-                        <Stat label="ЦЕЛЬ" value={careerResult.level.winScore} />
-                        <Stat label="ВЫСТРЕЛОВ" value={totalShots} />
+                        <Stat label="Р¦Р•Р›Р¬" value={careerResult.level.winScore} />
+                        <Stat label="Р’Р«РЎРўР Р•Р›РћР’" value={totalShots} />
                       </div>
                       {!careerResult.won && (
                         <div className="text-xs text-muted-foreground">
-                          Не хватило {(careerResult.level.winScore - careerResult.score).toFixed(1)} очка. Попробуйте ещё раз.
+                          РќРµ С…РІР°С‚РёР»Рѕ {(careerResult.level.winScore - careerResult.score).toFixed(1)} РѕС‡РєР°. РџРѕРїСЂРѕР±СѓР№С‚Рµ РµС‰С‘ СЂР°Р·.
                         </div>
                       )}
                       <div className="flex gap-3 justify-center pt-2 flex-wrap">
@@ -1890,27 +1931,27 @@ export default function AirRifleGame() {
                           onClick={() => startCareerLevel(careerResult.level)}
                           className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
                         >
-                          ПОВТОРИТЬ
+                          РџРћР’РўРћР РРўР¬
                         </button>
                         <button
                           onClick={backToMenu}
                           className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
                         >
-                          К МЕНЮ КАРЬЕРЫ
+                          Рљ РњР•РќР® РљРђР Р¬Р•Р Р«
                         </button>
                       </div>
                     </>
                   ) : leaderboardResult ? (
                     <>
-                      <div className="text-[10px] tracking-[0.5em] text-[var(--gold-bright)] font-bold">ТАБЛИЦА ДНЯ</div>
-                      <div className="text-5xl font-black tracking-tight">СЕРИЯ ЗАВЕРШЕНА</div>
+                      <div className="text-[10px] tracking-[0.5em] text-[var(--gold-bright)] font-bold">РўРђР‘Р›РР¦Рђ Р”РќРЇ</div>
+                      <div className="text-5xl font-black tracking-tight">РЎР•Р РРЇ Р—РђР’Р•Р РЁР•РќРђ</div>
                       <div className="text-sm text-muted-foreground">
-                        Результат записан в ежедневную таблицу выбранной дисциплины.
+                        Р РµР·СѓР»СЊС‚Р°С‚ Р·Р°РїРёСЃР°РЅ РІ РµР¶РµРґРЅРµРІРЅСѓСЋ С‚Р°Р±Р»РёС†Сѓ РІС‹Р±СЂР°РЅРЅРѕР№ РґРёСЃС†РёРїР»РёРЅС‹.
                       </div>
                       <div className="grid grid-cols-3 gap-4 text-sm font-mono">
                         <Stat label="SCORE" value={leaderboardResult.score.toFixed(1)} />
-                        <Stat label="ВЫСТРЕЛОВ" value={LEADERBOARD_SHOTS} />
-                        <Stat label="РАНГ" value={LEADERBOARD_RANKS.find((rank) => rank.id === leaderboardResult.rankId)?.name ?? "—"} />
+                        <Stat label="Р’Р«РЎРўР Р•Р›РћР’" value={LEADERBOARD_SHOTS} />
+                        <Stat label="Р РђРќР“" value={LEADERBOARD_RANKS.find((rank) => rank.id === leaderboardResult.rankId)?.name ?? "вЂ”"} />
                       </div>
                       <div className="flex gap-3 justify-center pt-2 flex-wrap">
                         <button
@@ -1920,13 +1961,13 @@ export default function AirRifleGame() {
                           }}
                           className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
                         >
-                          ПОВТОРИТЬ 10 ВЫСТРЕЛОВ
+                          РџРћР’РўРћР РРўР¬ 10 Р’Р«РЎРўР Р•Р›РћР’
                         </button>
                         <button
                           onClick={backToMenu}
                           className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
                         >
-                          К ТАБЛИЦАМ
+                          Рљ РўРђР‘Р›РР¦РђРњ
                         </button>
                       </div>
                     </>
@@ -1944,13 +1985,13 @@ export default function AirRifleGame() {
                           onClick={() => startMatch(discipline)}
                           className="bg-primary text-primary-foreground font-bold tracking-widest px-8 py-3 hover:bg-[var(--gold-bright)] transition-colors"
                         >
-                          ПОВТОРИТЬ
+                          РџРћР’РўРћР РРўР¬
                         </button>
                         <button
                           onClick={backToMenu}
                           className="border border-primary text-primary font-bold tracking-widest px-6 py-3 hover:bg-primary/10 transition-colors"
                         >
-                          ДИСЦИПЛИНЫ
+                          Р”РРЎР¦РРџР›РРќР«
                         </button>
                       </div>
                     </>
@@ -1967,22 +2008,22 @@ export default function AirRifleGame() {
 
               {mode === "career" && careerLevel ? (
                 <div className="mb-3 px-3 py-3 border border-primary/50 bg-[var(--navy-mid)]/60">
-                  <div className="text-[9px] tracking-widest text-muted-foreground">КАРЬЕРА · {careerLevel.short}</div>
+                  <div className="text-[9px] tracking-widest text-muted-foreground">РљРђР Р¬Р•Р Рђ В· {careerLevel.short}</div>
                   <div className="text-2xl font-black font-mono tabular-nums leading-tight text-primary mt-1">
                     {totalShots}<span className="text-base text-muted-foreground">/{careerLevel.shots}</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-1">
-                    Цель: <span className="text-[var(--gold-bright)] font-bold">{careerLevel.winScore}</span> · Текущий: <span className="text-foreground font-bold">{score.toFixed(1)}</span>
+                    Р¦РµР»СЊ: <span className="text-[var(--gold-bright)] font-bold">{careerLevel.winScore}</span> В· РўРµРєСѓС‰РёР№: <span className="text-foreground font-bold">{score.toFixed(1)}</span>
                   </div>
                 </div>
               ) : mode === "leaderboard" ? (
                 <div className="mb-3 px-3 py-3 border border-[var(--gold-bright)]/60 bg-[var(--navy-mid)]/60">
-                  <div className="text-[9px] tracking-widest text-muted-foreground">ТАБЛИЦА ДНЯ · {LEADERBOARD_RANKS.find((rank) => rank.id === leaderboardRank)?.name}</div>
+                  <div className="text-[9px] tracking-widest text-muted-foreground">РўРђР‘Р›РР¦Рђ Р”РќРЇ В· {LEADERBOARD_RANKS.find((rank) => rank.id === leaderboardRank)?.name}</div>
                   <div className="text-2xl font-black font-mono tabular-nums leading-tight text-[var(--gold-bright)] mt-1">
                     {totalShots}<span className="text-base text-muted-foreground">/{LEADERBOARD_SHOTS}</span>
                   </div>
                   <div className="text-[10px] text-muted-foreground mt-1">
-                    Формат: <span className="text-foreground font-bold">10 зачетных выстрелов</span> · Таймера нет
+                    Р¤РѕСЂРјР°С‚: <span className="text-foreground font-bold">10 Р·Р°С‡РµС‚РЅС‹С… РІС‹СЃС‚СЂРµР»РѕРІ</span> В· РўР°Р№РјРµСЂР° РЅРµС‚
                   </div>
                 </div>
               ) : (
@@ -1999,7 +2040,7 @@ export default function AirRifleGame() {
                 <Metric label="TOTAL SHOTS" value={totalShots} color="text-foreground" />
                 <Metric
                   label="LAST SHOT"
-                  value={lastShot !== null ? lastShot.toFixed(1) : "—"}
+                  value={lastShot !== null ? lastShot.toFixed(1) : "вЂ”"}
                   color={lastShot === 10.9 ? "text-[var(--gold-bright)]" : "text-foreground"}
                 />
                 <Metric label="TOTAL SCORE" value={score.toFixed(1)} color="text-primary" />
@@ -2014,12 +2055,12 @@ export default function AirRifleGame() {
             </div>
 
             <div className="px-4 py-3 text-[10px] tracking-widest text-muted-foreground border-b border-border/40 flex items-center justify-between">
-              <span>ИСТОРИЯ ВЫСТРЕЛОВ</span>
+              <span>РРЎРўРћР РРЇ Р’Р«РЎРўР Р•Р›РћР’</span>
               <span className="text-muted-foreground/70">{shotHistory.length}</span>
             </div>
             <div ref={historyListRef} className="flex-1 overflow-y-auto font-mono text-sm">
               {shotHistory.length === 0 && (
-                <div className="px-4 py-4 text-muted-foreground/60 text-xs italic">— нет выстрелов —</div>
+                <div className="px-4 py-4 text-muted-foreground/60 text-xs italic">вЂ” РЅРµС‚ РІС‹СЃС‚СЂРµР»РѕРІ вЂ”</div>
               )}
               {shotHistory.map((h) => (
                 <div
@@ -2029,7 +2070,7 @@ export default function AirRifleGame() {
                   }`}
                 >
                   <span className="text-muted-foreground text-xs">
-                    {h.sighting ? <span className="text-destructive">[ПРБ]</span> : `#${h.n}`}
+                    {h.sighting ? <span className="text-destructive">[РџР Р‘]</span> : `#${h.n}`}
                   </span>
                   <span className="text-[10px] text-muted-foreground/70 tracking-widest">{h.discipline}</span>
                   <span
@@ -2050,10 +2091,10 @@ export default function AirRifleGame() {
             </div>
 
             <div className="border-t border-border p-4 space-y-1 bg-[var(--navy-deep)] text-[10px] leading-relaxed text-muted-foreground tracking-wide">
-              <div className="text-foreground font-bold mb-1 tracking-widest">УПРАВЛЕНИЕ</div>
-              [ПКМ] Задержка дыхания ({holdWindow}s) · [ЛКМ] Выстрел · [R] Перезарядка
+              <div className="text-foreground font-bold mb-1 tracking-widest">РЈРџР РђР’Р›Р•РќРР•</div>
+              [РџРљРњ] Р—Р°РґРµСЂР¶РєР° РґС‹С…Р°РЅРёСЏ ({holdWindow}s) В· [Р›РљРњ] Р’С‹СЃС‚СЂРµР» В· [R] РџРµСЂРµР·Р°СЂСЏРґРєР°
               <div className="mt-2 text-foreground/80">
-                Бонус: 10.9 = +8s · 10.x = +4s · 9.x = +2s
+                Р‘РѕРЅСѓСЃ: 10.9 = +8s В· 10.x = +4s В· 9.x = +2s
               </div>
             </div>
           </aside>
@@ -2089,6 +2130,7 @@ function HomeScreen({
   onClaimDailyGift: () => void;
 }) {
   const credits = progress.credits;
+  const [homeTab, setHomeTab] = useState<"disciplines" | "career" | "tournament" | "shop">("disciplines");
   const [shopTab, setShopTab] = useState<"upgrades" | "skins">("upgrades");
   const [signInOpen, setSignInOpen] = useState(false);
   const [guestWarnOpen, setGuestWarnOpen] = useState(false);
@@ -2151,8 +2193,8 @@ function HomeScreen({
         <div>
           <div className="text-[10px] tracking-[0.5em] text-primary font-bold">OLYMPIC SHOOTING SIMULATOR</div>
           <div className="text-xs text-muted-foreground mt-1">
-            Добро пожаловать, стрелок{user?.email ? `, ${user.email.split("@")[0]}` : ""}!
-            {isGuest && <span className="ml-2 text-[var(--gold-bright)]">• Режим гостя</span>}
+            Р”РѕР±СЂРѕ РїРѕР¶Р°Р»РѕРІР°С‚СЊ, СЃС‚СЂРµР»РѕРє{user?.email ? `, ${user.email.split("@")[0]}` : ""}!
+            {isGuest && <span className="ml-2 text-[var(--gold-bright)]">вЂў Р РµР¶РёРј РіРѕСЃС‚СЏ</span>}
           </div>
         </div>
         {mounted && (
@@ -2161,7 +2203,7 @@ function HomeScreen({
               to="/profile"
               className="border border-[var(--gold-bright)] text-[var(--gold-bright)] font-bold tracking-widest px-4 py-2 text-xs hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
             >
-              ПРОФИЛЬ
+              РџР РћР¤РР›Р¬
             </Link>
           ) : (
             <div ref={signInRef} className="relative">
@@ -2172,8 +2214,8 @@ function HomeScreen({
                 aria-haspopup="menu"
                 aria-expanded={signInOpen}
               >
-                ВОЙТИ
-                <span className={`inline-block transition-transform ${signInOpen ? "rotate-180" : ""}`}>▾</span>
+                Р’РћР™РўР
+                <span className={`inline-block transition-transform ${signInOpen ? "rotate-180" : ""}`}>в–ѕ</span>
               </button>
               <AnimatePresence>
                 {signInOpen && (
@@ -2191,7 +2233,7 @@ function HomeScreen({
                       className="block px-4 py-3 text-xs tracking-widest text-foreground hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors border-b border-border"
                       role="menuitem"
                     >
-                      ОСНОВНОЙ ВХОД
+                      РћРЎРќРћР’РќРћР™ Р’РҐРћР”
                     </Link>
                     <button
                       type="button"
@@ -2199,7 +2241,7 @@ function HomeScreen({
                       className="block w-full text-left px-4 py-3 text-xs tracking-widest text-muted-foreground hover:bg-[var(--gold-bright)] hover:text-[var(--navy-deep)] transition-colors"
                       role="menuitem"
                     >
-                      ВОЙТИ КАК ГОСТЬ
+                      Р’РћР™РўР РљРђРљ Р“РћРЎРўР¬
                     </button>
                   </motion.div>
                 )}
@@ -2209,20 +2251,23 @@ function HomeScreen({
         )}
       </div>
 
-      <div className="sticky top-2 z-40 w-full max-w-6xl mb-5 border border-border/70 bg-[var(--navy-deep)]/92 backdrop-blur-md px-2 py-2 shadow-xl">
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="w-full max-w-6xl mb-5 border border-border/70 bg-[var(--navy-deep)]/92 px-2 py-2 shadow-xl">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
-            { id: "disciplines", label: "ДИСЦИПЛИНЫ" },
-            { id: "career-path", label: "КАРЬЕРА" },
-            { id: "daily-tournament", label: "ТУРНИР" },
-            { id: "weekly-gifts", label: "ПОДАРКИ" },
-            { id: "shop", label: "МАГАЗИН" },
+            { id: "disciplines", label: "Р”РРЎР¦РРџР›РРќР«" },
+            { id: "career", label: "РљРђР Р¬Р•Р Рђ" },
+            { id: "tournament", label: "РўРЈР РќРР " },
+            { id: "shop", label: "ПОДАРКИ / МАГАЗИН" },
           ].map((tab) => (
             <button
               key={tab.id}
               type="button"
-              onClick={() => document.getElementById(tab.id)?.scrollIntoView({ behavior: "smooth", block: "start" })}
-              className="border border-border/60 bg-slate-950/45 px-3 py-2 text-[10px] font-black tracking-widest text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+              onClick={() => setHomeTab(tab.id as typeof homeTab)}
+              className={`border px-3 py-2 text-[10px] font-black tracking-widest transition-colors ${
+                homeTab === tab.id
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border/60 bg-slate-950/45 text-muted-foreground hover:border-primary hover:text-primary"
+              }`}
             >
               {tab.label}
             </button>
@@ -2232,7 +2277,7 @@ function HomeScreen({
 
       <button
         type="button"
-        onClick={() => document.getElementById("weekly-gifts")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+        onClick={() => setHomeTab("shop")}
         className={`w-full max-w-6xl mb-6 text-left border px-4 py-3 transition-colors ${
           giftAlreadyClaimed
             ? "border-border/70 bg-slate-950/35 hover:border-[var(--gold-bright)]/60"
@@ -2242,21 +2287,21 @@ function HomeScreen({
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="h-11 w-11 shrink-0 border border-[var(--gold-bright)]/70 bg-slate-950/60 flex items-center justify-center text-xl">
-              🎁
+              рџЋЃ
             </div>
             <div>
               <div className="text-[10px] tracking-[0.35em] text-[var(--gold-bright)] font-bold">
-                {giftAlreadyClaimed ? "ПОДАРОК УЖЕ ЗАБРАН" : "ТЕБЯ ЖДЕТ ПОДАРОК"}
+                {giftAlreadyClaimed ? "РџРћР”РђР РћРљ РЈР–Р• Р—РђР‘Р РђРќ" : "РўР•Р‘РЇ Р–Р”Р•Рў РџРћР”РђР РћРљ"}
               </div>
               <div className="mt-1 text-sm md:text-base font-black">
                 {giftAlreadyClaimed
-                  ? `Завтра: день ${nextGift.day} · ${rewardLabel(nextGift.reward)}`
-                  : `Сегодня: день ${todayGift.day} · ${rewardLabel(todayGift.reward)}`}
+                  ? `Р—Р°РІС‚СЂР°: РґРµРЅСЊ ${nextGift.day} В· ${rewardLabel(nextGift.reward)}`
+                  : `РЎРµРіРѕРґРЅСЏ: РґРµРЅСЊ ${todayGift.day} В· ${rewardLabel(todayGift.reward)}`}
               </div>
             </div>
           </div>
           <div className="text-[10px] font-black tracking-widest text-primary">
-            {giftAlreadyClaimed ? "ПОСМОТРЕТЬ НЕДЕЛЮ" : "ЗАБРАТЬ СЕЙЧАС"}
+            {giftAlreadyClaimed ? "РџРћРЎРњРћРўР Р•РўР¬ РќР•Р”Р•Р›Р®" : "Р—РђР‘Р РђРўР¬ РЎР•Р™Р§РђРЎ"}
           </div>
         </div>
       </button>
@@ -2279,9 +2324,9 @@ function HomeScreen({
               onClick={(e) => e.stopPropagation()}
               className="w-full max-w-md bg-[var(--navy-mid)] border border-[var(--gold-bright)] p-6"
             >
-              <div className="text-lg font-bold tracking-widest text-[var(--gold-bright)] mb-3">⚠️ РЕЖИМ ГОСТЯ</div>
+              <div className="text-lg font-bold tracking-widest text-[var(--gold-bright)] mb-3">вљ пёЏ Р Р•Р–РРњ Р“РћРЎРўРЇ</div>
               <p className="text-sm text-foreground leading-relaxed mb-6">
-                В этом режиме ваш прогресс (заработанные кредиты, рекорды и купленные скины) <b>НЕ сохраняется</b> в браузере. После закрытия страницы все достижения будут сброшены. Желаете продолжить?
+                Р’ СЌС‚РѕРј СЂРµР¶РёРјРµ РІР°С€ РїСЂРѕРіСЂРµСЃСЃ (Р·Р°СЂР°Р±РѕС‚Р°РЅРЅС‹Рµ РєСЂРµРґРёС‚С‹, СЂРµРєРѕСЂРґС‹ Рё РєСѓРїР»РµРЅРЅС‹Рµ СЃРєРёРЅС‹) <b>РќР• СЃРѕС…СЂР°РЅСЏРµС‚СЃСЏ</b> РІ Р±СЂР°СѓР·РµСЂРµ. РџРѕСЃР»Рµ Р·Р°РєСЂС‹С‚РёСЏ СЃС‚СЂР°РЅРёС†С‹ РІСЃРµ РґРѕСЃС‚РёР¶РµРЅРёСЏ Р±СѓРґСѓС‚ СЃР±СЂРѕС€РµРЅС‹. Р–РµР»Р°РµС‚Рµ РїСЂРѕРґРѕР»Р¶РёС‚СЊ?
               </p>
               <div className="flex gap-3 justify-end">
                 <button
@@ -2289,14 +2334,14 @@ function HomeScreen({
                   onClick={() => setGuestWarnOpen(false)}
                   className="border border-border text-foreground font-bold tracking-widest px-4 py-2 text-xs hover:bg-secondary transition-colors"
                 >
-                  ОТМЕНА
+                  РћРўРњР•РќРђ
                 </button>
                 <button
                   type="button"
                   onClick={() => { setGuestWarnOpen(false); onStartGuest(); }}
                   className="bg-[var(--gold-bright)] text-[var(--navy-deep)] font-bold tracking-widest px-4 py-2 text-xs hover:opacity-90 transition-opacity"
                 >
-                  ДА, ПРОДОЛЖИТЬ
+                  Р”Рђ, РџР РћР”РћР›Р–РРўР¬
                 </button>
               </div>
             </motion.div>
@@ -2309,13 +2354,13 @@ function HomeScreen({
         onClose={() => setTournamentPromptOpen(false)}
         onPlay={() => {
           setTournamentPromptOpen(false);
-          window.setTimeout(() => {
-            document.getElementById("daily-tournament")?.scrollIntoView({ behavior: "smooth", block: "start" });
-          }, 80);
+          setHomeTab("tournament");
         }}
       />
 
-      <div id="disciplines" className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 items-stretch scroll-mt-24">
+      {homeTab === "disciplines" && (
+        <>
+      <div id="disciplines" className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-6 items-stretch">
         <section className="border border-border/70 bg-[var(--navy-mid)]/70 p-6 md:p-8 flex flex-col justify-between min-h-[360px]">
           <div>
             <div className="text-[10px] tracking-[0.5em] text-primary font-bold mb-4">OLYMPIC SHOOTING RANGE</div>
@@ -2323,23 +2368,23 @@ function HomeScreen({
               Olympic<br />Shooting<br />Simulator
             </h1>
             <p className="mt-5 max-w-md text-sm md:text-base leading-relaxed text-muted-foreground">
-              Выбери дисциплину, посмотри разбор тренера и выходи на рубеж с простым планом: навелся, задержал дыхание, мягко нажал.
+              Р’С‹Р±РµСЂРё РґРёСЃС†РёРїР»РёРЅСѓ, РїРѕСЃРјРѕС‚СЂРё СЂР°Р·Р±РѕСЂ С‚СЂРµРЅРµСЂР° Рё РІС‹С…РѕРґРё РЅР° СЂСѓР±РµР¶ СЃ РїСЂРѕСЃС‚С‹Рј РїР»Р°РЅРѕРј: РЅР°РІРµР»СЃСЏ, Р·Р°РґРµСЂР¶Р°Р» РґС‹С…Р°РЅРёРµ, РјСЏРіРєРѕ РЅР°Р¶Р°Р».
             </p>
           </div>
           <div className="grid grid-cols-3 gap-3 mt-8 text-center">
-            <MiniStat label="КОНТРОЛЬ" v="ДЫХАНИЕ" />
-            <MiniStat label="ПРИЦЕЛ" v="ДИОПТР" />
-            <MiniStat label="ТЕМП" v="СПУСК" />
+            <MiniStat label="РљРћРќРўР РћР›Р¬" v="Р”Р«РҐРђРќРР•" />
+            <MiniStat label="РџР РР¦Р•Р›" v="Р”РРћРџРўР " />
+            <MiniStat label="РўР•РњРџ" v="РЎРџРЈРЎРљ" />
           </div>
         </section>
 
         <section className="border border-[var(--gold-bright)]/35 bg-[var(--navy-deep)]/80 p-4 md:p-5">
           <div className="flex items-baseline justify-between gap-3 mb-4">
             <div>
-              <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">ВЫБЕРИТЕ ДИСЦИПЛИНУ</div>
-              <div className="text-xs text-muted-foreground mt-1">После выбора откроется тренерский разбор.</div>
+              <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">Р’Р«Р‘Р•Р РРўР• Р”РРЎР¦РРџР›РРќРЈ</div>
+              <div className="text-xs text-muted-foreground mt-1">РџРѕСЃР»Рµ РІС‹Р±РѕСЂР° РѕС‚РєСЂРѕРµС‚СЃСЏ С‚СЂРµРЅРµСЂСЃРєРёР№ СЂР°Р·Р±РѕСЂ.</div>
             </div>
-            <div className="text-[10px] text-muted-foreground font-mono">5 НАПРАВЛЕНИЙ</div>
+            <div className="text-[10px] text-muted-foreground font-mono">5 РќРђРџР РђР’Р›Р•РќРР™</div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {DISCIPLINES.map((d) => (
@@ -2363,7 +2408,7 @@ function HomeScreen({
                     <span className={`px-2 py-1 text-[10px] font-bold tracking-widest border ${difficultyStyle(d.id)}`}>
                       {difficultyLabel(d.id)}
                     </span>
-                    <span className="text-[10px] font-bold tracking-widest text-primary group-hover:text-[var(--gold-bright)]">ДАЛЕЕ</span>
+                    <span className="text-[10px] font-bold tracking-widest text-primary group-hover:text-[var(--gold-bright)]">Р”РђР›Р•Р•</span>
                   </div>
                 </div>
               </button>
@@ -2375,25 +2420,28 @@ function HomeScreen({
       {/* Player stats */}
       <div className="w-full max-w-6xl grid grid-cols-3 gap-3 md:gap-4 my-6">
         <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
-          <div className="text-[10px] tracking-widest text-muted-foreground">КРЕДИТЫ</div>
+          <div className="text-[10px] tracking-widest text-muted-foreground">РљР Р•Р”РРўР«</div>
           <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{credits} <span className="text-sm text-muted-foreground">CR</span></div>
         </div>
         <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
-          <div className="text-[10px] tracking-widest text-muted-foreground">ОБЩИЙ СЧЁТ</div>
+          <div className="text-[10px] tracking-widest text-muted-foreground">РћР‘Р©РР™ РЎР§РЃРў</div>
           <div className="text-2xl md:text-3xl font-black text-primary font-mono tabular-nums">{Number(progress.totalScore).toFixed(1)}</div>
         </div>
         <div className="border border-border bg-[var(--navy-mid)] px-4 py-3">
-          <div className="text-[10px] tracking-widest text-muted-foreground">ИДЕАЛЬНЫХ 10.9</div>
+          <div className="text-[10px] tracking-widest text-muted-foreground">РР”Р•РђР›Р¬РќР«РҐ 10.9</div>
           <div className="text-2xl md:text-3xl font-black text-[var(--gold-bright)] font-mono tabular-nums">{progress.perfectTens}</div>
         </div>
       </div>
+        </>
+      )}
 
       {/* Career levels */}
-      <div id="career-path" className="w-full max-w-6xl mt-10 scroll-mt-24">
+      {homeTab === "career" && (
+      <div className="w-full max-w-6xl">
 
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-xl md:text-2xl font-black tracking-tight">РЕЖИМ КАРЬЕРЫ</h2>
-          <div className="text-[10px] text-muted-foreground">За победу: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span></div>
+          <h2 className="text-xl md:text-2xl font-black tracking-tight">Р Р•Р–РРњ РљРђР Р¬Р•Р Р«</h2>
+          <div className="text-[10px] text-muted-foreground">Р—Р° РїРѕР±РµРґСѓ: <span className="text-[var(--gold-bright)] font-bold">+{CAREER_WIN_BONUS} CR</span></div>
         </div>
         <div className="relative flex flex-col gap-5 md:gap-7">
           {CAREER_LEVELS.map((lvl) => {
@@ -2441,19 +2489,19 @@ function HomeScreen({
                   )}
                   <div className="flex items-center justify-between">
                     <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{lvl.short}</div>
-                    {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">✓ ПРОЙДЕН</div>}
-                    {!unlocked && <div className="text-[10px] font-bold text-muted-foreground tracking-widest">🔒 ЗАКРЫТ</div>}
+                    {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">вњ“ РџР РћР™Р”Р•Рќ</div>}
+                    {!unlocked && <div className="text-[10px] font-bold text-muted-foreground tracking-widest">рџ”’ Р—РђРљР Р«Рў</div>}
                   </div>
-                  <div className="text-lg font-black tracking-tight">УРОВЕНЬ {lvl.id}</div>
+                  <div className="text-lg font-black tracking-tight">РЈР РћР’Р•РќР¬ {lvl.id}</div>
                   <div className="text-sm font-bold">{lvl.name}</div>
                   <div className="text-xs text-muted-foreground leading-relaxed flex-1">{lvl.description}</div>
                   <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-auto">
-                    <MiniStat label="ВЫСТРЕЛЫ" v={String(lvl.shots)} />
-                    <MiniStat label="ОЧКИ" v={lvl.scoring === "integer" ? "ЦЕЛЫЕ" : "10.x"} />
-                    <MiniStat label="ЦЕЛЬ" v={String(lvl.winScore)} />
+                    <MiniStat label="Р’Р«РЎРўР Р•Р›Р«" v={String(lvl.shots)} />
+                    <MiniStat label="РћР§РљР" v={lvl.scoring === "integer" ? "Р¦Р•Р›Р«Р•" : "10.x"} />
+                    <MiniStat label="Р¦Р•Р›Р¬" v={String(lvl.winScore)} />
                   </div>
                   {!unlocked && (
-                    <div className="text-[10px] text-muted-foreground text-center">Пройдите уровень {lvl.id - 1}</div>
+                    <div className="text-[10px] text-muted-foreground text-center">РџСЂРѕР№РґРёС‚Рµ СѓСЂРѕРІРµРЅСЊ {lvl.id - 1}</div>
                   )}
                 </button>
               </div>
@@ -2461,7 +2509,7 @@ function HomeScreen({
           })}
         </div>
 
-        {/* Olympic Finals — final barrier after the full career ladder */}
+        {/* Olympic Finals вЂ” final barrier after the full career ladder */}
         <div className="mt-8 md:mt-10">
           <button
             type="button"
@@ -2485,9 +2533,9 @@ function HomeScreen({
                 olympicUnlocked ? "border-[var(--gold-bright)] bg-[var(--gold-bright)]/10" : "border-border bg-slate-900/70"
               }`}>
                 <div className="text-center">
-                  <div className="text-[10px] tracking-[0.45em] text-muted-foreground font-bold">ПРЕГРАДА</div>
+                  <div className="text-[10px] tracking-[0.45em] text-muted-foreground font-bold">РџР Р•Р“Р РђР”Рђ</div>
                   <div className="mt-2 text-4xl md:text-5xl font-black tracking-widest text-[var(--gold-bright)]">
-                    {olympicUnlocked ? "ОТКР" : "ЗАМК"}
+                    {olympicUnlocked ? "РћРўРљР " : "Р—РђРњРљ"}
                   </div>
                   <div className="mt-2 text-[10px] font-mono text-muted-foreground">{careerCompleted}/{CAREER_LEVEL_COUNT}</div>
                 </div>
@@ -2495,15 +2543,15 @@ function HomeScreen({
 
               <div>
                 <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">
-                  {olympicUnlocked ? "ФИНАЛ ОТКРЫТ · HARDCORE · vs 5 AI" : "ОЛИМПИЙСКИЙ ФИНАЛ ЗАКРЫТ"}
+                  {olympicUnlocked ? "Р¤РРќРђР› РћРўРљР Р«Рў В· HARDCORE В· vs 5 AI" : "РћР›РРњРџРР™РЎРљРР™ Р¤РРќРђР› Р—РђРљР Р«Рў"}
                 </div>
                 <div className="mt-3 text-3xl md:text-5xl font-black tracking-tight leading-none">
                   Olympic Finals
                 </div>
                 <div className="mt-3 text-sm md:text-base text-muted-foreground leading-relaxed max-w-2xl">
                   {olympicUnlocked
-                    ? "Ты прошел всю карьерную лестницу. Теперь финал: винтовка 10м, 10 выстрелов, после 4, 6 и 8 выстрелов слабейший участник выбывает."
-                    : "Это последняя преграда. Чтобы выйти в финал, пройди все 5 карьерных уровней по порядку."}
+                    ? "РўС‹ РїСЂРѕС€РµР» РІСЃСЋ РєР°СЂСЊРµСЂРЅСѓСЋ Р»РµСЃС‚РЅРёС†Сѓ. РўРµРїРµСЂСЊ С„РёРЅР°Р»: РІРёРЅС‚РѕРІРєР° 10Рј, 10 РІС‹СЃС‚СЂРµР»РѕРІ, РїРѕСЃР»Рµ 4, 6 Рё 8 РІС‹СЃС‚СЂРµР»РѕРІ СЃР»Р°Р±РµР№С€РёР№ СѓС‡Р°СЃС‚РЅРёРє РІС‹Р±С‹РІР°РµС‚."
+                    : "Р­С‚Рѕ РїРѕСЃР»РµРґРЅСЏСЏ РїСЂРµРіСЂР°РґР°. Р§С‚РѕР±С‹ РІС‹Р№С‚Рё РІ С„РёРЅР°Р», РїСЂРѕР№РґРё РІСЃРµ 5 РєР°СЂСЊРµСЂРЅС‹С… СѓСЂРѕРІРЅРµР№ РїРѕ РїРѕСЂСЏРґРєСѓ."}
                 </div>
                 {!olympicUnlocked && (
                   <div className="mt-5 h-3 border border-border bg-[var(--navy-deep)]">
@@ -2520,13 +2568,16 @@ function HomeScreen({
                   ? "bg-[var(--gold-bright)] text-[var(--navy-deep)] group-hover:bg-primary"
                   : "border border-border text-muted-foreground bg-slate-900/70"
               }`}>
-                {olympicUnlocked ? "ВЫЙТИ В ФИНАЛ" : "НУЖНО 5/5"}
+                {olympicUnlocked ? "Р’Р«Р™РўР Р’ Р¤РРќРђР›" : `РќРЈР–РќРћ ${CAREER_LEVEL_COUNT}/${CAREER_LEVEL_COUNT}`}
               </div>
             </div>
           </button>
         </div>
       </div>
 
+      )}
+
+      {homeTab === "tournament" && (
       <DailyLeaderboards
         progress={progress}
         onPlayDiscipline={(disciplineId, rankId) => {
@@ -2537,17 +2588,20 @@ function HomeScreen({
           }
         }}
       />
+      )}
 
+      {homeTab === "shop" && (
+        <>
       <WeeklyGifts
         progress={progress}
         onClaim={onClaimDailyGift}
       />
 
       {/* Unified shop */}
-      <div id="shop" className="w-full max-w-6xl mt-10 scroll-mt-24">
+      <div className="w-full max-w-6xl mt-6">
         <div className="flex items-baseline justify-between mb-3">
-          <h2 className="text-xl md:text-2xl font-black tracking-tight">МАГАЗИН</h2>
-          <div className="text-[10px] text-muted-foreground">10.9 = +500 CR · 10.x = +100 CR · 9.x = +50 CR</div>
+          <h2 className="text-xl md:text-2xl font-black tracking-tight">РњРђР“РђР—РРќ</h2>
+          <div className="text-[10px] text-muted-foreground">10.9 = +500 CR В· 10.x = +100 CR В· 9.x = +50 CR</div>
         </div>
 
         <div className="flex gap-2 mb-4 border-b border-border">
@@ -2556,13 +2610,13 @@ function HomeScreen({
             className={`px-4 py-2 text-xs font-bold tracking-widest border-b-2 -mb-px transition-colors ${
               shopTab === "upgrades" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
-          >УЛУЧШЕНИЯ</button>
+          >РЈР›РЈР§РЁР•РќРРЇ</button>
           <button
             onClick={() => setShopTab("skins")}
             className={`px-4 py-2 text-xs font-bold tracking-widest border-b-2 -mb-px transition-colors ${
               shopTab === "skins" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
-          >СКИНЫ ПРИЦЕЛА</button>
+          >РЎРљРРќР« РџР РР¦Р•Р›Рђ</button>
         </div>
 
         {shopTab === "upgrades" && (
@@ -2577,7 +2631,7 @@ function HomeScreen({
                     <div className="text-[11px] text-muted-foreground mt-1 leading-relaxed">{u.desc}</div>
                   </div>
                   {owned ? (
-                    <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">✓ КУПЛЕНО</button>
+                    <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">вњ“ РљРЈРџР›Р•РќРћ</button>
                   ) : (
                     <button
                       disabled={!canAfford} onClick={() => buyUpgrade(u)}
@@ -2585,7 +2639,7 @@ function HomeScreen({
                         canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
                         : "bg-muted text-muted-foreground cursor-not-allowed"
                       }`}
-                    >КУПИТЬ · {u.price} CR</button>
+                    >РљРЈРџРРўР¬ В· {u.price} CR</button>
                   )}
                 </div>
               );
@@ -2610,14 +2664,14 @@ function HomeScreen({
                     <div className="flex-1">
                       <div className="text-sm font-bold tracking-wide">{s.name}</div>
                       <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {s.goldHalo ? "Золотой ореол." : s.id === "default" ? "Базовый прицел." : "Скин прицела."}
+                        {s.goldHalo ? "Р—РѕР»РѕС‚РѕР№ РѕСЂРµРѕР»." : s.id === "default" ? "Р‘Р°Р·РѕРІС‹Р№ РїСЂРёС†РµР»." : "РЎРєРёРЅ РїСЂРёС†РµР»Р°."}
                       </div>
                     </div>
                   </div>
                   {equipped ? (
-                    <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">✓ ЭКИПИРОВАН</button>
+                    <button disabled className="mt-auto bg-[var(--gold)] text-primary-foreground font-bold tracking-widest py-1.5 text-xs">вњ“ Р­РљРРџРР РћР’РђРќ</button>
                   ) : owned ? (
-                    <button onClick={() => equipSkin(s)} className="mt-auto bg-primary text-primary-foreground font-bold tracking-widest py-1.5 text-xs hover:bg-[var(--gold-bright)] transition-colors">ВЫБРАТЬ</button>
+                    <button onClick={() => equipSkin(s)} className="mt-auto bg-primary text-primary-foreground font-bold tracking-widest py-1.5 text-xs hover:bg-[var(--gold-bright)] transition-colors">Р’Р«Р‘Р РђРўР¬</button>
                   ) : (
                     <button
                       disabled={!canAfford} onClick={() => buySkin(s)}
@@ -2625,7 +2679,7 @@ function HomeScreen({
                         canAfford ? "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
                         : "bg-muted text-muted-foreground cursor-not-allowed"
                       }`}
-                    >КУПИТЬ · {s.price} CR</button>
+                    >РљРЈРџРРўР¬ В· {s.price} CR</button>
                   )}
                 </div>
               );
@@ -2633,9 +2687,11 @@ function HomeScreen({
           </div>
         )}
       </div>
+        </>
+      )}
 
       <div className="mt-8 text-[10px] tracking-widest text-muted-foreground text-center max-w-xl">
-        [ПКМ] Задержка дыхания · [ЛКМ] Выстрел · [R] Перезарядка
+        [РџРљРњ] Р—Р°РґРµСЂР¶РєР° РґС‹С…Р°РЅРёСЏ В· [Р›РљРњ] Р’С‹СЃС‚СЂРµР» В· [R] РџРµСЂРµР·Р°СЂСЏРґРєР°
       </div>
     </div>
   );
@@ -2676,9 +2732,9 @@ function RangeCoachGuide({
       </motion.div>
       <div className={`absolute w-[min(360px,calc(100%-32px))] border border-[var(--gold-bright)]/70 bg-slate-950/92 text-foreground shadow-2xl ${current.card}`}>
         <div className="border-b border-border/70 bg-slate-900/80 px-4 py-3">
-          <div className="text-[10px] tracking-[0.38em] text-[var(--gold-bright)] font-black">ТРЕНЕР НА РУБЕЖЕ</div>
+          <div className="text-[10px] tracking-[0.38em] text-[var(--gold-bright)] font-black">РўР Р•РќР•Р  РќРђ Р РЈР‘Р•Р–Р•</div>
           <div className="mt-1 text-xs text-muted-foreground font-mono">
-            {step + 1}/{steps.length} · {discipline.short}
+            {step + 1}/{steps.length} В· {discipline.short}
           </div>
         </div>
         <div className="px-4 py-4">
@@ -2690,7 +2746,7 @@ function RangeCoachGuide({
               onClick={onClose}
               className="border border-border px-3 py-2 text-[10px] font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
             >
-              ПРОПУСТИТЬ
+              РџР РћРџРЈРЎРўРРўР¬
             </button>
             <button
               type="button"
@@ -2700,7 +2756,7 @@ function RangeCoachGuide({
               }}
               className="bg-primary text-primary-foreground px-4 py-2 text-[10px] font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
             >
-              {last ? "ПОНЯЛ, НАЧАТЬ" : "ДАЛЬШЕ"}
+              {last ? "РџРћРќРЇР›, РќРђР§РђРўР¬" : "Р”РђР›Р¬РЁР•"}
             </button>
           </div>
         </div>
@@ -2712,30 +2768,30 @@ function RangeCoachGuide({
 function disciplineRangeCoachSteps(discipline: Discipline, holdWindow: number) {
   const disciplineIntro: Record<DisciplineId, { title: string; text: string }> = {
     ar10: {
-      title: "Пневматическая винтовка 10 м",
-      text: "Здесь главное - спокойно удержать центр. Не дергай мышь: навелся, коротко задержал дыхание, плавно нажал левую кнопку.",
+      title: "РџРЅРµРІРјР°С‚РёС‡РµСЃРєР°СЏ РІРёРЅС‚РѕРІРєР° 10 Рј",
+      text: "Р—РґРµСЃСЊ РіР»Р°РІРЅРѕРµ - СЃРїРѕРєРѕР№РЅРѕ СѓРґРµСЂР¶Р°С‚СЊ С†РµРЅС‚СЂ. РќРµ РґРµСЂРіР°Р№ РјС‹С€СЊ: РЅР°РІРµР»СЃСЏ, РєРѕСЂРѕС‚РєРѕ Р·Р°РґРµСЂР¶Р°Р» РґС‹С…Р°РЅРёРµ, РїР»Р°РІРЅРѕ РЅР°Р¶Р°Р» Р»РµРІСѓСЋ РєРЅРѕРїРєСѓ.",
     },
     rifle50: {
-      title: "Винтовка 50 м",
-      text: "Дистанция длиннее, поэтому любая ошибка заметнее. Перед выстрелом успокой прицел, не тяни дыхание слишком долго и нажимай без рывка.",
+      title: "Р’РёРЅС‚РѕРІРєР° 50 Рј",
+      text: "Р”РёСЃС‚Р°РЅС†РёСЏ РґР»РёРЅРЅРµРµ, РїРѕСЌС‚РѕРјСѓ Р»СЋР±Р°СЏ РѕС€РёР±РєР° Р·Р°РјРµС‚РЅРµРµ. РџРµСЂРµРґ РІС‹СЃС‚СЂРµР»РѕРј СѓСЃРїРѕРєРѕР№ РїСЂРёС†РµР», РЅРµ С‚СЏРЅРё РґС‹С…Р°РЅРёРµ СЃР»РёС€РєРѕРј РґРѕР»РіРѕ Рё РЅР°Р¶РёРјР°Р№ Р±РµР· СЂС‹РІРєР°.",
     },
     ap10: {
-      title: "Пистолет 10 м",
-      text: "Пистолет сильнее показывает ошибки руки. Держи мушку ровно, не лови идеальный момент слишком долго и нажимай мягко.",
+      title: "РџРёСЃС‚РѕР»РµС‚ 10 Рј",
+      text: "РџРёСЃС‚РѕР»РµС‚ СЃРёР»СЊРЅРµРµ РїРѕРєР°Р·С‹РІР°РµС‚ РѕС€РёР±РєРё СЂСѓРєРё. Р”РµСЂР¶Рё РјСѓС€РєСѓ СЂРѕРІРЅРѕ, РЅРµ Р»РѕРІРё РёРґРµР°Р»СЊРЅС‹Р№ РјРѕРјРµРЅС‚ СЃР»РёС€РєРѕРј РґРѕР»РіРѕ Рё РЅР°Р¶РёРјР°Р№ РјСЏРіРєРѕ.",
     },
     rfp25: {
-      title: "Скоростной пистолет 25 м",
-      text: "Здесь важно не суетиться. Быстро навелся, выровнял мушку, плавно нажал. Резкий клик почти всегда уводит пробоину.",
+      title: "РЎРєРѕСЂРѕСЃС‚РЅРѕР№ РїРёСЃС‚РѕР»РµС‚ 25 Рј",
+      text: "Р—РґРµСЃСЊ РІР°Р¶РЅРѕ РЅРµ СЃСѓРµС‚РёС‚СЊСЃСЏ. Р‘С‹СЃС‚СЂРѕ РЅР°РІРµР»СЃСЏ, РІС‹СЂРѕРІРЅСЏР» РјСѓС€РєСѓ, РїР»Р°РІРЅРѕ РЅР°Р¶Р°Р». Р РµР·РєРёР№ РєР»РёРє РїРѕС‡С‚Рё РІСЃРµРіРґР° СѓРІРѕРґРёС‚ РїСЂРѕР±РѕРёРЅСѓ.",
     },
     boar: {
-      title: "Бегущий кабан 10 м",
-      text: "Это движущаяся мишень. Не пытайся догнать ее резким рывком: веди прицел рядом с целью плавно, как будто корпус поворачивается вместе с ней.",
+      title: "Р‘РµРіСѓС‰РёР№ РєР°Р±Р°РЅ 10 Рј",
+      text: "Р­С‚Рѕ РґРІРёР¶СѓС‰Р°СЏСЃСЏ РјРёС€РµРЅСЊ. РќРµ РїС‹С‚Р°Р№СЃСЏ РґРѕРіРЅР°С‚СЊ РµРµ СЂРµР·РєРёРј СЂС‹РІРєРѕРј: РІРµРґРё РїСЂРёС†РµР» СЂСЏРґРѕРј СЃ С†РµР»СЊСЋ РїР»Р°РІРЅРѕ, РєР°Рє Р±СѓРґС‚Рѕ РєРѕСЂРїСѓСЃ РїРѕРІРѕСЂР°С‡РёРІР°РµС‚СЃСЏ РІРјРµСЃС‚Рµ СЃ РЅРµР№.",
     },
   };
 
   const targetText = discipline.id === "boar"
-    ? "Мишень едет по горизонтали. Держи прицел чуть впереди движения и не добавляй лишние движения вверх-вниз. Выстрел делай, когда ведение стало ровным."
-    : "Это сама мишень. Твоя задача - привести прицел к центру, дать ему успокоиться и стрелять без резкого движения мышью.";
+    ? "РњРёС€РµРЅСЊ РµРґРµС‚ РїРѕ РіРѕСЂРёР·РѕРЅС‚Р°Р»Рё. Р”РµСЂР¶Рё РїСЂРёС†РµР» С‡СѓС‚СЊ РІРїРµСЂРµРґРё РґРІРёР¶РµРЅРёСЏ Рё РЅРµ РґРѕР±Р°РІР»СЏР№ Р»РёС€РЅРёРµ РґРІРёР¶РµРЅРёСЏ РІРІРµСЂС…-РІРЅРёР·. Р’С‹СЃС‚СЂРµР» РґРµР»Р°Р№, РєРѕРіРґР° РІРµРґРµРЅРёРµ СЃС‚Р°Р»Рѕ СЂРѕРІРЅС‹Рј."
+    : "Р­С‚Рѕ СЃР°РјР° РјРёС€РµРЅСЊ. РўРІРѕСЏ Р·Р°РґР°С‡Р° - РїСЂРёРІРµСЃС‚Рё РїСЂРёС†РµР» Рє С†РµРЅС‚СЂСѓ, РґР°С‚СЊ РµРјСѓ СѓСЃРїРѕРєРѕРёС‚СЊСЃСЏ Рё СЃС‚СЂРµР»СЏС‚СЊ Р±РµР· СЂРµР·РєРѕРіРѕ РґРІРёР¶РµРЅРёСЏ РјС‹С€СЊСЋ.";
 
   return [
     {
@@ -2744,62 +2800,62 @@ function disciplineRangeCoachSteps(discipline: Discipline, holdWindow: number) {
       text: disciplineIntro[discipline.id].text,
       spot: "left-1/2 top-1/2 w-[250px] h-[250px] -translate-x-1/2 -translate-y-1/2 rounded-full md:w-[390px] md:h-[390px]",
       arrow: "left-[calc(50%+90px)] top-[calc(50%-210px)] md:left-[calc(50%+145px)] md:top-[calc(50%-255px)] text-6xl rotate-[38deg]",
-      arrowText: "↙",
+      arrowText: "в†™",
       arrowDx: -42,
       arrowDy: 42,
       card: "left-4 bottom-28 md:left-8 md:bottom-32",
     },
     {
       id: "mode",
-      title: "Сначала пробные",
-      text: "Сверху слева два режима. ПРОБНЫЕ - можно пристреляться без счета. ЗАЧЕТ - уже идет результат. Начни с пробных, потом переходи в зачет.",
+      title: "РЎРЅР°С‡Р°Р»Р° РїСЂРѕР±РЅС‹Рµ",
+      text: "РЎРІРµСЂС…Сѓ СЃР»РµРІР° РґРІР° СЂРµР¶РёРјР°. РџР РћР‘РќР«Р• - РјРѕР¶РЅРѕ РїСЂРёСЃС‚СЂРµР»СЏС‚СЊСЃСЏ Р±РµР· СЃС‡РµС‚Р°. Р—РђР§Р•Рў - СѓР¶Рµ РёРґРµС‚ СЂРµР·СѓР»СЊС‚Р°С‚. РќР°С‡РЅРё СЃ РїСЂРѕР±РЅС‹С…, РїРѕС‚РѕРј РїРµСЂРµС…РѕРґРё РІ Р·Р°С‡РµС‚.",
       spot: "top-2 left-2 w-[315px] h-[44px] md:top-4 md:left-4 md:w-[420px] md:h-[48px]",
       arrow: "top-[54px] left-[64px] md:top-[70px] md:left-[150px] text-5xl rotate-[-18deg]",
-      arrowText: "↑",
+      arrowText: "в†‘",
       arrowDx: 0,
       arrowDy: -40,
       card: "left-4 top-28 md:left-8 md:top-32",
     },
     {
       id: "target",
-      title: discipline.id === "boar" ? "Веди движущуюся цель" : "Целься в центр",
+      title: discipline.id === "boar" ? "Р’РµРґРё РґРІРёР¶СѓС‰СѓСЋСЃСЏ С†РµР»СЊ" : "Р¦РµР»СЊСЃСЏ РІ С†РµРЅС‚СЂ",
       text: targetText,
       spot: "left-1/2 top-1/2 w-[260px] h-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full md:w-[410px] md:h-[410px]",
       arrow: "left-[calc(50%-110px)] top-[calc(50%-210px)] md:left-[calc(50%-175px)] md:top-[calc(50%-270px)] text-6xl rotate-[-8deg]",
-      arrowText: "↓",
+      arrowText: "в†“",
       arrowDx: 0,
       arrowDy: 44,
       card: "right-4 top-24 md:right-8 md:top-28",
     },
     {
       id: "breath",
-      title: "Правая кнопка - дыхание",
-      text: `Зажми правую кнопку мыши, чтобы прицел стал спокойнее. Держи недолго: около ${holdWindow} сек. Если не успел выстрелить - отпусти и начни заново.`,
+      title: "РџСЂР°РІР°СЏ РєРЅРѕРїРєР° - РґС‹С…Р°РЅРёРµ",
+      text: `Р—Р°Р¶РјРё РїСЂР°РІСѓСЋ РєРЅРѕРїРєСѓ РјС‹С€Рё, С‡С‚РѕР±С‹ РїСЂРёС†РµР» СЃС‚Р°Р» СЃРїРѕРєРѕР№РЅРµРµ. Р”РµСЂР¶Рё РЅРµРґРѕР»РіРѕ: РѕРєРѕР»Рѕ ${holdWindow} СЃРµРє. Р•СЃР»Рё РЅРµ СѓСЃРїРµР» РІС‹СЃС‚СЂРµР»РёС‚СЊ - РѕС‚РїСѓСЃС‚Рё Рё РЅР°С‡РЅРё Р·Р°РЅРѕРІРѕ.`,
       spot: "right-3 bottom-5 w-[200px] h-[60px] md:right-6 md:bottom-6 md:w-[250px]",
       arrow: "right-[150px] bottom-[86px] md:right-[230px] md:bottom-[96px] text-5xl rotate-[22deg]",
-      arrowText: "↘",
+      arrowText: "в†",
       arrowDx: 35,
       arrowDy: 30,
       card: "right-4 bottom-32 md:right-8 md:bottom-36",
     },
     {
       id: "shot",
-      title: "Левая кнопка - выстрел",
-      text: "Стреляй левой кнопкой мыши. Нажимай спокойно, не резко. Если внизу написано EMPTY, нажми R - это перезарядка.",
+      title: "Р›РµРІР°СЏ РєРЅРѕРїРєР° - РІС‹СЃС‚СЂРµР»",
+      text: "РЎС‚СЂРµР»СЏР№ Р»РµРІРѕР№ РєРЅРѕРїРєРѕР№ РјС‹С€Рё. РќР°Р¶РёРјР°Р№ СЃРїРѕРєРѕР№РЅРѕ, РЅРµ СЂРµР·РєРѕ. Р•СЃР»Рё РІРЅРёР·Сѓ РЅР°РїРёСЃР°РЅРѕ EMPTY, РЅР°Р¶РјРё R - СЌС‚Рѕ РїРµСЂРµР·Р°СЂСЏРґРєР°.",
       spot: "left-1/2 top-1/2 w-[130px] h-[130px] -translate-x-1/2 -translate-y-1/2 rounded-full md:w-[165px] md:h-[165px]",
       arrow: "left-[calc(50%+70px)] top-[calc(50%-132px)] md:left-[calc(50%+88px)] md:top-[calc(50%-150px)] text-6xl rotate-[32deg]",
-      arrowText: "↙",
+      arrowText: "в†™",
       arrowDx: -38,
       arrowDy: 38,
       card: "left-4 top-28 md:left-8 md:top-32",
     },
     {
       id: "adjustments",
-      title: "Стрелки - поправки",
-      text: "После пробного выстрела смотри, куда ушла пробоина. Попал левее - нажми стрелку влево. Попал выше - нажми вверх. Куда попал, туда и крутишь.",
+      title: "РЎС‚СЂРµР»РєРё - РїРѕРїСЂР°РІРєРё",
+      text: "РџРѕСЃР»Рµ РїСЂРѕР±РЅРѕРіРѕ РІС‹СЃС‚СЂРµР»Р° СЃРјРѕС‚СЂРё, РєСѓРґР° СѓС€Р»Р° РїСЂРѕР±РѕРёРЅР°. РџРѕРїР°Р» Р»РµРІРµРµ - РЅР°Р¶РјРё СЃС‚СЂРµР»РєСѓ РІР»РµРІРѕ. РџРѕРїР°Р» РІС‹С€Рµ - РЅР°Р¶РјРё РІРІРµСЂС…. РљСѓРґР° РїРѕРїР°Р», С‚СѓРґР° Рё РєСЂСѓС‚РёС€СЊ.",
       spot: "left-2 bottom-20 w-[245px] h-[185px] md:left-4 md:bottom-24",
       arrow: "left-[230px] bottom-[190px] md:left-[260px] md:bottom-[220px] text-6xl rotate-[16deg]",
-      arrowText: "↙",
+      arrowText: "в†™",
       arrowDx: -40,
       arrowDy: 35,
       card: "left-4 top-28 md:left-8 md:top-32",
@@ -2809,61 +2865,61 @@ function disciplineRangeCoachSteps(discipline: Discipline, holdWindow: number) {
 
 function rangeCoachSteps(discipline: Discipline, holdWindow: number) {
   const movingTargetText = discipline.id === "boar"
-    ? "Мишень едет в сторону. Веди прицел рядом с ней плавно, без рывков вверх и вниз."
-    : "Наведи прицел ближе к центру. Не дергай мышь. Дай прицелу спокойно остановиться и только потом стреляй.";
+    ? "РњРёС€РµРЅСЊ РµРґРµС‚ РІ СЃС‚РѕСЂРѕРЅСѓ. Р’РµРґРё РїСЂРёС†РµР» СЂСЏРґРѕРј СЃ РЅРµР№ РїР»Р°РІРЅРѕ, Р±РµР· СЂС‹РІРєРѕРІ РІРІРµСЂС… Рё РІРЅРёР·."
+    : "РќР°РІРµРґРё РїСЂРёС†РµР» Р±Р»РёР¶Рµ Рє С†РµРЅС‚СЂСѓ. РќРµ РґРµСЂРіР°Р№ РјС‹С€СЊ. Р”Р°Р№ РїСЂРёС†РµР»Сѓ СЃРїРѕРєРѕР№РЅРѕ РѕСЃС‚Р°РЅРѕРІРёС‚СЊСЃСЏ Рё С‚РѕР»СЊРєРѕ РїРѕС‚РѕРј СЃС‚СЂРµР»СЏР№.";
 
   return [
     {
       id: "mode",
-      title: "Сначала пробные",
-      text: "Вот здесь два режима. ПРОБНЫЕ - это тренировка без счета. ЗАЧЕТ - это уже результат. Сначала сделай пару пробных.",
+      title: "РЎРЅР°С‡Р°Р»Р° РїСЂРѕР±РЅС‹Рµ",
+      text: "Р’РѕС‚ Р·РґРµСЃСЊ РґРІР° СЂРµР¶РёРјР°. РџР РћР‘РќР«Р• - СЌС‚Рѕ С‚СЂРµРЅРёСЂРѕРІРєР° Р±РµР· СЃС‡РµС‚Р°. Р—РђР§Р•Рў - СЌС‚Рѕ СѓР¶Рµ СЂРµР·СѓР»СЊС‚Р°С‚. РЎРЅР°С‡Р°Р»Р° СЃРґРµР»Р°Р№ РїР°СЂСѓ РїСЂРѕР±РЅС‹С….",
       spot: "top-2 left-20 w-[230px] h-[42px] md:top-4 md:left-36 md:w-[280px] md:h-[48px]",
       arrow: "top-[58px] left-[150px] md:top-[78px] md:left-[250px] text-5xl rotate-[-28deg]",
-      arrowText: "↖",
+      arrowText: "в†–",
       arrowDx: -40,
       arrowDy: -25,
       card: "top-24 left-4 md:top-28 md:left-8",
     },
     {
       id: "target",
-      title: "Работай по мишени",
+      title: "Р Р°Р±РѕС‚Р°Р№ РїРѕ РјРёС€РµРЅРё",
       text: movingTargetText,
       spot: "left-1/2 top-1/2 w-[250px] h-[250px] -translate-x-1/2 -translate-y-1/2 rounded-full md:left-[calc(50%-180px)] md:w-[360px] md:h-[360px]",
       arrow: "left-[calc(50%-170px)] top-[calc(50%-225px)] md:left-[calc(50%-425px)] md:top-[calc(50%-300px)] text-6xl rotate-[-20deg]",
-      arrowText: "↘",
+      arrowText: "в†",
       arrowDx: 45,
       arrowDy: 45,
       card: "right-4 top-20 md:right-8 md:top-28",
     },
     {
       id: "breath",
-      title: "Задержка дыхания",
-      text: `Правая кнопка мыши делает прицел спокойнее. Держи ее недолго: примерно ${holdWindow} сек. Если не успел выстрелить, отпусти и начни заново.`,
+      title: "Р—Р°РґРµСЂР¶РєР° РґС‹С…Р°РЅРёСЏ",
+      text: `РџСЂР°РІР°СЏ РєРЅРѕРїРєР° РјС‹С€Рё РґРµР»Р°РµС‚ РїСЂРёС†РµР» СЃРїРѕРєРѕР№РЅРµРµ. Р”РµСЂР¶Рё РµРµ РЅРµРґРѕР»РіРѕ: РїСЂРёРјРµСЂРЅРѕ ${holdWindow} СЃРµРє. Р•СЃР»Рё РЅРµ СѓСЃРїРµР» РІС‹СЃС‚СЂРµР»РёС‚СЊ, РѕС‚РїСѓСЃС‚Рё Рё РЅР°С‡РЅРё Р·Р°РЅРѕРІРѕ.`,
       spot: "right-4 bottom-5 w-[190px] h-[58px] md:right-[384px] md:bottom-6 md:w-[240px]",
       arrow: "right-[130px] bottom-[84px] md:right-[560px] md:bottom-[96px] text-5xl rotate-[22deg]",
-      arrowText: "↘",
+      arrowText: "в†",
       arrowDx: 35,
       arrowDy: 30,
       card: "right-4 bottom-32 md:right-8 md:bottom-36",
     },
     {
       id: "shot",
-      title: "Выстрел",
-      text: "Левая кнопка мыши стреляет. Нажимай ее мягко, без резкого рывка. Если внизу написано EMPTY, нажми R для перезарядки.",
+      title: "Р’С‹СЃС‚СЂРµР»",
+      text: "Р›РµРІР°СЏ РєРЅРѕРїРєР° РјС‹С€Рё СЃС‚СЂРµР»СЏРµС‚. РќР°Р¶РёРјР°Р№ РµРµ РјСЏРіРєРѕ, Р±РµР· СЂРµР·РєРѕРіРѕ СЂС‹РІРєР°. Р•СЃР»Рё РІРЅРёР·Сѓ РЅР°РїРёСЃР°РЅРѕ EMPTY, РЅР°Р¶РјРё R РґР»СЏ РїРµСЂРµР·Р°СЂСЏРґРєРё.",
       spot: "left-1/2 top-1/2 w-[120px] h-[120px] -translate-x-1/2 -translate-y-1/2 rounded-full md:left-[calc(50%-180px)] md:w-[150px] md:h-[150px]",
       arrow: "left-[calc(50%+70px)] top-[calc(50%-125px)] md:left-[calc(50%-85px)] md:top-[calc(50%-150px)] text-6xl rotate-[32deg]",
-      arrowText: "↙",
+      arrowText: "в†™",
       arrowDx: -38,
       arrowDy: 38,
       card: "left-4 top-24 md:left-8 md:top-32",
     },
     {
       id: "adjustments",
-      title: "Поправки после пробных",
-      text: "Если пробный выстрел попал левее центра, нажимай стрелку влево. Если выше центра, нажимай вверх. Куда попал - туда и нажимай.",
+      title: "РџРѕРїСЂР°РІРєРё РїРѕСЃР»Рµ РїСЂРѕР±РЅС‹С…",
+      text: "Р•СЃР»Рё РїСЂРѕР±РЅС‹Р№ РІС‹СЃС‚СЂРµР» РїРѕРїР°Р» Р»РµРІРµРµ С†РµРЅС‚СЂР°, РЅР°Р¶РёРјР°Р№ СЃС‚СЂРµР»РєСѓ РІР»РµРІРѕ. Р•СЃР»Рё РІС‹С€Рµ С†РµРЅС‚СЂР°, РЅР°Р¶РёРјР°Р№ РІРІРµСЂС…. РљСѓРґР° РїРѕРїР°Р» - С‚СѓРґР° Рё РЅР°Р¶РёРјР°Р№.",
       spot: "left-2 bottom-20 w-[245px] h-[185px] md:left-4 md:bottom-24",
       arrow: "left-[250px] bottom-[190px] md:left-[270px] md:bottom-[230px] text-6xl rotate-[16deg]",
-      arrowText: "↙",
+      arrowText: "в†™",
       arrowDx: -40,
       arrowDy: 35,
       card: "left-4 top-24 md:left-8 md:top-28",
@@ -2896,10 +2952,10 @@ function AccountPrompt({
             onClick={(event) => event.stopPropagation()}
             className="w-full max-w-md border border-[var(--gold-bright)]/70 bg-[var(--navy-mid)] p-6 shadow-2xl"
           >
-            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-black">ТРЕНЕР</div>
-            <h2 className="mt-2 text-2xl font-black tracking-tight">Хочешь сохранить прогресс?</h2>
+            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-black">РўР Р•РќР•Р </div>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">РҐРѕС‡РµС€СЊ СЃРѕС…СЂР°РЅРёС‚СЊ РїСЂРѕРіСЂРµСЃСЃ?</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Создай аккаунт, и игра запомнит твои кредиты, рекорды, значки и открытые уровни. Так ты не потеряешь результат после закрытия страницы.
+              РЎРѕР·РґР°Р№ Р°РєРєР°СѓРЅС‚, Рё РёРіСЂР° Р·Р°РїРѕРјРЅРёС‚ С‚РІРѕРё РєСЂРµРґРёС‚С‹, СЂРµРєРѕСЂРґС‹, Р·РЅР°С‡РєРё Рё РѕС‚РєСЂС‹С‚С‹Рµ СѓСЂРѕРІРЅРё. РўР°Рє С‚С‹ РЅРµ РїРѕС‚РµСЂСЏРµС€СЊ СЂРµР·СѓР»СЊС‚Р°С‚ РїРѕСЃР»Рµ Р·Р°РєСЂС‹С‚РёСЏ СЃС‚СЂР°РЅРёС†С‹.
             </p>
             <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:justify-end">
               <button
@@ -2907,7 +2963,7 @@ function AccountPrompt({
                 onClick={onClose}
                 className="border border-border px-4 py-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
               >
-                ПРОДОЛЖИТЬ ТАК
+                РџР РћР”РћР›Р–РРўР¬ РўРђРљ
               </button>
               <Link
                 to="/auth"
@@ -2918,7 +2974,7 @@ function AccountPrompt({
                 }}
                 className="bg-primary text-primary-foreground px-5 py-2 text-center text-xs font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
               >
-                СОЗДАТЬ АККАУНТ
+                РЎРћР—Р”РђРўР¬ РђРљРљРђРЈРќРў
               </Link>
             </div>
           </motion.div>
@@ -2955,10 +3011,10 @@ function TournamentPrompt({
             onClick={(event) => event.stopPropagation()}
             className="w-full max-w-md border border-[var(--gold-bright)]/70 bg-[var(--navy-mid)] p-6 shadow-2xl"
           >
-            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-black">НОВЫЙ ВЫЗОВ</div>
-            <h2 className="mt-2 text-2xl font-black tracking-tight">Попробуем турнир дня?</h2>
+            <div className="text-[10px] tracking-[0.4em] text-[var(--gold-bright)] font-black">РќРћР’Р«Р™ Р’Р«Р—РћР’</div>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">РџРѕРїСЂРѕР±СѓРµРј С‚СѓСЂРЅРёСЂ РґРЅСЏ?</h2>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Теперь у тебя есть аккаунт. Можно сыграть серию из 10 выстрелов и попасть в ежедневную таблицу. Соперники обновляются каждый день.
+              РўРµРїРµСЂСЊ Сѓ С‚РµР±СЏ РµСЃС‚СЊ Р°РєРєР°СѓРЅС‚. РњРѕР¶РЅРѕ СЃС‹РіСЂР°С‚СЊ СЃРµСЂРёСЋ РёР· 10 РІС‹СЃС‚СЂРµР»РѕРІ Рё РїРѕРїР°СЃС‚СЊ РІ РµР¶РµРґРЅРµРІРЅСѓСЋ С‚Р°Р±Р»РёС†Сѓ. РЎРѕРїРµСЂРЅРёРєРё РѕР±РЅРѕРІР»СЏСЋС‚СЃСЏ РєР°Р¶РґС‹Р№ РґРµРЅСЊ.
             </p>
             <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:justify-end">
               <button
@@ -2966,14 +3022,14 @@ function TournamentPrompt({
                 onClick={onClose}
                 className="border border-border px-4 py-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
               >
-                ПОЗЖЕ
+                РџРћР—Р–Р•
               </button>
               <button
                 type="button"
                 onClick={onPlay}
                 className="bg-primary text-primary-foreground px-5 py-2 text-xs font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
               >
-                УЧАСТВОВАТЬ
+                РЈР§РђРЎРўР’РћР’РђРўР¬
               </button>
             </div>
           </motion.div>
@@ -2997,18 +3053,18 @@ function WeeklyGifts({
   const chromeSkin = SKINS.find((skin) => skin.id === "chrome");
 
   return (
-    <section id="weekly-gifts" className="w-full max-w-6xl mt-10 border border-[var(--gold-bright)]/45 bg-[var(--navy-mid)]/70 p-4 md:p-5 scroll-mt-24">
+    <section className="w-full max-w-6xl border border-[var(--gold-bright)]/45 bg-[var(--navy-mid)]/70 p-4 md:p-5">
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-5">
         <div>
-          <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">ЕЖЕДНЕВНЫЕ ПОДАРКИ</div>
-          <h2 className="mt-1 text-xl md:text-2xl font-black tracking-tight">Неделя наград</h2>
+          <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">Р•Р–Р•Р”РќР•Р’РќР«Р• РџРћР”РђР РљР</div>
+          <h2 className="mt-1 text-xl md:text-2xl font-black tracking-tight">РќРµРґРµР»СЏ РЅР°РіСЂР°Рґ</h2>
           <p className="mt-1 text-xs text-muted-foreground max-w-2xl">
-            Заходи каждый день и забирай подарок. В начале дают кредиты, а на 7-й день открывается скин прицела.
+            Р—Р°С…РѕРґРё РєР°Р¶РґС‹Р№ РґРµРЅСЊ Рё Р·Р°Р±РёСЂР°Р№ РїРѕРґР°СЂРѕРє. Р’ РЅР°С‡Р°Р»Рµ РґР°СЋС‚ РєСЂРµРґРёС‚С‹, Р° РЅР° 7-Р№ РґРµРЅСЊ РѕС‚РєСЂС‹РІР°РµС‚СЃСЏ СЃРєРёРЅ РїСЂРёС†РµР»Р°.
           </p>
         </div>
 
         <div className="border border-[var(--gold-bright)]/55 bg-slate-950/45 px-4 py-3 min-w-[220px]">
-          <div className="text-[10px] tracking-widest text-muted-foreground">СЕГОДНЯ</div>
+          <div className="text-[10px] tracking-widest text-muted-foreground">РЎР•Р“РћР”РќРЇ</div>
           <div className="mt-1 text-lg font-black text-[var(--gold-bright)]">{rewardLabel(currentGift.reward)}</div>
           <button
             type="button"
@@ -3020,7 +3076,7 @@ function WeeklyGifts({
                 : "bg-primary text-primary-foreground hover:bg-[var(--gold-bright)]"
             }`}
           >
-            {alreadyClaimed ? "УЖЕ ЗАБРАНО" : "ЗАБРАТЬ ПОДАРОК"}
+            {alreadyClaimed ? "РЈР–Р• Р—РђР‘Р РђРќРћ" : "Р—РђР‘Р РђРўР¬ РџРћР”РђР РћРљ"}
           </button>
         </div>
       </div>
@@ -3041,7 +3097,7 @@ function WeeklyGifts({
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] tracking-widest">ДЕНЬ {gift.day}</div>
+                <div className="text-[10px] tracking-widest">Р”Р•РќР¬ {gift.day}</div>
                 {claimedToday && <div className="text-[10px] text-primary font-black">OK</div>}
               </div>
               <div className="mt-2 text-sm font-black">{gift.title}</div>
@@ -3091,22 +3147,22 @@ function DailyLeaderboards({
   const earnedBadges = progress.badges.filter((badge) => badge.startsWith("daily-1-"));
 
   return (
-    <section id="daily-tournament" className="w-full max-w-6xl mt-10 border border-border/70 bg-[var(--navy-mid)]/65 p-4 md:p-5 scroll-mt-24">
+    <section className="w-full max-w-6xl border border-border/70 bg-[var(--navy-mid)]/65 p-4 md:p-5">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-5">
         <div>
-          <div className="text-[10px] tracking-[0.45em] text-primary font-bold">ЕЖЕДНЕВНЫЕ ТАБЛИЦЫ</div>
-          <h2 className="mt-1 text-xl md:text-2xl font-black tracking-tight">Соревнование дня</h2>
+          <div className="text-[10px] tracking-[0.45em] text-primary font-bold">Р•Р–Р•Р”РќР•Р’РќР«Р• РўРђР‘Р›РР¦Р«</div>
+          <h2 className="mt-1 text-xl md:text-2xl font-black tracking-tight">РЎРѕСЂРµРІРЅРѕРІР°РЅРёРµ РґРЅСЏ</h2>
           <p className="mt-1 text-xs text-muted-foreground max-w-2xl">
-            Каждый день появляются новые соперники. Твой лучший результат за сегодня попадает в таблицу, первое место открывает значок мастерства.
+            РљР°Р¶РґС‹Р№ РґРµРЅСЊ РїРѕСЏРІР»СЏСЋС‚СЃСЏ РЅРѕРІС‹Рµ СЃРѕРїРµСЂРЅРёРєРё. РўРІРѕР№ Р»СѓС‡С€РёР№ СЂРµР·СѓР»СЊС‚Р°С‚ Р·Р° СЃРµРіРѕРґРЅСЏ РїРѕРїР°РґР°РµС‚ РІ С‚Р°Р±Р»РёС†Сѓ, РїРµСЂРІРѕРµ РјРµСЃС‚Рѕ РѕС‚РєСЂС‹РІР°РµС‚ Р·РЅР°С‡РѕРє РјР°СЃС‚РµСЂСЃС‚РІР°.
           </p>
         </div>
-        <div className="text-[10px] font-mono text-muted-foreground">ДАТА: {date}</div>
+        <div className="text-[10px] font-mono text-muted-foreground">Р”РђРўРђ: {date}</div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[270px_1fr] gap-4">
         <div className="space-y-4">
           <div>
-            <div className="text-[10px] tracking-widest text-muted-foreground mb-2">ДИСЦИПЛИНА</div>
+            <div className="text-[10px] tracking-widest text-muted-foreground mb-2">Р”РРЎР¦РРџР›РРќРђ</div>
             <div className="grid grid-cols-1 gap-2">
               {DISCIPLINES.map((disciplineItem) => (
                 <button
@@ -3127,7 +3183,7 @@ function DailyLeaderboards({
           </div>
 
           <div>
-            <div className="text-[10px] tracking-widest text-muted-foreground mb-2">УРОВЕНЬ</div>
+            <div className="text-[10px] tracking-widest text-muted-foreground mb-2">РЈР РћР’Р•РќР¬</div>
             <div className="grid grid-cols-1 gap-2">
               {LEADERBOARD_RANKS.map((rank) => (
                 <button
@@ -3156,14 +3212,14 @@ function DailyLeaderboards({
             </div>
             <div className="flex flex-col sm:flex-row sm:items-center gap-2">
               <div className="text-[10px] text-muted-foreground font-mono">
-                {typeof playerScore === "number" ? `ВАШЕ МЕСТО: ${playerPlace}` : "ВАШ РЕЗУЛЬТАТ ЕЩЕ НЕ ЗАПИСАН"}
+                {typeof playerScore === "number" ? `Р’РђРЁР• РњР•РЎРўРћ: ${playerPlace}` : "Р’РђРЁ Р Р•Р—РЈР›Р¬РўРђРў Р•Р©Р• РќР• Р—РђРџРРЎРђРќ"}
               </div>
               <button
                 type="button"
                 onClick={() => onPlayDiscipline(selectedDiscipline, selectedRank)}
                 className="bg-primary text-primary-foreground px-4 py-2 text-[10px] font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
               >
-                ИГРАТЬ
+                РР“Р РђРўР¬
               </button>
             </div>
           </div>
@@ -3179,7 +3235,7 @@ function DailyLeaderboards({
                 <div className="font-mono text-sm font-black tabular-nums">{entry.place}</div>
                 <div>
                   <div className="text-sm font-bold">{entry.name}</div>
-                  <div className="text-[10px] tracking-widest">{entry.simulated ? "АКТИВЕН СЕГОДНЯ" : "ВАШ ЛУЧШИЙ РЕЗУЛЬТАТ"}</div>
+                  <div className="text-[10px] tracking-widest">{entry.simulated ? "РђРљРўРР’Р•Рќ РЎР•Р“РћР”РќРЇ" : "Р’РђРЁ Р›РЈР§РЁРР™ Р Р•Р—РЈР›Р¬РўРђРў"}</div>
                 </div>
                 <div className="text-right font-mono text-lg font-black text-[var(--gold-bright)]">{entry.score.toFixed(1)}</div>
               </div>
@@ -3189,19 +3245,19 @@ function DailyLeaderboards({
       </div>
 
       <div className="mt-5 border-t border-border/60 pt-4">
-        <div className="text-[10px] tracking-[0.35em] text-primary font-bold mb-3">ЗНАЧКИ МАСТЕРСТВА</div>
+        <div className="text-[10px] tracking-[0.35em] text-primary font-bold mb-3">Р—РќРђР§РљР РњРђРЎРўР•Р РЎРўР’Рђ</div>
         {earnedBadges.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {earnedBadges.map((badge) => (
               <div key={badge} className="border border-[var(--gold-bright)]/55 bg-[var(--gold-bright)]/10 px-3 py-3">
-                <div className="text-[10px] tracking-widest text-[var(--gold-bright)] font-bold">ПЕРВОЕ МЕСТО</div>
+                <div className="text-[10px] tracking-widest text-[var(--gold-bright)] font-bold">РџР•Р Р’РћР• РњР•РЎРўРћ</div>
                 <div className="text-sm font-black mt-1">{badgeLabel(badge)}</div>
               </div>
             ))}
           </div>
         ) : (
           <div className="text-xs text-muted-foreground border border-border/50 bg-slate-950/35 px-3 py-3">
-            Значков пока нет. Займи первое место в ежедневной таблице, и здесь появится отметка твоего уровня.
+            Р—РЅР°С‡РєРѕРІ РїРѕРєР° РЅРµС‚. Р—Р°Р№РјРё РїРµСЂРІРѕРµ РјРµСЃС‚Рѕ РІ РµР¶РµРґРЅРµРІРЅРѕР№ С‚Р°Р±Р»РёС†Рµ, Рё Р·РґРµСЃСЊ РїРѕСЏРІРёС‚СЃСЏ РѕС‚РјРµС‚РєР° С‚РІРѕРµРіРѕ СѓСЂРѕРІРЅСЏ.
           </div>
         )}
       </div>
@@ -3228,12 +3284,12 @@ function DisciplineBriefing({
           onClick={onBack}
           className="border border-border px-4 py-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
         >
-          НАЗАД
+          РќРђР—РђР”
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-6 mt-6 items-stretch">
           <section className="border border-border/70 bg-slate-950/55 p-5 flex flex-col">
-            <div className="text-[10px] tracking-[0.45em] text-primary font-bold">ВЫБРАНА ДИСЦИПЛИНА</div>
+            <div className="text-[10px] tracking-[0.45em] text-primary font-bold">Р’Р«Р‘Р РђРќРђ Р”РРЎР¦РРџР›РРќРђ</div>
             <h1 className="mt-3 text-3xl md:text-5xl font-black tracking-tight leading-none">{discipline.name}</h1>
             <div className="mt-3 text-sm text-muted-foreground leading-relaxed">{discipline.caption}</div>
 
@@ -3242,20 +3298,20 @@ function DisciplineBriefing({
             </div>
 
             <div className="grid grid-cols-2 gap-3 mt-auto">
-              <MiniStat label="ПРИЦЕЛ" v={discipline.sight === "diopter" ? "ДИОПТР" : "ОТКРЫТЫЙ"} />
+              <MiniStat label="РџР РР¦Р•Р›" v={discipline.sight === "diopter" ? "Р”РРћРџРўР " : "РћРўРљР Р«РўР«Р™"} />
               <div className={`border px-2 py-1 ${difficultyStyle(discipline.id)}`}>
-                <div className="text-[8px] tracking-widest opacity-75">СЛОЖНОСТЬ</div>
+                <div className="text-[8px] tracking-widest opacity-75">РЎР›РћР–РќРћРЎРўР¬</div>
                 <div className="font-bold">{difficultyLabel(discipline.id)}</div>
               </div>
             </div>
           </section>
 
           <section className="border border-[var(--gold-bright)]/40 bg-[var(--navy-mid)]/70 p-5 md:p-6 flex flex-col">
-            <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">ТРЕНЕРСКИЙ РАЗБОР</div>
+            <div className="text-[10px] tracking-[0.45em] text-[var(--gold-bright)] font-bold">РўР Р•РќР•Р РЎРљРР™ Р РђР—Р‘РћР </div>
             <div className="mt-4 space-y-3">
               {notes.map((note, index) => (
                 <div key={note.title} className="border border-border/60 bg-slate-950/45 p-4">
-                  <div className="text-[10px] tracking-[0.28em] text-primary font-mono">ШАГ {index + 1}</div>
+                  <div className="text-[10px] tracking-[0.28em] text-primary font-mono">РЁРђР“ {index + 1}</div>
                   <div className="mt-2 text-lg font-black tracking-tight">{note.title}</div>
                   <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{note.text}</p>
                 </div>
@@ -3264,14 +3320,14 @@ function DisciplineBriefing({
 
             <div className="mt-auto pt-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <div className="text-[11px] leading-relaxed text-muted-foreground max-w-md">
-                Простая схема: наведи прицел, зажми правую кнопку мыши, мягко нажми левую. Если долго не получается выстрелить, отпусти и начни заново.
+                РџСЂРѕСЃС‚Р°СЏ СЃС…РµРјР°: РЅР°РІРµРґРё РїСЂРёС†РµР», Р·Р°Р¶РјРё РїСЂР°РІСѓСЋ РєРЅРѕРїРєСѓ РјС‹С€Рё, РјСЏРіРєРѕ РЅР°Р¶РјРё Р»РµРІСѓСЋ. Р•СЃР»Рё РґРѕР»РіРѕ РЅРµ РїРѕР»СѓС‡Р°РµС‚СЃСЏ РІС‹СЃС‚СЂРµР»РёС‚СЊ, РѕС‚РїСѓСЃС‚Рё Рё РЅР°С‡РЅРё Р·Р°РЅРѕРІРѕ.
               </div>
               <button
                 type="button"
                 onClick={onStart}
                 className="bg-primary text-primary-foreground px-6 py-3 text-xs font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
               >
-                НА РУБЕЖ
+                РќРђ Р РЈР‘Р•Р–
               </button>
             </div>
           </section>
@@ -3284,39 +3340,39 @@ function DisciplineBriefing({
 function briefingNotes(id: DisciplineId) {
   const common = [
     {
-      title: "Как целиться",
-      text: "Наведи прицел ближе к центру мишени. Не пытайся резко поймать точку. Двигай мышь медленно и спокойно.",
+      title: "РљР°Рє С†РµР»РёС‚СЊСЃСЏ",
+      text: "РќР°РІРµРґРё РїСЂРёС†РµР» Р±Р»РёР¶Рµ Рє С†РµРЅС‚СЂСѓ РјРёС€РµРЅРё. РќРµ РїС‹С‚Р°Р№СЃСЏ СЂРµР·РєРѕ РїРѕР№РјР°С‚СЊ С‚РѕС‡РєСѓ. Р”РІРёРіР°Р№ РјС‹С€СЊ РјРµРґР»РµРЅРЅРѕ Рё СЃРїРѕРєРѕР№РЅРѕ.",
     },
     {
-      title: "Дыхание",
-      text: "Правая кнопка мыши делает прицел спокойнее. Держи ее недолго. Если держать слишком долго, прицел начнет дрожать сильнее.",
+      title: "Р”С‹С…Р°РЅРёРµ",
+      text: "РџСЂР°РІР°СЏ РєРЅРѕРїРєР° РјС‹С€Рё РґРµР»Р°РµС‚ РїСЂРёС†РµР» СЃРїРѕРєРѕР№РЅРµРµ. Р”РµСЂР¶Рё РµРµ РЅРµРґРѕР»РіРѕ. Р•СЃР»Рё РґРµСЂР¶Р°С‚СЊ СЃР»РёС€РєРѕРј РґРѕР»РіРѕ, РїСЂРёС†РµР» РЅР°С‡РЅРµС‚ РґСЂРѕР¶Р°С‚СЊ СЃРёР»СЊРЅРµРµ.",
     },
     {
-      title: "Как стрелять",
-      text: "Левая кнопка мыши делает выстрел. Нажимай мягко. Если резко кликнуть, прицел дернется и пуля уйдет в сторону.",
+      title: "РљР°Рє СЃС‚СЂРµР»СЏС‚СЊ",
+      text: "Р›РµРІР°СЏ РєРЅРѕРїРєР° РјС‹С€Рё РґРµР»Р°РµС‚ РІС‹СЃС‚СЂРµР». РќР°Р¶РёРјР°Р№ РјСЏРіРєРѕ. Р•СЃР»Рё СЂРµР·РєРѕ РєР»РёРєРЅСѓС‚СЊ, РїСЂРёС†РµР» РґРµСЂРЅРµС‚СЃСЏ Рё РїСѓР»СЏ СѓР№РґРµС‚ РІ СЃС‚РѕСЂРѕРЅСѓ.",
     },
   ];
 
   const specific: Record<DisciplineId, { title: string; text: string }> = {
     ar10: {
-      title: "Пневматическая винтовка 10 м",
-      text: "Это самый понятный режим для старта. Наводи прицел в центр, держи мышь спокойно и не спеши с нажатием.",
+      title: "РџРЅРµРІРјР°С‚РёС‡РµСЃРєР°СЏ РІРёРЅС‚РѕРІРєР° 10 Рј",
+      text: "Р­С‚Рѕ СЃР°РјС‹Р№ РїРѕРЅСЏС‚РЅС‹Р№ СЂРµР¶РёРј РґР»СЏ СЃС‚Р°СЂС‚Р°. РќР°РІРѕРґРё РїСЂРёС†РµР» РІ С†РµРЅС‚СЂ, РґРµСЂР¶Рё РјС‹С€СЊ СЃРїРѕРєРѕР№РЅРѕ Рё РЅРµ СЃРїРµС€Рё СЃ РЅР°Р¶Р°С‚РёРµРј.",
     },
     boar: {
-      title: "Бегущая мишень",
-      text: "Мишень двигается. Не пытайся резко догнать ее мышью. Веди прицел рядом с мишенью плавно и стреляй чуть заранее.",
+      title: "Р‘РµРіСѓС‰Р°СЏ РјРёС€РµРЅСЊ",
+      text: "РњРёС€РµРЅСЊ РґРІРёРіР°РµС‚СЃСЏ. РќРµ РїС‹С‚Р°Р№СЃСЏ СЂРµР·РєРѕ РґРѕРіРЅР°С‚СЊ РµРµ РјС‹С€СЊСЋ. Р’РµРґРё РїСЂРёС†РµР» СЂСЏРґРѕРј СЃ РјРёС€РµРЅСЊСЋ РїР»Р°РІРЅРѕ Рё СЃС‚СЂРµР»СЏР№ С‡СѓС‚СЊ Р·Р°СЂР°РЅРµРµ.",
     },
     rifle50: {
-      title: "Винтовка 50 м",
-      text: "Здесь расстояние больше, поэтому маленькие ошибки заметнее. Смотри на ветер и нажимай левую кнопку спокойно.",
+      title: "Р’РёРЅС‚РѕРІРєР° 50 Рј",
+      text: "Р—РґРµСЃСЊ СЂР°СЃСЃС‚РѕСЏРЅРёРµ Р±РѕР»СЊС€Рµ, РїРѕСЌС‚РѕРјСѓ РјР°Р»РµРЅСЊРєРёРµ РѕС€РёР±РєРё Р·Р°РјРµС‚РЅРµРµ. РЎРјРѕС‚СЂРё РЅР° РІРµС‚РµСЂ Рё РЅР°Р¶РёРјР°Р№ Р»РµРІСѓСЋ РєРЅРѕРїРєСѓ СЃРїРѕРєРѕР№РЅРѕ.",
     },
     ap10: {
-      title: "Пневматический пистолет 10 м",
-      text: "Пистолет сильнее шатается. Держи мышь мягко, не зажимай руку и нажимай левую кнопку без рывка.",
+      title: "РџРЅРµРІРјР°С‚РёС‡РµСЃРєРёР№ РїРёСЃС‚РѕР»РµС‚ 10 Рј",
+      text: "РџРёСЃС‚РѕР»РµС‚ СЃРёР»СЊРЅРµРµ С€Р°С‚Р°РµС‚СЃСЏ. Р”РµСЂР¶Рё РјС‹С€СЊ РјСЏРіРєРѕ, РЅРµ Р·Р°Р¶РёРјР°Р№ СЂСѓРєСѓ Рё РЅР°Р¶РёРјР°Р№ Р»РµРІСѓСЋ РєРЅРѕРїРєСѓ Р±РµР· СЂС‹РІРєР°.",
     },
     rfp25: {
-      title: "Скоростной пистолет 25 м",
-      text: "Тут важен темп. Не паникуй. Лучше нажать спокойно и точно, чем быстро дернуть мышь.",
+      title: "РЎРєРѕСЂРѕСЃС‚РЅРѕР№ РїРёСЃС‚РѕР»РµС‚ 25 Рј",
+      text: "РўСѓС‚ РІР°Р¶РµРЅ С‚РµРјРї. РќРµ РїР°РЅРёРєСѓР№. Р›СѓС‡С€Рµ РЅР°Р¶Р°С‚СЊ СЃРїРѕРєРѕР№РЅРѕ Рё С‚РѕС‡РЅРѕ, С‡РµРј Р±С‹СЃС‚СЂРѕ РґРµСЂРЅСѓС‚СЊ РјС‹С€СЊ.",
     },
   };
 
@@ -3325,11 +3381,11 @@ function briefingNotes(id: DisciplineId) {
 
 function difficultyLabel(id: DisciplineId) {
   const labels: Record<DisciplineId, string> = {
-    ar10: "ЛЕГКАЯ",
-    boar: "СЛОЖНАЯ",
-    rifle50: "СЛОЖНАЯ",
-    ap10: "СРЕДНЯЯ",
-    rfp25: "ВЫСОКАЯ",
+    ar10: "Р›Р•Р“РљРђРЇ",
+    boar: "РЎР›РћР–РќРђРЇ",
+    rifle50: "РЎР›РћР–РќРђРЇ",
+    ap10: "РЎР Р•Р”РќРЇРЇ",
+    rfp25: "Р’Р«РЎРћРљРђРЇ",
   };
   return labels[id];
 }
