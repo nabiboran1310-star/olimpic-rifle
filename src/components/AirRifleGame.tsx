@@ -2362,43 +2362,63 @@ function HomeScreen({
             const unlocked = lvl.id === 1 || careerCompleted >= lvl.id - 1;
             const done = careerCompleted >= lvl.id;
             const alignClass = lvl.id % 2 === 1 ? "md:self-start" : "md:self-end";
+            const numberSideClass = lvl.id % 2 === 1 ? "md:right-[18%]" : "md:left-[18%]";
             return (
-              <button
-                key={lvl.id}
-                disabled={!unlocked}
-                onClick={() => onPickCareer(lvl)}
-                className={`group relative w-full md:w-[58%] ${alignClass} text-left border p-4 flex flex-col gap-2 transition-colors min-h-[220px] ${
-                  !unlocked
-                    ? "bg-[var(--navy-deep)]/60 border-border/40 opacity-50 cursor-not-allowed"
-                    : done
-                      ? "bg-[var(--navy-mid)] border-[var(--gold-bright)] hover:border-primary"
-                      : "bg-[var(--navy-mid)] border-border hover:border-primary"
-                }`}
-              >
-                {lvl.id < CAREER_LEVEL_COUNT && (
-                  <div className={`hidden md:block absolute top-full h-7 w-24 border-b border-primary/35 ${
-                    lvl.id % 2 === 1
-                      ? "left-[calc(100%-3rem)] rotate-[16deg] origin-left border-r"
-                      : "right-[calc(100%-3rem)] -rotate-[16deg] origin-right border-l"
-                  }`} />
-                )}
-                <div className="flex items-center justify-between">
-                  <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{lvl.short}</div>
-                  {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">✓ ПРОЙДЕН</div>}
-                  {!unlocked && <div className="text-[10px] font-bold text-muted-foreground tracking-widest">🔒 ЗАКРЫТ</div>}
+              <div key={lvl.id} className="relative flex flex-col">
+                <div
+                  className={`mb-2 md:mb-0 md:absolute md:top-1/2 md:-translate-y-1/2 ${numberSideClass} pointer-events-none flex items-center gap-2 ${
+                    lvl.id % 2 === 1 ? "md:flex-row-reverse" : ""
+                  }`}
+                >
+                  <div
+                    className={`h-12 w-12 md:h-16 md:w-16 border-2 flex items-center justify-center font-black font-mono text-xl md:text-2xl ${
+                      done
+                        ? "border-[var(--gold-bright)] bg-[var(--gold-bright)]/15 text-[var(--gold-bright)]"
+                        : unlocked
+                          ? "border-primary/70 bg-primary/10 text-primary"
+                          : "border-border/50 bg-slate-950/50 text-muted-foreground"
+                    }`}
+                  >
+                    {lvl.id}
+                  </div>
+                  <div className="hidden md:block h-px w-10 bg-primary/35" />
                 </div>
-                <div className="text-lg font-black tracking-tight">УРОВЕНЬ {lvl.id}</div>
-                <div className="text-sm font-bold">{lvl.name}</div>
-                <div className="text-xs text-muted-foreground leading-relaxed flex-1">{lvl.description}</div>
-                <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-auto">
-                  <MiniStat label="ВЫСТРЕЛЫ" v={String(lvl.shots)} />
-                  <MiniStat label="ОЧКИ" v={lvl.scoring === "integer" ? "ЦЕЛЫЕ" : "10.x"} />
-                  <MiniStat label="ЦЕЛЬ" v={String(lvl.winScore)} />
-                </div>
-                {!unlocked && (
-                  <div className="text-[10px] text-muted-foreground text-center">Пройдите уровень {lvl.id - 1}</div>
-                )}
-              </button>
+                <button
+                  disabled={!unlocked}
+                  onClick={() => onPickCareer(lvl)}
+                  className={`group relative w-full md:w-[58%] ${alignClass} text-left border p-4 flex flex-col gap-2 transition-colors min-h-[220px] ${
+                    !unlocked
+                      ? "bg-[var(--navy-deep)]/60 border-border/40 opacity-50 cursor-not-allowed"
+                      : done
+                        ? "bg-[var(--navy-mid)] border-[var(--gold-bright)] hover:border-primary"
+                        : "bg-[var(--navy-mid)] border-border hover:border-primary"
+                  }`}
+                >
+                  {lvl.id < CAREER_LEVEL_COUNT && (
+                    <div className={`hidden md:block absolute top-full h-7 w-24 border-b border-primary/35 ${
+                      lvl.id % 2 === 1
+                        ? "left-[calc(100%-3rem)] rotate-[16deg] origin-left border-r"
+                        : "right-[calc(100%-3rem)] -rotate-[16deg] origin-right border-l"
+                    }`} />
+                  )}
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] tracking-[0.3em] text-primary font-bold">{lvl.short}</div>
+                    {done && <div className="text-[10px] font-bold text-[var(--gold-bright)] tracking-widest">✓ ПРОЙДЕН</div>}
+                    {!unlocked && <div className="text-[10px] font-bold text-muted-foreground tracking-widest">🔒 ЗАКРЫТ</div>}
+                  </div>
+                  <div className="text-lg font-black tracking-tight">УРОВЕНЬ {lvl.id}</div>
+                  <div className="text-sm font-bold">{lvl.name}</div>
+                  <div className="text-xs text-muted-foreground leading-relaxed flex-1">{lvl.description}</div>
+                  <div className="grid grid-cols-3 gap-2 text-[10px] font-mono mt-auto">
+                    <MiniStat label="ВЫСТРЕЛЫ" v={String(lvl.shots)} />
+                    <MiniStat label="ОЧКИ" v={lvl.scoring === "integer" ? "ЦЕЛЫЕ" : "10.x"} />
+                    <MiniStat label="ЦЕЛЬ" v={String(lvl.winScore)} />
+                  </div>
+                  {!unlocked && (
+                    <div className="text-[10px] text-muted-foreground text-center">Пройдите уровень {lvl.id - 1}</div>
+                  )}
+                </button>
+              </div>
             );
           })}
         </div>
