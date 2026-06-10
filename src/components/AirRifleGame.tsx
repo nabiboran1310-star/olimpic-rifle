@@ -668,6 +668,7 @@ export default function AirRifleGame() {
   const [holdStart, setHoldStart] = useState<number | null>(null);
   const [loaded, setLoaded] = useState(true);
   const [reloading, setReloading] = useState(false);
+  const [isTouchDevice, setIsTouchDevice] = useState(false);
 
   const [perfect, setPerfect] = useState(false);
   const [perfectCount, setPerfectCount] = useState(0);
@@ -861,29 +862,47 @@ export default function AirRifleGame() {
     return () => clearTimeout(t);
   }, [progress, user, isGuest]);
 
-  // Mouse tracking
+  useEffect(() => {
+    const detectInputMode = () => {
+      const coarsePointer = window.matchMedia ? window.matchMedia("(pointer: coarse)").matches : false;
+      setIsTouchDevice(coarsePointer || navigator.maxTouchPoints > 0 || "ontouchstart" in window);
+    };
+
+    detectInputMode();
+    window.addEventListener("resize", detectInputMode);
+    return () => window.removeEventListener("resize", detectInputMode);
+  }, []);
+
+  const updateAimFromClient = useCallback((clientX: number, clientY: number, snapSight = false, requireInside = false) => {
+    const rect = arenaRef.current?.getBoundingClientRect();
+    if (!rect || rect.width === 0 || rect.height === 0) return;
+    if (
+      requireInside
+      && (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom)
+    ) {
+      return;
+    }
+    const size = discipline.targetPx;
+    const next = {
+      x: Math.max(0, Math.min(size, (clientX - rect.left) * (size / rect.width))),
+      y: Math.max(0, Math.min(size, (clientY - rect.top) * (size / rect.height))),
+    };
+    setMouse(next);
+    if (snapSight) {
+      sightRef.current = next;
+      setSight(next);
+    }
+  }, [discipline.targetPx]);
+
+  // Mouse/touch tracking
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
-      const rect = arenaRef.current?.getBoundingClientRect();
-      if (!rect || rect.width === 0) return;
-      const size = discipline.targetPx;
-      const scaleX = size / rect.width;
-      const scaleY = size / rect.height;
-      setMouse({
-        x: Math.max(0, Math.min(size, (e.clientX - rect.left) * scaleX)),
-        y: Math.max(0, Math.min(size, (e.clientY - rect.top) * scaleY)),
-      });
+      updateAimFromClient(e.clientX, e.clientY);
     };
     const onTouch = (e: TouchEvent) => {
       const t = e.touches[0];
       if (!t) return;
-      const rect = arenaRef.current?.getBoundingClientRect();
-      if (!rect || rect.width === 0) return;
-      const size = discipline.targetPx;
-      setMouse({
-        x: Math.max(0, Math.min(size, (t.clientX - rect.left) * (size / rect.width))),
-        y: Math.max(0, Math.min(size, (t.clientY - rect.top) * (size / rect.height))),
-      });
+      updateAimFromClient(t.clientX, t.clientY, false, true);
     };
     window.addEventListener("mousemove", onMove);
     window.addEventListener("touchmove", onTouch, { passive: true });
@@ -891,7 +910,7 @@ export default function AirRifleGame() {
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("touchmove", onTouch);
     };
-  }, [discipline]);
+  }, [updateAimFromClient]);
 
 
   // RMB safety
@@ -901,6 +920,17 @@ export default function AirRifleGame() {
     };
     window.addEventListener("mouseup", up);
     return () => window.removeEventListener("mouseup", up);
+  }, []);
+
+  const startHoldingBreath = useCallback(() => {
+    if (phase !== "playing") return;
+    setHolding(true);
+    setHoldStart(performance.now());
+  }, [phase]);
+
+  const stopHoldingBreath = useCallback(() => {
+    setHolding(false);
+    setHoldStart(null);
   }, []);
 
   // Reload
@@ -1823,18 +1853,21 @@ export default function AirRifleGame() {
             <div
               ref={arenaRef}
               onMouseDown={(e) => {
-                if (phase !== "playing") return;
+                if (phase !== "playing" || isTouchDevice) return;
                 if (e.button === 0) fire();
-                else if (e.button === 2) {
-                  setHolding(true);
-                  setHoldStart(performance.now());
-                }
+                else if (e.button === 2) startHoldingBreath();
               }}
               onMouseUp={(e) => {
-                if (e.button === 2) { setHolding(false); setHoldStart(null); }
+                if (e.button === 2) stopHoldingBreath();
+              }}
+              onPointerDown={(e) => {
+                if (phase !== "playing" || !isTouchDevice || e.pointerType === "mouse") return;
+                e.preventDefault();
+                updateAimFromClient(e.clientX, e.clientY, true);
+                fire();
               }}
               onContextMenu={(e) => e.preventDefault()}
-              className="relative cursor-none shadow-2xl"
+              className={`relative shadow-2xl touch-none select-none ${isTouchDevice ? "cursor-crosshair" : "cursor-none"}`}
               style={{
                 width: discipline.targetPx * arenaScale,
                 height: discipline.targetPx * arenaScale,
@@ -1874,6 +1907,51 @@ export default function AirRifleGame() {
               </div>
             </div>
 
+            {phase === "playing" && isTouchDevice && (
+              <div className="absolute bottom-3 left-3 right-3 z-30 pointer-events-auto">
+                <div className="grid grid-cols-[1fr_1fr] gap-3">
+                  <button
+                    type="button"
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      startHoldingBreath();
+                    }}
+                    onPointerUp={stopHoldingBreath}
+                    onPointerCancel={stopHoldingBreath}
+                    onPointerLeave={stopHoldingBreath}
+                    className={`min-h-16 border px-3 py-3 text-xs font-black tracking-widest shadow-2xl active:scale-[0.98] transition-transform ${
+                      holding
+                        ? "border-[var(--gold-bright)] bg-[var(--gold-bright)] text-[var(--navy-deep)]"
+                        : "border-primary bg-[var(--navy-deep)]/92 text-primary"
+                    }`}
+                  >
+                    <div>ДЫХАНИЕ</div>
+                    <div className="mt-1 font-mono text-[10px] tracking-normal opacity-80">
+                      {holding ? (inFocus ? `${(holdWindow - holdTime).toFixed(1)} сек` : "отпусти") : "удерживай"}
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={reload}
+                    disabled={loaded || reloading}
+                    className={`min-h-16 border px-3 py-3 text-xs font-black tracking-widest shadow-2xl active:scale-[0.98] transition-transform disabled:opacity-55 ${
+                      !loaded && !reloading
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-[var(--navy-deep)]/92 text-muted-foreground"
+                    }`}
+                  >
+                    <div>ПЕРЕЗАРЯДКА</div>
+                    <div className="mt-1 font-mono text-[10px] tracking-normal opacity-80">
+                      {reloading ? "идет..." : loaded ? "заряжено" : "нажми"}
+                    </div>
+                  </button>
+                </div>
+                <div className="mt-2 border border-border bg-[var(--navy-deep)]/86 px-3 py-2 text-center font-mono text-[10px] text-muted-foreground">
+                  Тап по мишени — выстрел
+                </div>
+              </div>
+            )}
+
 
             {/* PERFECT overlay */}
             <AnimatePresence>
@@ -1896,6 +1974,7 @@ export default function AirRifleGame() {
             </AnimatePresence>
 
             {/* HUD bottom */}
+            {!isTouchDevice && (
             <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between text-xs font-mono pointer-events-none">
               <div className="bg-[var(--navy-deep)]/90 px-3 py-2 text-foreground border-l-2 border-primary">
                 <div className="text-[9px] tracking-widest text-muted-foreground">CHAMBER</div>
@@ -1910,6 +1989,7 @@ export default function AirRifleGame() {
                 </div>
               </div>
             </div>
+            )}
 
             {/* GAME OVER */}
             {phase === "gameover" && (
