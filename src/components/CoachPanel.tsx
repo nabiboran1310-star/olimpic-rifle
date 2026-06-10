@@ -59,7 +59,7 @@ export function CoachPanel({ messages, mobile = false }: CoachPanelProps) {
   const visibleMessages = messages.length === 0 ? [] : messages.slice(-1);
 
   return (
-    <div className={`${mobile ? "absolute left-3 right-3 bottom-32" : "absolute left-2 right-2 bottom-32 md:left-auto md:right-4 md:top-[132px] md:bottom-auto md:w-[260px]"} z-20 pointer-events-none`}>
+    <div className={`${mobile ? "absolute left-2 right-2 top-14" : "absolute left-2 right-2 top-14 md:left-auto md:right-4 md:top-16 md:w-[260px]"} z-30 pointer-events-none`}>
       <div className="overflow-hidden border border-amber-200/30 bg-slate-950/72 backdrop-blur-sm text-slate-100 shadow-xl shadow-slate-950/25">
         <div className={`${mobile ? "hidden" : "flex"} items-center gap-2 border-b border-amber-100/10 bg-slate-900/60 px-2.5 py-2`}>
           <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-full border border-amber-200/40 bg-gradient-to-b from-slate-700 to-slate-950">

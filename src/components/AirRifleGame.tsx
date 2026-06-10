@@ -1833,7 +1833,7 @@ export default function AirRifleGame() {
 
 
             {/* Sight Adjustment turret — bottom-left of arena */}
-            <div className="absolute left-2 md:left-4 bottom-20 md:bottom-24 z-20 pointer-events-auto">
+            <div className={`absolute left-2 md:left-4 ${isTouchDevice ? "bottom-36" : "bottom-20 md:bottom-24"} z-20 pointer-events-auto`}>
               <div className="bg-[var(--navy-deep)]/95 border border-primary/60 px-1.5 py-1.5 font-mono text-foreground shadow-xl">
                 <div className="text-[7px] tracking-widest text-muted-foreground text-center mb-1 max-w-[104px] leading-tight">ПОПРАВКИ</div>
                 <div className="grid grid-cols-3 gap-0.5 w-[96px] mx-auto">
