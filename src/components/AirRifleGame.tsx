@@ -677,6 +677,7 @@ export default function AirRifleGame() {
   const [lastCoachShot, setLastCoachShot] = useState<CoachShotTelemetry | null>(null);
   const [coachMessages, setCoachMessages] = useState<CoachMessage[]>([]);
   const [coachSessionId, setCoachSessionId] = useState(0);
+  const [coachOpen, setCoachOpen] = useState(false);
   const [showRangeGuide, setShowRangeGuide] = useState(false);
   const [accountPromptOpen, setAccountPromptOpen] = useState(false);
   const [score, setScore] = useState(0);
@@ -1356,6 +1357,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
+    setCoachOpen(false);
     setShowRangeGuide(shouldShowRangeGuide(d.id));
     setTimeLeft(START_TIME);
     setLoaded(true);
@@ -1393,6 +1395,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
+    setCoachOpen(false);
     setShowRangeGuide(shouldShowRangeGuide(d.id));
     setTimeLeft(999);
     setLoaded(true);
@@ -1429,6 +1432,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
+    setCoachOpen(false);
     setShowRangeGuide(shouldShowRangeGuide(d.id));
     setTimeLeft(999);
     setLoaded(true);
@@ -1482,6 +1486,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
+    setCoachOpen(false);
     setShowRangeGuide(shouldShowRangeGuide(d.id));
     setTimeLeft(999);
     setLoaded(true);
@@ -1505,6 +1510,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setShowRangeGuide(false);
+    setCoachOpen(false);
     setCareerResult(null);
     setLeaderboardResult(null);
     navigate({ to: "/" });
@@ -1704,7 +1710,7 @@ export default function AirRifleGame() {
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
           {/* Range */}
           <div className="relative flex items-center justify-center bg-gradient-to-b from-[#e8eaee] to-[#c8ccd2] p-2 md:p-8 min-h-[calc(100svh-52px)] overflow-hidden">
-            {phase === "playing" && <CoachPanel messages={coachMessages} mobile={isTouchDevice} />}
+            {phase === "playing" && coachOpen && <CoachPanel messages={coachMessages} mobile={isTouchDevice} />}
             {phase === "playing" && showRangeGuide && (
               <RangeCoachGuide
                 discipline={discipline}
@@ -1752,6 +1758,19 @@ export default function AirRifleGame() {
                   </button>
                 </div>
               </div>
+              <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCoachOpen((open) => !open)}
+                className={`bg-[var(--navy-deep)]/90 hover:bg-[var(--navy-mid)] px-2 py-1 md:px-3 md:py-1.5 border-r-2 font-bold tracking-widest text-[10px] md:text-[11px] flex items-center gap-2 ${
+                  coachOpen ? "border-[var(--gold-bright)] text-[var(--gold-bright)]" : "border-primary text-foreground"
+                }`}
+              >
+                <span>ТРЕНЕР</span>
+                {coachMessages.length > 0 && (
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--gold-bright)]" />
+                )}
+              </button>
               <button
                 onClick={resetTarget}
                 title="Сбросить пробоины (счет и время сохраняются)"
@@ -1762,6 +1781,7 @@ export default function AirRifleGame() {
             </div>
 
             {/* Olympic Finals — live leaderboard */}
+            </div>
             {mode === "olympic" && (
               <div className="absolute top-16 right-2 md:right-4 z-20 pointer-events-auto w-[200px] md:w-[230px]">
                 <div className="bg-[var(--navy-deep)]/95 border border-[var(--gold-bright)]/70 shadow-xl">
@@ -1814,34 +1834,34 @@ export default function AirRifleGame() {
 
             {/* Sight Adjustment turret — bottom-left of arena */}
             <div className="absolute left-2 md:left-4 bottom-20 md:bottom-24 z-20 pointer-events-auto">
-              <div className="bg-[var(--navy-deep)]/95 border border-primary/60 px-2 py-2 font-mono text-foreground shadow-xl">
-                <div className="text-[9px] tracking-widest text-muted-foreground text-center mb-1">ПОПРАВКИ · КУДА ПОПАЛ, ТУДА НАЖМИ</div>
-                <div className="grid grid-cols-3 gap-1 w-[120px] mx-auto">
+              <div className="bg-[var(--navy-deep)]/95 border border-primary/60 px-1.5 py-1.5 font-mono text-foreground shadow-xl">
+                <div className="text-[7px] tracking-widest text-muted-foreground text-center mb-1 max-w-[104px] leading-tight">ПОПРАВКИ</div>
+                <div className="grid grid-cols-3 gap-0.5 w-[96px] mx-auto">
                   <div />
                   <button
                     onClick={() => adjustSight("up")}
-                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-sm flex items-center justify-center active:scale-95 transition-transform"
                     title="Если попал выше центра, нажми сюда"
                   >▲</button>
                   <div />
                   <button
                     onClick={() => adjustSight("left")}
-                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-sm flex items-center justify-center active:scale-95 transition-transform"
                     title="Если попал левее центра, нажми сюда"
                   >◀</button>
-                  <div className="aspect-square bg-[var(--navy-deep)] border border-border flex flex-col items-center justify-center text-[8px] leading-none text-muted-foreground">
+                  <div className="aspect-square bg-[var(--navy-deep)] border border-border flex flex-col items-center justify-center text-[7px] leading-none text-muted-foreground">
                     <div>X:<span className="text-primary tabular-nums ml-0.5">{adjX > 0 ? `+${adjX}` : adjX}</span></div>
                     <div className="mt-0.5">Y:<span className="text-primary tabular-nums ml-0.5">{adjY > 0 ? `+${adjY}` : adjY}</span></div>
                   </div>
                   <button
                     onClick={() => adjustSight("right")}
-                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-sm flex items-center justify-center active:scale-95 transition-transform"
                     title="Если попал правее центра, нажми сюда"
                   >▶</button>
                   <div />
                   <button
                     onClick={() => adjustSight("down")}
-                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-base flex items-center justify-center active:scale-95 transition-transform"
+                    className="aspect-square bg-[var(--navy-mid)] hover:bg-primary/30 border border-border text-foreground font-bold text-sm flex items-center justify-center active:scale-95 transition-transform"
                     title="Если попал ниже центра, нажми сюда"
                   >▼</button>
                   <div />
