@@ -625,12 +625,12 @@ function rangeGuideKey(disciplineId: DisciplineId) {
 
 function shouldShowRangeGuide(disciplineId: DisciplineId) {
   if (typeof window === "undefined") return false;
-  return true;
+  return localStorage.getItem(rangeGuideKey(disciplineId)) !== "1";
 }
 
 function markRangeGuideSeen(disciplineId: DisciplineId) {
   if (typeof window === "undefined") return;
-  localStorage.removeItem(rangeGuideKey(disciplineId));
+  localStorage.setItem(rangeGuideKey(disciplineId), "1");
 }
 
 // ============================================================
