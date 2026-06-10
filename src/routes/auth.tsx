@@ -27,10 +27,15 @@ function getAuthErrorMessage(error: unknown) {
   return message || "Ошибка авторизации";
 }
 
+function getAuthRedirectUrl() {
+  if (typeof window !== "undefined") return window.location.origin;
+  return import.meta.env.VITE_AUTH_REDIRECT_URL || "";
+}
+
 function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
-  const authRedirectUrl = import.meta.env.VITE_AUTH_REDIRECT_URL || window.location.origin;
+  const authRedirectUrl = getAuthRedirectUrl();
   const [mode, setMode] = useState<"signin" | "signup">(() => {
     if (typeof window === "undefined") return "signin";
     const savedMode = localStorage.getItem("authDefaultMode");
@@ -93,6 +98,7 @@ function AuthPage() {
     setBusy(true);
 
     try {
+      localStorage.setItem("postAuthTournamentPrompt", "1");
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -101,7 +107,6 @@ function AuthPage() {
       });
 
       if (error) throw error;
-      localStorage.setItem("postAuthTournamentPrompt", "1");
     } catch (error) {
       setErr(getAuthErrorMessage(error));
       setBusy(false);
