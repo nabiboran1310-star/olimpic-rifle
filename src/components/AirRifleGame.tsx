@@ -535,6 +535,22 @@ function saveProgress(p: Progress) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(p)); } catch {}
 }
 
+const RANGE_GUIDE_KEY_PREFIX = "range-guide-seen-v2";
+
+function rangeGuideKey(disciplineId: DisciplineId) {
+  return `${RANGE_GUIDE_KEY_PREFIX}-${disciplineId}`;
+}
+
+function shouldShowRangeGuide(disciplineId: DisciplineId) {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(rangeGuideKey(disciplineId)) !== "1";
+}
+
+function markRangeGuideSeen(disciplineId: DisciplineId) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(rangeGuideKey(disciplineId), "1");
+}
+
 // ============================================================
 // Component
 // ============================================================
@@ -662,9 +678,10 @@ export default function AirRifleGame() {
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
   const closeRangeGuide = useCallback(() => {
+    markRangeGuideSeen(discipline.id);
     setShowRangeGuide(false);
     if (!user) setAccountPromptOpen(true);
-  }, [user]);
+  }, [discipline.id, user]);
   const hydratedRef = useRef(false);
 
   // Route-driven screen separation: '/' = Home, '/range' = Shooting.
@@ -1208,7 +1225,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
-    setShowRangeGuide(true);
+    setShowRangeGuide(shouldShowRangeGuide(d.id));
     setTimeLeft(START_TIME);
     setLoaded(true);
     setReloading(false);
@@ -1245,7 +1262,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
-    setShowRangeGuide(true);
+    setShowRangeGuide(shouldShowRangeGuide(d.id));
     setTimeLeft(999);
     setLoaded(true);
     setReloading(false);
@@ -1281,7 +1298,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
-    setShowRangeGuide(true);
+    setShowRangeGuide(shouldShowRangeGuide(d.id));
     setTimeLeft(999);
     setLoaded(true);
     setReloading(false);
@@ -1334,7 +1351,7 @@ export default function AirRifleGame() {
     setLastCoachShot(null);
     setCoachMessages([]);
     setCoachSessionId((id) => id + 1);
-    setShowRangeGuide(true);
+    setShowRangeGuide(shouldShowRangeGuide(d.id));
     setTimeLeft(999);
     setLoaded(true);
     setReloading(false);
@@ -2634,13 +2651,13 @@ function RangeCoachGuide({
   onClose: () => void;
 }) {
   const [step, setStep] = useState(0);
-  const steps = rangeCoachSteps(discipline, holdWindow);
+  const steps = disciplineRangeCoachSteps(discipline, holdWindow);
   const current = steps[step] ?? steps[0];
   const last = step >= steps.length - 1;
 
   return (
-    <div className="fixed inset-0 z-50 pointer-events-auto">
-      <div className="absolute inset-0 bg-slate-950/78 backdrop-blur-[2px]" />
+    <div className="absolute inset-0 z-50 pointer-events-auto">
+      <div className="absolute inset-0 bg-slate-950/72" />
       <motion.div
         key={current.id}
         initial={{ opacity: 0, scale: 0.96 }}
@@ -2690,6 +2707,104 @@ function RangeCoachGuide({
       </div>
     </div>
   );
+}
+
+function disciplineRangeCoachSteps(discipline: Discipline, holdWindow: number) {
+  const disciplineIntro: Record<DisciplineId, { title: string; text: string }> = {
+    ar10: {
+      title: "Пневматическая винтовка 10 м",
+      text: "Здесь главное - спокойно удержать центр. Не дергай мышь: навелся, коротко задержал дыхание, плавно нажал левую кнопку.",
+    },
+    rifle50: {
+      title: "Винтовка 50 м",
+      text: "Дистанция длиннее, поэтому любая ошибка заметнее. Перед выстрелом успокой прицел, не тяни дыхание слишком долго и нажимай без рывка.",
+    },
+    ap10: {
+      title: "Пистолет 10 м",
+      text: "Пистолет сильнее показывает ошибки руки. Держи мушку ровно, не лови идеальный момент слишком долго и нажимай мягко.",
+    },
+    rfp25: {
+      title: "Скоростной пистолет 25 м",
+      text: "Здесь важно не суетиться. Быстро навелся, выровнял мушку, плавно нажал. Резкий клик почти всегда уводит пробоину.",
+    },
+    boar: {
+      title: "Бегущий кабан 10 м",
+      text: "Это движущаяся мишень. Не пытайся догнать ее резким рывком: веди прицел рядом с целью плавно, как будто корпус поворачивается вместе с ней.",
+    },
+  };
+
+  const targetText = discipline.id === "boar"
+    ? "Мишень едет по горизонтали. Держи прицел чуть впереди движения и не добавляй лишние движения вверх-вниз. Выстрел делай, когда ведение стало ровным."
+    : "Это сама мишень. Твоя задача - привести прицел к центру, дать ему успокоиться и стрелять без резкого движения мышью.";
+
+  return [
+    {
+      id: "discipline",
+      title: disciplineIntro[discipline.id].title,
+      text: disciplineIntro[discipline.id].text,
+      spot: "left-1/2 top-1/2 w-[250px] h-[250px] -translate-x-1/2 -translate-y-1/2 rounded-full md:w-[390px] md:h-[390px]",
+      arrow: "left-[calc(50%+90px)] top-[calc(50%-210px)] md:left-[calc(50%+145px)] md:top-[calc(50%-255px)] text-6xl rotate-[38deg]",
+      arrowText: "↙",
+      arrowDx: -42,
+      arrowDy: 42,
+      card: "left-4 bottom-28 md:left-8 md:bottom-32",
+    },
+    {
+      id: "mode",
+      title: "Сначала пробные",
+      text: "Сверху слева два режима. ПРОБНЫЕ - можно пристреляться без счета. ЗАЧЕТ - уже идет результат. Начни с пробных, потом переходи в зачет.",
+      spot: "top-2 left-2 w-[315px] h-[44px] md:top-4 md:left-4 md:w-[420px] md:h-[48px]",
+      arrow: "top-[54px] left-[64px] md:top-[70px] md:left-[150px] text-5xl rotate-[-18deg]",
+      arrowText: "↑",
+      arrowDx: 0,
+      arrowDy: -40,
+      card: "left-4 top-28 md:left-8 md:top-32",
+    },
+    {
+      id: "target",
+      title: discipline.id === "boar" ? "Веди движущуюся цель" : "Целься в центр",
+      text: targetText,
+      spot: "left-1/2 top-1/2 w-[260px] h-[260px] -translate-x-1/2 -translate-y-1/2 rounded-full md:w-[410px] md:h-[410px]",
+      arrow: "left-[calc(50%-110px)] top-[calc(50%-210px)] md:left-[calc(50%-175px)] md:top-[calc(50%-270px)] text-6xl rotate-[-8deg]",
+      arrowText: "↓",
+      arrowDx: 0,
+      arrowDy: 44,
+      card: "right-4 top-24 md:right-8 md:top-28",
+    },
+    {
+      id: "breath",
+      title: "Правая кнопка - дыхание",
+      text: `Зажми правую кнопку мыши, чтобы прицел стал спокойнее. Держи недолго: около ${holdWindow} сек. Если не успел выстрелить - отпусти и начни заново.`,
+      spot: "right-3 bottom-5 w-[200px] h-[60px] md:right-6 md:bottom-6 md:w-[250px]",
+      arrow: "right-[150px] bottom-[86px] md:right-[230px] md:bottom-[96px] text-5xl rotate-[22deg]",
+      arrowText: "↘",
+      arrowDx: 35,
+      arrowDy: 30,
+      card: "right-4 bottom-32 md:right-8 md:bottom-36",
+    },
+    {
+      id: "shot",
+      title: "Левая кнопка - выстрел",
+      text: "Стреляй левой кнопкой мыши. Нажимай спокойно, не резко. Если внизу написано EMPTY, нажми R - это перезарядка.",
+      spot: "left-1/2 top-1/2 w-[130px] h-[130px] -translate-x-1/2 -translate-y-1/2 rounded-full md:w-[165px] md:h-[165px]",
+      arrow: "left-[calc(50%+70px)] top-[calc(50%-132px)] md:left-[calc(50%+88px)] md:top-[calc(50%-150px)] text-6xl rotate-[32deg]",
+      arrowText: "↙",
+      arrowDx: -38,
+      arrowDy: 38,
+      card: "left-4 top-28 md:left-8 md:top-32",
+    },
+    {
+      id: "adjustments",
+      title: "Стрелки - поправки",
+      text: "После пробного выстрела смотри, куда ушла пробоина. Попал левее - нажми стрелку влево. Попал выше - нажми вверх. Куда попал, туда и крутишь.",
+      spot: "left-2 bottom-20 w-[245px] h-[185px] md:left-4 md:bottom-24",
+      arrow: "left-[230px] bottom-[190px] md:left-[260px] md:bottom-[220px] text-6xl rotate-[16deg]",
+      arrowText: "↙",
+      arrowDx: -40,
+      arrowDy: 35,
+      card: "left-4 top-28 md:left-8 md:top-32",
+    },
+  ];
 }
 
 function rangeCoachSteps(discipline: Discipline, holdWindow: number) {
