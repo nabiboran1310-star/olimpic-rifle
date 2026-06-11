@@ -646,11 +646,49 @@ function resetRangeGuideProgress() {
 // Component
 // ============================================================
 const START_TIME = 30;
+const FIRST_SERIES_ASSESSMENT_KEY = "first-series-assessment-seen-v1";
 
 type Phase = "menu" | "playing" | "gameover";
 type SessionMode = "sighting" | "match";
 type ShotRecord = { n: number; score: number; discipline: string; id: number; sighting?: boolean };
 type Hole = { x: number; y: number; score: number; id: number; gold: boolean; sighting?: boolean };
+type FirstSeriesAssessment = {
+  score: number;
+  shots: number;
+  average: number;
+  disciplineId: DisciplineId;
+  rankId: LeaderboardRankId;
+  note: string;
+};
+
+function recommendRankByAverage(average: number): LeaderboardRankId {
+  if (average >= 10.5) return "champion";
+  if (average >= 10.1) return "pro";
+  if (average >= 9.7) return "solid";
+  if (average >= 9.2) return "starter";
+  return "rookie";
+}
+
+function assessmentNote(rankId: LeaderboardRankId) {
+  if (rankId === "champion") return "Очень сильная серия. Руслан считает, что можно сразу пробовать самый высокий темп.";
+  if (rankId === "pro") return "Рука уже держит уверенно. Тебе подойдет турнир для сильных стрелков.";
+  if (rankId === "solid") return "Хорошая база: есть точность, но еще нужно убрать случайные срывы.";
+  if (rankId === "starter") return "Нормальный старт. Лучше зайти в турнир без лишнего давления и спокойно набрать ритм.";
+  return "Начнем мягко. Главное сейчас не рекорды, а спокойная серия из десяти выстрелов.";
+}
+
+function buildFirstSeriesAssessment(score: number, shots: number, disciplineId: DisciplineId): FirstSeriesAssessment {
+  const average = shots > 0 ? +(score / shots).toFixed(2) : 0;
+  const rankId = recommendRankByAverage(average);
+  return {
+    score,
+    shots,
+    average,
+    disciplineId,
+    rankId,
+    note: assessmentNote(rankId),
+  };
+}
 
 export default function AirRifleGame() {
   const arenaRef = useRef<HTMLDivElement>(null);
@@ -708,6 +746,7 @@ export default function AirRifleGame() {
   const [careerResult, setCareerResult] = useState<{ won: boolean; score: number; level: CareerLevel } | null>(null);
   const [leaderboardRank, setLeaderboardRank] = useState<LeaderboardRankId>("rookie");
   const [leaderboardResult, setLeaderboardResult] = useState<{ score: number; disciplineId: DisciplineId; rankId: LeaderboardRankId } | null>(null);
+  const [firstSeriesAssessment, setFirstSeriesAssessment] = useState<FirstSeriesAssessment | null>(null);
   const [targetOffsetX, setTargetOffsetX] = useState(0);
   const targetOffsetRef = useRef(0);
   const boarRunRef = useRef(-260); // starts off-screen left; set on level start
@@ -780,6 +819,13 @@ export default function AirRifleGame() {
     setShowRangeGuide(false);
     if (!user) setAccountPromptOpen(true);
   }, [discipline.id, user]);
+  const maybeShowFirstSeriesAssessment = useCallback((finalScore: number, shots: number, disciplineId: DisciplineId) => {
+    if (typeof window === "undefined" || shots <= 0) return;
+    const userKey = user?.id ? `${FIRST_SERIES_ASSESSMENT_KEY}-${user.id}` : FIRST_SERIES_ASSESSMENT_KEY;
+    if (localStorage.getItem(userKey) === "1") return;
+    localStorage.setItem(userKey, "1");
+    setFirstSeriesAssessment(buildFirstSeriesAssessment(finalScore, shots, disciplineId));
+  }, [user?.id]);
   const hydratedRef = useRef(false);
 
   // Route-driven screen separation: '/' = Home, '/range' = Shooting.
@@ -991,10 +1037,11 @@ export default function AirRifleGame() {
   // Game over trigger (quick mode only — by time)
   useEffect(() => {
     if (phase === "playing" && mode === "quick" && sessionMode === "match" && timeLeft <= 0) {
+      maybeShowFirstSeriesAssessment(score, totalShots, discipline.id);
       setPhase("gameover");
       playSfx(A.gameOver);
     }
-  }, [timeLeft, phase, mode, sessionMode]);
+  }, [timeLeft, phase, mode, sessionMode, score, totalShots, discipline.id, maybeShowFirstSeriesAssessment]);
 
   // Physics
   useEffect(() => {
@@ -1217,6 +1264,7 @@ export default function AirRifleGame() {
       const won = finalScore >= careerLevel.winScore;
       recordDailyLeaderboardScore(careerLevel.disciplineId, CAREER_RANK_BY_LEVEL[careerLevel.id], finalScore);
       setTimeout(() => {
+        maybeShowFirstSeriesAssessment(finalScore, shotNum, d.id);
         setCareerResult({ won, score: finalScore, level: careerLevel });
         setPhase("gameover");
         if (won) {
@@ -1253,7 +1301,7 @@ export default function AirRifleGame() {
       const playerScore = +(score + sc).toFixed(1);
       setTimeout(() => runOlympicRound(shotNum, playerScore), 550);
     }
-  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore, leaderboardRank, hasUpgrade]);
+  }, [phase, loaded, reloading, holding, holdStart, discipline, equippedSkin, totalShots, mode, careerLevel, score, errorX, errorY, adjX, adjY, sessionMode, recordDailyLeaderboardScore, leaderboardRank, hasUpgrade, maybeShowFirstSeriesAssessment]);
 
   // ----- Olympic round helper -----
   const runOlympicRound = (shotNum: number, playerScore: number) => {
@@ -1514,6 +1562,7 @@ export default function AirRifleGame() {
     setCoachOpen(false);
     setCareerResult(null);
     setLeaderboardResult(null);
+    setFirstSeriesAssessment(null);
     navigate({ to: "/" });
   };
 
@@ -1704,6 +1753,15 @@ export default function AirRifleGame() {
       <AccountPrompt
         open={accountPromptOpen && !user}
         onClose={() => setAccountPromptOpen(false)}
+      />
+      <FirstSeriesAssessmentPrompt
+        assessment={firstSeriesAssessment}
+        onClose={() => setFirstSeriesAssessment(null)}
+        onPlay={(assessment) => {
+          const selected = DISCIPLINES.find((item) => item.id === assessment.disciplineId) ?? DISCIPLINES[0];
+          setFirstSeriesAssessment(null);
+          startLeaderboardMatch(selected, assessment.rankId);
+        }}
       />
 
       {/* GAMEPLAY */}
@@ -3220,6 +3278,79 @@ function TournamentPrompt({
                 className="bg-primary text-primary-foreground px-5 py-2 text-xs font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
               >
                 УЧАСТВОВАТЬ
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function FirstSeriesAssessmentPrompt({
+  assessment,
+  onClose,
+  onPlay,
+}: {
+  assessment: FirstSeriesAssessment | null;
+  onClose: () => void;
+  onPlay: (assessment: FirstSeriesAssessment) => void;
+}) {
+  const rank = assessment ? LEADERBOARD_RANKS.find((item) => item.id === assessment.rankId) ?? LEADERBOARD_RANKS[0] : null;
+  const disciplineItem = assessment ? DISCIPLINES.find((item) => item.id === assessment.disciplineId) ?? DISCIPLINES[0] : null;
+
+  return (
+    <AnimatePresence>
+      {assessment && rank && disciplineItem && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[120] bg-slate-950/82 flex items-center justify-center p-4"
+          onClick={onClose}
+        >
+          <motion.div
+            initial={{ scale: 0.96, opacity: 0, y: 12 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.96, opacity: 0, y: 12 }}
+            transition={{ duration: 0.18 }}
+            onClick={(event) => event.stopPropagation()}
+            className="w-full max-w-lg border border-primary/70 bg-[var(--navy-mid)] p-6 shadow-2xl"
+          >
+            <div className="text-[10px] tracking-[0.42em] text-primary font-black">РАЗБОР РУСЛАНА</div>
+            <h2 className="mt-2 text-2xl font-black tracking-tight">Я подобрал тебе уровень</h2>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              Посмотрел первую серию: лучше идти в турнир с соперниками твоего темпа. Так будет честнее и интереснее.
+            </p>
+
+            <div className="mt-5 grid grid-cols-3 gap-3 text-center font-mono">
+              <Stat label="СЧЁТ" value={assessment.score.toFixed(1)} />
+              <Stat label="ВЫСТРЕЛОВ" value={assessment.shots} />
+              <Stat label="СРЕДНЕЕ" value={assessment.average.toFixed(2)} />
+            </div>
+
+            <div className="mt-4 border border-[var(--gold-bright)]/55 bg-slate-950/45 px-4 py-3">
+              <div className="text-[10px] tracking-widest text-muted-foreground">РЕКОМЕНДОВАННЫЙ ТУРНИР</div>
+              <div className="mt-1 text-lg font-black text-[var(--gold-bright)]">{rank.name}</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                {disciplineItem.name} · {assessment.note}
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:justify-end">
+              <button
+                type="button"
+                onClick={onClose}
+                className="border border-border px-4 py-2 text-xs font-bold tracking-widest text-muted-foreground hover:text-foreground hover:border-primary transition-colors"
+              >
+                ПОЗЖЕ
+              </button>
+              <button
+                type="button"
+                onClick={() => onPlay(assessment)}
+                className="bg-primary text-primary-foreground px-5 py-2 text-xs font-black tracking-widest hover:bg-[var(--gold-bright)] transition-colors"
+              >
+                ЗАЙТИ В ТУРНИР
               </button>
             </div>
           </motion.div>
